@@ -85,6 +85,7 @@
       content:'';position:absolute;inset:-2px;border-radius:16px;padding:2px;
       background:linear-gradient(135deg,rgba(255,83,71,.5),transparent 50%,rgba(251,225,34,.4));
       -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
       -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
     }
     .header-title{
@@ -224,7 +225,7 @@
       font-family:'Space Mono',monospace;font-size:15px;font-weight:700;
       color:var(--accent);border:none;background:var(--bg2);
       border-left:1px solid var(--border);border-right:1px solid var(--border);
-      -moz-appearance:textfield;outline:none;
+      -moz-appearance:textfield;appearance:textfield;outline:none;
     }
     .qty-display::-webkit-inner-spin-button{display:none}
     .qty-display:focus{background:var(--accent-bg)}
@@ -435,7 +436,7 @@
     .btn-export:hover{background:rgba(0,210,122,.18);transform:translateY(-1px)}
 
     input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8) sepia(.5) hue-rotate(350deg) saturate(2);opacity:.6;cursor:pointer}
-    input[type="number"]{-moz-appearance:textfield}
+    input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 
     .theme-toggle{
       width:38px;height:38px;border-radius:11px;
