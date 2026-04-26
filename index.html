@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Warkopsaja — Input Harian</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f4d4a8'/><stop offset='1' stop-color='%23c9975f'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='%231a0e05' font-size='16' font-weight='bold'>☕</text></svg>"/>
   <meta name="description" content="Input & rekap kas harian warung kopi"/>
@@ -570,6 +570,7 @@
     /* === Animated number === */
     .num-anim{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
+    /* === Responsive: tablet & mobile === */
     @media(max-width:900px){
       .stats-row{grid-template-columns:repeat(2,1fr)}
       .sidebar{display:none}
@@ -577,14 +578,97 @@
       .content{max-height:calc(100vh - 73px - 60px);padding:20px 16px 90px}
     }
     @media(max-width:600px){
-      .stats-row{grid-template-columns:1fr}
-      .header{padding:12px 16px}
-      .content{padding:16px 14px 90px}
-      .summary-grid{grid-template-columns:1fr}
-      .summary-item.gaji-box,.summary-item.kas-box{grid-column:span 1}
-      .gajian-stats{grid-template-columns:1fr}
-      .gajian-stats2{grid-template-columns:1fr}
+      /* Header lebih compact, hapus sub-tanggal */
+      .header{padding:10px 14px;gap:10px;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+      .header-logo{width:38px;height:38px;font-size:18px;border-radius:11px}
+      .header-title{font-size:16px}
+      .header-sub{display:none}
+      .header-right{gap:6px}
+      .theme-toggle{width:34px;height:34px;font-size:14px;border-radius:9px}
+      .sync-badge{padding:4px 9px;font-size:10px}
+
+      /* Content & cards padding */
+      .content{padding:14px 12px 96px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+      .card,.history-item,.gajian-card{padding:16px;border-radius:12px;margin-bottom:12px}
+      .card-title{margin-bottom:12px;font-size:10px}
       .page-title{font-size:22px}
+      .page-sub{margin-bottom:18px;font-size:13px}
+
+      /* Posisi Kas: angka responsive, padding lebih kecil */
+      .posisi-kas{padding:18px;border-radius:14px}
+      .posisi-kas-value{font-size:clamp(28px,9vw,40px);letter-spacing:-.5px;word-break:break-all}
+      .posisi-kas-breakdown{grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px;padding-top:12px}
+      .posisi-kas-item-val{font-size:14px}
+      .posisi-kas-day{gap:14px;font-size:11px;margin-top:12px;padding-top:12px}
+
+      /* Stats / summary */
+      .stats-row{grid-template-columns:1fr;gap:10px}
+      .summary-grid{grid-template-columns:1fr;gap:8px}
+      .summary-item.gaji-box,.summary-item.kas-box{grid-column:span 1}
+      .summary-item{padding:14px 16px}
+      .summary-item.gaji-box .summary-value,.summary-item.kas-box .summary-value{font-size:20px}
+      .gajian-stats{grid-template-columns:1fr;gap:8px}
+      .gajian-stats2{grid-template-columns:1fr;gap:8px}
+
+      /* Product row: qty-control compact */
+      .product-row{padding:12px 0;gap:10px}
+      .product-emoji{width:38px;height:38px;font-size:17px;border-radius:11px}
+      .product-name{font-size:13px}
+      .product-meta{font-size:10px}
+      .qty-btn{width:36px;height:38px;font-size:18px}
+      .qty-display{width:42px;height:38px;font-size:14px}
+
+      /* Date input row: stack on mobile */
+      .date-row{gap:8px}
+      .date-input{padding:10px 12px;font-size:13px}
+
+      /* Pengeluaran row tetap horizontal tapi jumlah lebih kecil */
+      .expense-row{gap:6px}
+      .expense-input{padding:10px 12px;font-size:13px}
+      .expense-amount{width:100px;padding:10px 10px;font-size:12px}
+      .del-btn{width:34px;height:34px;font-size:14px}
+
+      /* Save button: padding lebih ringkas */
+      .btn-save{padding:15px;font-size:14px;border-radius:12px}
+
+      /* Gajian header: total box pindah ke bawah label saat sempit */
+      .gajian-header{flex-direction:column;gap:10px}
+      .gajian-total-box{text-align:left;align-self:flex-start}
+      .gajian-total-value{font-size:22px}
+      .gajian-day-row{padding:8px 0;font-size:12px}
+      .gajian-card{padding:18px}
+
+      /* Riwayat history pills */
+      .history-item{padding:14px 16px}
+      .history-date{font-size:12px}
+      .history-gaji{font-size:13px}
+
+      /* Toast tidak ketabrak mobile-nav */
+      .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px));font-size:12px;padding:11px 22px}
+
+      /* Mobile nav: touch target lebih besar */
+      .mobile-nav-btn{padding:9px 18px;font-size:11px;min-width:80px}
+
+      /* Search */
+      .search-input{font-size:14px;padding:11px 14px 11px 38px}
+
+      /* Modal: full-width feel */
+      .modal{padding:22px;border-radius:16px}
+    }
+    @media(max-width:380px){
+      .header{padding:8px 12px;gap:8px}
+      .header-title{font-size:15px}
+      .kas-badge{padding:5px 10px;font-size:11px}
+      .content{padding:12px 10px 96px}
+      .card,.history-item,.gajian-card{padding:14px}
+      .posisi-kas{padding:16px}
+      .posisi-kas-value{font-size:clamp(24px,8.5vw,34px)}
+      .posisi-kas-breakdown{grid-template-columns:repeat(2,1fr);gap:10px}
+      .product-emoji{width:34px;height:34px;font-size:15px}
+      .qty-btn{width:32px;height:36px}
+      .qty-display{width:36px;height:36px;font-size:13px}
+      .expense-amount{width:88px}
+      .gajian-total-value{font-size:20px}
     }
   </style>
 </head>
