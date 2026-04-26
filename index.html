@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Warkopsaja — Input Harian</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f4d4a8'/><stop offset='1' stop-color='%23c9975f'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='%231a0e05' font-size='16' font-weight='bold'>☕</text></svg>"/>
+  <meta name="description" content="Input & rekap kas harian warung kopi"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0b0705;--bg2:#14100a;--bg3:#1e1810;--bg4:#2b2216;
+      --border:rgba(212,165,116,.12);--border2:rgba(212,165,116,.22);
+      --text:#f7ede0;--text2:#c3b09a;--text3:#847058;
+      --accent:#e3b584;--accent2:#c9975f;--accent3:#f4d4a8;--accent-deep:#a87644;
+      --accent-bg:rgba(227,181,132,.09);--accent-border:rgba(227,181,132,.22);
+      --red:#f06e6e;--red-bg:rgba(240,110,110,.09);--red-border:rgba(240,110,110,.18);
+      --green:#6ac57a;--green-bg:rgba(106,197,122,.09);--green-border:rgba(106,197,122,.2);
+      --blue:#6fb2f0;--blue-bg:rgba(111,178,240,.09);
+      --orange:#f0b058;--orange-bg:rgba(240,176,88,.09);--orange-border:rgba(240,176,88,.18);
+      --purple:#b794f0;--purple-bg:rgba(183,148,240,.09);
+      --grad-warm:linear-gradient(135deg,#f4d4a8 0%,#e3b584 45%,#c9975f 100%);
+      --grad-card:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0));
+      --shadow:0 12px 40px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.3);
+      --shadow-glow:0 0 0 1px var(--accent-border),0 10px 32px rgba(227,181,132,.12);
+      --radius:14px;--radius-lg:18px;
+    }
+    html,body,#root{height:100%}
+    html{transition:background-color .35s ease}
+    body,.header,.sidebar,.mobile-nav,.card,.history-item,.gajian-card,.stat-card,
+    .qty-display,.expense-input,.expense-amount,.form-input,.date-input,.pill,
+    .theme-toggle,.nav-btn,.mobile-nav-btn,.summary-item,.gajian-stat,.day-total{
+      transition:background-color .35s ease,color .35s ease,border-color .35s ease;
+    }
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:'DM Sans',-apple-system,sans-serif;
+      font-feature-settings:"ss01","cv11";
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 15% -5%,rgba(227,181,132,.12) 0%,transparent 60%),
+        radial-gradient(ellipse 50% 35% at 85% 105%,rgba(201,151,95,.1) 0%,transparent 55%),
+        radial-gradient(ellipse 40% 30% at 50% 50%,rgba(168,118,68,.04) 0%,transparent 70%);
+      background-attachment:fixed;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity:.5;mix-blend-mode:overlay;
+    }
+    .app{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    @keyframes aurora{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(10px,-10px) rotate(1deg)}}
+
+    .header{
+      background:linear-gradient(180deg,rgba(20,16,10,.85),rgba(11,7,5,.7));
+      backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+      border-bottom:1px solid var(--border);
+      padding:14px 24px;display:flex;align-items:center;gap:14px;
+      position:sticky;top:0;z-index:100;
+    }
+    .header::after{
+      content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+      background:linear-gradient(90deg,transparent,var(--accent-border) 25%,var(--accent-border) 75%,transparent);
+    }
+    .header-logo{
+      width:46px;height:46px;
+      background:var(--grad-warm);
+      border-radius:14px;display:flex;align-items:center;justify-content:center;
+      font-size:22px;flex-shrink:0;position:relative;
+      box-shadow:0 6px 24px rgba(227,181,132,.3),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);
+    }
+    .header-logo::after{
+      content:'';position:absolute;inset:-2px;border-radius:16px;padding:2px;
+      background:linear-gradient(135deg,rgba(244,212,168,.5),transparent 50%,rgba(168,118,68,.3));
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+    }
+    .header-title{
+      font-size:20px;font-weight:700;letter-spacing:-.6px;
+      background:linear-gradient(180deg,var(--text),var(--accent3));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .header-sub{font-size:12px;color:var(--text3);margin-top:1px;font-family:'Space Mono',monospace;letter-spacing:.02em}
+    .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+
+    .sync-badge{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid transparent}
+    .sync-online{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+    .sync-offline{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+    .sync-dot{width:7px;height:7px;border-radius:50%}
+    .sync-dot.online{background:var(--green);animation:pulse 2s infinite}
+    .sync-dot.offline{background:var(--red)}
+
+    .main-area{display:flex;flex:1}
+    .sidebar{
+      width:230px;background:linear-gradient(180deg,var(--bg2),rgba(20,16,10,.4));
+      border-right:1px solid var(--border);
+      padding:20px 14px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    }
+    .sidebar-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;padding:12px 14px 8px;margin-top:4px}
+    .nav-btn{
+      display:flex;align-items:center;gap:10px;
+      padding:11px 16px;border:1px solid transparent;background:transparent;
+      color:var(--text2);font-size:14px;font-family:inherit;font-weight:500;
+      border-radius:11px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);
+      position:relative;
+    }
+    .nav-btn:hover{background:rgba(227,181,132,.05);color:var(--text)}
+    .nav-btn.active{
+      background:linear-gradient(135deg,rgba(227,181,132,.14),rgba(227,181,132,.03));
+      color:var(--accent);border-color:var(--accent-border);font-weight:600;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 16px rgba(227,181,132,.08);
+    }
+    .nav-btn.active::before{
+      content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);
+      width:3px;height:20px;background:var(--grad-warm);border-radius:0 4px 4px 0;
+      box-shadow:0 0 12px rgba(227,181,132,.5);
+    }
+
+    .content{flex:1;padding:28px 32px;overflow-y:auto;max-height:calc(100vh - 73px)}
+    .page-title{
+      font-size:28px;font-weight:700;margin-bottom:6px;letter-spacing:-.7px;
+      background:linear-gradient(135deg,var(--text) 20%,var(--accent3) 60%,var(--accent) 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      line-height:1.15;
+    }
+    .page-sub{color:var(--text3);font-size:14px;margin-bottom:28px;letter-spacing:-.1px}
+
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+    .stat-card{
+      background:linear-gradient(180deg,var(--bg2),rgba(20,16,10,.6));
+      border:1px solid var(--border);border-radius:var(--radius);padding:20px;
+      position:relative;overflow:hidden;backdrop-filter:blur(6px);
+    }
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border2) 50%,transparent)}
+    .stat-card.highlight{border-color:var(--accent-border)}
+    .stat-card.highlight::before{background:linear-gradient(90deg,transparent,var(--accent) 50%,transparent);height:1.5px}
+    .stat-card.warn{border-color:var(--red-border)}
+    .stat-card.warn::before{background:linear-gradient(90deg,transparent,var(--red) 50%,transparent);height:1.5px}
+    .stat-card.kas{border-color:var(--green-border)}
+    .stat-card.kas::before{background:linear-gradient(90deg,transparent,var(--green) 50%,transparent);height:1.5px}
+    .stat-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+    .stat-value{font-size:26px;font-weight:700;font-family:'Space Mono',monospace}
+    .stat-value.green{color:var(--accent)}.stat-value.blue{color:var(--blue)}
+    .stat-value.orange{color:var(--orange)}.stat-value.red{color:var(--red)}
+
+    .section-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .section-title .dot{width:8px;height:8px;border-radius:50%}
+
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:11px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
+    .btn-primary{background:var(--grad-warm);color:#1a0e05;box-shadow:0 4px 14px rgba(227,181,132,.25),inset 0 1px 0 rgba(255,255,255,.3)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(227,181,132,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+    .btn-danger:hover{background:rgba(240,110,110,.18);border-color:rgba(240,110,110,.3)}
+    .btn-ghost{background:rgba(255,255,255,.02);color:var(--text2);border:1px solid var(--border)}
+    .btn-ghost:hover{background:rgba(255,255,255,.04);color:var(--text);border-color:var(--border2)}
+    .btn-sm{padding:5px 10px;font-size:12px}
+    .btn-save{
+      width:100%;padding:17px;font-size:15px;font-weight:700;
+      background:var(--grad-warm);color:#1a0e05;border:none;border-radius:15px;cursor:pointer;
+      box-shadow:0 8px 32px rgba(227,181,132,.3),0 2px 8px rgba(168,118,68,.15),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(0,0,0,.1);
+      transition:all .3s cubic-bezier(.4,0,.2,1);letter-spacing:.02em;
+      position:relative;overflow:hidden;
+    }
+    .btn-save::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+      background-size:200% 100%;opacity:0;transition:opacity .3s;
+    }
+    .btn-save:hover{box-shadow:0 12px 44px rgba(227,181,132,.45),0 4px 12px rgba(168,118,68,.25),inset 0 1px 0 rgba(255,255,255,.3);transform:translateY(-2px)}
+    .btn-save:hover::before{opacity:1;animation:shimmer 1.8s ease-in-out infinite}
+    .btn-save:active{transform:translateY(0) scale(.99)}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+    .product-row{
+      display:flex;align-items:center;padding:14px 0;
+      border-bottom:1px solid rgba(227,181,132,.06);gap:14px;transition:all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .product-row:last-child{border-bottom:none}
+    .product-row:hover{padding-left:6px}
+    .product-row:hover .product-emoji{border-color:var(--accent-border);box-shadow:0 0 0 3px rgba(227,181,132,.06)}
+    .product-emoji{
+      width:44px;height:44px;border-radius:13px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;flex-shrink:0;
+      background:linear-gradient(145deg,var(--bg3),var(--bg4));
+      border:1px solid var(--border);transition:all .2s;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .product-info{flex:1;min-width:0}
+    .product-name{font-size:14px;font-weight:600;letter-spacing:-.2px}
+    .product-meta{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-top:3px}
+    .qty-control{
+      display:flex;align-items:center;
+      border:1px solid var(--border);border-radius:13px;overflow:hidden;
+      box-shadow:0 2px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.02);
+      flex-shrink:0;background:linear-gradient(180deg,var(--bg3),var(--bg2));
+      transition:border-color .2s;
+    }
+    .qty-control:focus-within{border-color:var(--accent-border);box-shadow:0 0 0 3px var(--accent-bg),0 2px 10px rgba(0,0,0,.25)}
+    .qty-btn{
+      width:42px;height:42px;background:transparent;border:none;
+      font-size:20px;color:var(--text2);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:all .15s;user-select:none;font-family:inherit;
+    }
+    .qty-btn:hover{background:var(--bg4);color:var(--accent)}
+    .qty-btn:active{color:var(--accent);transform:scale(.88)}
+    .qty-display{
+      width:50px;height:42px;text-align:center;
+      font-family:'Space Mono',monospace;font-size:15px;font-weight:700;
+      color:var(--accent);border:none;background:var(--bg2);
+      border-left:1px solid var(--border);border-right:1px solid var(--border);
+      -moz-appearance:textfield;outline:none;
+    }
+    .qty-display::-webkit-inner-spin-button{display:none}
+    .qty-display:focus{background:var(--accent-bg)}
+
+    .expense-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .expense-input{
+      flex:1;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
+      border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:all .2s;
+    }
+    .expense-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+    .expense-input::placeholder{color:var(--text3)}
+    .expense-amount{
+      width:130px;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
+      border-radius:10px;color:var(--text);font-family:'Space Mono',monospace;font-size:13px;
+      text-align:right;outline:none;transition:all .2s;flex-shrink:0;
+    }
+    .expense-amount:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+    .expense-amount::placeholder{color:var(--text3)}
+    .del-btn{
+      width:38px;height:38px;background:none;border:1px solid var(--border);
+      border-radius:10px;color:var(--text3);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;font-size:16px;
+      flex-shrink:0;transition:all .15s;font-family:inherit;
+    }
+    .del-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+    .add-expense-btn{
+      font-family:inherit;font-size:13px;font-weight:600;color:var(--accent);
+      background:var(--accent-bg);border:1px dashed var(--accent-border);
+      border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;transition:all .2s;
+    }
+    .add-expense-btn:hover{background:rgba(212,165,116,.15);border-color:var(--accent)}
+
+    .card{
+      background:linear-gradient(180deg,rgba(20,16,10,.9),rgba(14,10,7,.75));
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:22px;margin-bottom:16px;
+      position:relative;overflow:hidden;animation:fadeUp .45s cubic-bezier(.4,0,.2,1) both;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 8px 32px rgba(0,0,0,.2);
+    }
+    .card::before{
+      content:'';position:absolute;inset:0;border-radius:var(--radius-lg);pointer-events:none;
+      background:var(--grad-card);
+    }
+    .card:nth-child(2){animation-delay:.05s}
+    .card:nth-child(3){animation-delay:.1s}
+    .card:nth-child(4){animation-delay:.15s}
+    .card-title{
+      font-size:11px;font-weight:700;color:var(--accent);
+      letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;
+      display:flex;align-items:center;gap:10px;
+      text-shadow:0 0 24px rgba(227,181,132,.3);
+    }
+    .card-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--accent-border),transparent 80%)}
+
+    .date-row{display:flex;align-items:center;gap:10px}
+    .date-input{
+      font-family:'Space Mono',monospace;font-size:14px;
+      border:1px solid var(--border);background:var(--bg3);color:var(--text);
+      padding:11px 14px;border-radius:10px;flex:1;cursor:pointer;outline:none;transition:all .2s;
+    }
+    .date-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .summary-item{background:var(--bg3);border-radius:12px;padding:16px 18px;border:1px solid transparent;transition:all .2s}
+    .summary-item:hover{border-color:var(--border2)}
+    .summary-item.gaji-box{
+      background:linear-gradient(135deg,rgba(212,165,116,.1),rgba(212,165,116,.03));
+      grid-column:span 2;border:1px solid var(--accent-border);
+    }
+    .summary-item.gaji-box .summary-value{font-size:24px;font-weight:700;color:var(--accent)}
+    .summary-item.kas-box{background:var(--green-bg);grid-column:span 2;border:1px solid var(--green-border)}
+    .summary-item.kas-box .summary-value{font-size:22px;font-weight:700;color:var(--green)}
+    .summary-item.outbox{background:var(--red-bg);border:1px solid var(--red-border)}
+    .summary-item.outbox .summary-value{color:var(--red)}
+    .summary-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .summary-value{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--text)}
+
+    .day-total{
+      margin-top:14px;padding:14px 16px;background:var(--bg3);
+      border-radius:10px;border:1px solid var(--border);
+      font-size:12px;font-family:'Space Mono',monospace;color:var(--text2);line-height:1.9;
+    }
+    .day-total strong{color:var(--accent);font-weight:700}
+
+    .payday-banner{padding:20px 22px;border-radius:var(--radius-lg);margin-bottom:18px;position:relative;overflow:hidden;backdrop-filter:blur(6px)}
+    .payday-banner::before{content:'';position:absolute;inset:0;opacity:.03;background:repeating-linear-gradient(45deg,transparent,transparent 10px,currentColor 10px,currentColor 11px)}
+    .payday-banner.today{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+    .payday-banner.upcoming{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent)}
+    .payday-title{font-size:15px;font-weight:700;margin-bottom:4px;position:relative}
+    .payday-detail{font-size:12px;color:var(--text2);font-family:'Space Mono',monospace;position:relative}
+    .payday-amount{font-size:24px;font-weight:700;font-family:'Space Mono',monospace;margin-top:8px;position:relative}
+    .payday-banner.today .payday-title,.payday-banner.today .payday-amount{color:var(--green)}
+    .payday-banner.upcoming .payday-title,.payday-banner.upcoming .payday-amount{color:var(--accent)}
+
+    .sync-status{text-align:center;font-size:12px;font-family:'Space Mono',monospace;padding:10px;margin-top:10px;border-radius:10px}
+    .sync-status.syncing{color:var(--accent);background:var(--accent-bg)}
+    .sync-status.success{color:var(--green);background:var(--green-bg)}
+    .sync-status.error{color:var(--red);background:var(--red-bg)}
+
+    .history-item{
+      background:linear-gradient(180deg,rgba(20,16,10,.9),rgba(14,10,7,.75));
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:10px;
+      cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);animation:fadeUp .3s ease both;
+      backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    }
+    .history-item:hover{border-color:var(--accent-border);transform:translateY(-1px);box-shadow:var(--shadow-glow)}
+    .history-item-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+    .history-date{font-size:13px;font-weight:600}
+    .history-gaji{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent)}
+    .history-pills{display:flex;gap:6px;flex-wrap:wrap}
+    .pill{
+      font-size:11px;padding:4px 12px;border-radius:20px;
+      background:var(--bg3);color:var(--text2);font-family:'Space Mono',monospace;
+      font-weight:400;border:1px solid var(--border);
+    }
+    .history-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);animation:fadeUp .25s ease}
+    .detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;font-family:'Space Mono',monospace}
+    .detail-row.total{font-weight:700;color:var(--accent);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
+
+    .gajian-card{
+      background:linear-gradient(180deg,rgba(20,16,10,.9),rgba(14,10,7,.75));
+      border:1px solid var(--border);border-radius:var(--radius-lg);
+      padding:22px;margin-bottom:16px;position:relative;overflow:hidden;animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      box-shadow:0 8px 32px rgba(0,0,0,.2);
+    }
+    .gajian-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+    .gajian-card.active-period{border-color:var(--accent-border)}
+    .gajian-card.active-period::before{background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+    .gajian-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+    .gajian-period-label{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
+    .gajian-period-dates{font-size:12px;color:var(--text3);font-family:'Space Mono',monospace;margin-top:3px}
+    .gajian-total-box{text-align:right}
+    .gajian-total-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+    .gajian-total-value{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--accent)}
+    .gajian-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+    .gajian-stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
+    .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+    .gajian-stat-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;margin-top:4px}
+    .gajian-day-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(61,46,26,.4);font-size:13px}
+    .gajian-day-row:last-child{border-bottom:none}
+    .gajian-day-date{color:var(--text2)}
+    .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace}
+    .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--accent)}
+    .gajian-day-row.empty .gajian-day-amount{color:var(--text3);font-weight:400}
+    .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:6px}
+    .gajian-status-badge.paid{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+    .gajian-status-badge.pending{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+    .gajian-status-badge.future{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+    .toast{
+      position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(14px);
+      background:var(--grad-warm);color:#1a0e05;font-family:inherit;font-size:13px;font-weight:700;
+      padding:13px 26px;border-radius:32px;opacity:0;
+      transition:opacity .3s,transform .3s cubic-bezier(.34,1.56,.64,1);
+      pointer-events:none;z-index:999;white-space:nowrap;
+      box-shadow:0 12px 40px rgba(227,181,132,.4),0 2px 8px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.3);
+      letter-spacing:-.1px;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    .empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
+    .empty-icon{font-size:48px;margin-bottom:16px}
+
+    .mobile-nav{
+      display:none;position:fixed;bottom:0;left:0;right:0;
+      background:linear-gradient(180deg,rgba(11,7,5,.7),rgba(11,7,5,.95));
+      backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+      border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px);z-index:100;
+    }
+    .mobile-nav::before{
+      content:'';position:absolute;left:0;right:0;top:-1px;height:1px;
+      background:linear-gradient(90deg,transparent,var(--accent-border) 30%,var(--accent-border) 70%,transparent);
+    }
+    .mobile-nav-inner{display:flex;justify-content:space-around}
+    .mobile-nav-btn{
+      display:flex;flex-direction:column;align-items:center;gap:3px;
+      background:none;border:none;color:var(--text3);
+      font-family:inherit;font-size:10px;font-weight:600;
+      padding:8px 16px;cursor:pointer;border-radius:12px;transition:all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .mobile-nav-btn.active{color:var(--accent);background:linear-gradient(180deg,rgba(227,181,132,.12),rgba(227,181,132,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);border-bottom:1px solid var(--border)}
+    td{padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(61,46,26,.4)}
+    tr:hover td{background:rgba(212,165,116,.03)}
+    .tag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+
+    .form-group{margin-bottom:16px}
+    .form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.06em}
+    .form-input{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:all .2s}
+    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px)}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:28px;width:480px;max-width:95vw;box-shadow:var(--shadow);max-height:90vh;overflow-y:auto}
+    .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+
+    .btn-export{
+      display:inline-flex;align-items:center;gap:7px;padding:9px 18px;
+      background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);
+      border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .2s;
+    }
+    .btn-export:hover{background:rgba(93,186,111,.18);transform:translateY(-1px)}
+
+    input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8) sepia(.5) hue-rotate(350deg) saturate(2);opacity:.6;cursor:pointer}
+    input[type="number"]{-moz-appearance:textfield}
+
+    .theme-toggle{
+      width:38px;height:38px;border-radius:11px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.02);color:var(--text2);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      font-size:16px;transition:all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .theme-toggle:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);transform:rotate(-12deg) scale(1.05)}
+    .theme-toggle:active{transform:rotate(-12deg) scale(.95)}
+
+    .kas-badge{
+      display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;
+      background:var(--accent-bg);border:1px solid var(--accent-border);
+      font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);
+      transition:all .2s;
+    }
+    .kas-badge-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+    .kas-badge-val.neg{color:var(--red)}
+    @media(max-width:600px){.kas-badge-label{display:none}.kas-badge{padding:6px 10px;font-size:12px}}
+
+    .posisi-kas{
+      background:linear-gradient(135deg,rgba(227,181,132,.12),rgba(20,16,10,.4));
+      border:1px solid var(--accent-border);border-radius:var(--radius-lg);
+      padding:22px;margin-bottom:18px;position:relative;overflow:hidden;
+      animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      box-shadow:0 8px 28px rgba(0,0,0,.18);
+    }
+    .posisi-kas::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad-warm);opacity:.7}
+    .posisi-kas-label{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .posisi-kas-value{font-family:'Space Mono',monospace;font-size:34px;font-weight:700;color:var(--accent);letter-spacing:-.5px;line-height:1.1}
+    .posisi-kas-value.neg{color:var(--red)}
+    .posisi-kas-breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+    .posisi-kas-item{display:flex;flex-direction:column;gap:4px}
+    .posisi-kas-item-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+    .posisi-kas-item-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700}
+    .posisi-kas-day{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:12px;font-family:'Space Mono',monospace}
+    .posisi-kas-day-item{display:flex;align-items:center;gap:6px}
+    .posisi-kas-day-val.pos{color:var(--green)}
+    .posisi-kas-day-val.neg{color:var(--red)}
+    .posisi-kas-day-val.none{color:var(--text3);font-style:italic}
+    @media(max-width:600px){.posisi-kas-breakdown{grid-template-columns:repeat(2,1fr)}.posisi-kas-value{font-size:28px}}
+
+    [data-theme="light"] .posisi-kas{background:linear-gradient(135deg,rgba(168,106,63,.1),rgba(239,229,210,.6));box-shadow:0 6px 20px rgba(120,85,55,.08)}
+
+    /* === Soft Sepia Light Theme (low-glare, warm parchment) === */
+    [data-theme="light"]{
+      --bg:#e8ddc9;--bg2:#efe5d2;--bg3:#e0d4bc;--bg4:#d4c5a8;
+      --border:rgba(120,85,55,.16);--border2:rgba(120,85,55,.26);
+      --text:#3a2a1c;--text2:#6b5640;--text3:#9a8770;
+      --accent:#a86a3f;--accent2:#8a5430;--accent3:#b88058;--accent-deep:#6b3f22;
+      --accent-bg:rgba(168,106,63,.09);--accent-border:rgba(168,106,63,.24);
+      --red:#b25a5a;--red-bg:rgba(178,90,90,.09);--red-border:rgba(178,90,90,.22);
+      --green:#5a8a5a;--green-bg:rgba(90,138,90,.09);--green-border:rgba(90,138,90,.22);
+      --blue:#5a7ba8;--blue-bg:rgba(90,123,168,.09);
+      --orange:#b07838;--orange-bg:rgba(176,120,56,.09);--orange-border:rgba(176,120,56,.22);
+      --purple:#8a6fa8;--purple-bg:rgba(138,111,168,.09);
+      --grad-warm:linear-gradient(135deg,#d4a878 0%,#b88058 45%,#8a5430 100%);
+      --grad-card:linear-gradient(180deg,rgba(245,235,215,.5),rgba(245,235,215,0));
+      --shadow:0 8px 28px rgba(120,85,55,.1),0 2px 6px rgba(120,85,55,.06);
+      --shadow-glow:0 0 0 1px var(--accent-border),0 8px 24px rgba(168,106,63,.14);
+    }
+    [data-theme="light"] .page-title{background:linear-gradient(135deg,#3a2a1c 20%,#6b3f22 60%,#a86a3f 100%);-webkit-background-clip:text;background-clip:text}
+    [data-theme="light"] .header-title{background:linear-gradient(180deg,var(--text),var(--accent-deep));-webkit-background-clip:text;background-clip:text}
+    [data-theme="light"] .card-title{text-shadow:none}
+    [data-theme="light"] .history-gaji,
+    [data-theme="light"] .gajian-total-value,
+    [data-theme="light"] .gajian-day-amount{color:var(--accent-deep)}
+    [data-theme="light"] .summary-item.gaji-box .summary-value{color:var(--accent-deep)}
+    [data-theme="light"] body{
+      background-image:
+        radial-gradient(ellipse 60% 40% at 15% -5%,rgba(168,106,63,.08) 0%,transparent 60%),
+        radial-gradient(ellipse 55% 40% at 85% 100%,rgba(138,84,48,.07) 0%,transparent 55%);
+    }
+    [data-theme="light"] body::before{opacity:.06;mix-blend-mode:multiply}
+    [data-theme="light"] .header{background:linear-gradient(180deg,rgba(232,221,201,.85),rgba(224,212,188,.7))}
+    [data-theme="light"] .sidebar{background:linear-gradient(180deg,rgba(239,229,210,.6),rgba(224,212,188,.4))}
+    [data-theme="light"] .mobile-nav{background:linear-gradient(180deg,rgba(232,221,201,.7),rgba(239,229,210,.95))}
+    [data-theme="light"] .card,
+    [data-theme="light"] .history-item,
+    [data-theme="light"] .gajian-card{background:linear-gradient(180deg,rgba(239,229,210,.85),rgba(232,221,201,.65))}
+    [data-theme="light"] .stat-card{background:linear-gradient(180deg,rgba(239,229,210,.8),rgba(224,212,188,.55))}
+    [data-theme="light"] .nav-btn:hover{background:rgba(168,106,63,.06);color:var(--text)}
+    [data-theme="light"] .nav-btn.active{background:linear-gradient(135deg,rgba(168,106,63,.13),rgba(168,106,63,.03))}
+    [data-theme="light"] .mobile-nav-btn.active{background:linear-gradient(180deg,rgba(168,106,63,.12),rgba(168,106,63,.03))}
+    [data-theme="light"] .qty-display{background:rgba(224,212,188,.5)}
+    [data-theme="light"] .expense-input,
+    [data-theme="light"] .expense-amount,
+    [data-theme="light"] .form-input,
+    [data-theme="light"] .date-input{background:rgba(232,221,201,.55)}
+    [data-theme="light"] .pill{background:rgba(232,221,201,.6)}
+    [data-theme="light"] td{border-bottom-color:rgba(120,85,55,.12)}
+    [data-theme="light"] .gajian-day-row{border-bottom-color:rgba(120,85,55,.12)}
+    [data-theme="light"] tr:hover td{background:rgba(168,106,63,.04)}
+    [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:sepia(.5) hue-rotate(355deg) saturate(1.2);opacity:.55}
+    [data-theme="light"] .theme-toggle{background:rgba(232,221,201,.5)}
+
+    /* === Skeleton loader === */
+    .sk{
+      background:linear-gradient(90deg,var(--bg3) 0%,var(--bg4) 50%,var(--bg3) 100%);
+      background-size:200% 100%;animation:shimmer 1.6s ease-in-out infinite;
+      border-radius:8px;display:block;
+    }
+    .sk-line{height:12px;margin:6px 0}
+    .sk-line.lg{height:18px}
+    .sk-line.xl{height:34px;border-radius:10px}
+    .sk-block{height:80px;border-radius:14px;margin-bottom:10px}
+    .sk-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(227,181,132,.06)}
+    .sk-circle{width:44px;height:44px;border-radius:13px;flex-shrink:0}
+    [data-theme="light"] .sk{background:linear-gradient(90deg,rgba(224,212,188,.6) 0%,rgba(212,197,168,.8) 50%,rgba(224,212,188,.6) 100%);background-size:200% 100%}
+
+    /* === Search bar (Riwayat) === */
+    .search-wrap{position:relative;margin-bottom:14px}
+    .search-input{
+      width:100%;padding:12px 14px 12px 40px;
+      background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+      color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:all .2s;
+    }
+    .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+    .search-input::placeholder{color:var(--text3)}
+    .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+    .search-clear{
+      position:absolute;right:8px;top:50%;transform:translateY(-50%);
+      width:28px;height:28px;border-radius:8px;background:none;border:none;color:var(--text3);
+      cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+    }
+    .search-clear:hover{background:var(--bg4);color:var(--text)}
+    .search-meta{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-bottom:14px;padding-left:4px}
+
+    /* === Animated number === */
+    .num-anim{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+    @media(max-width:900px){
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .sidebar{display:none}
+      .mobile-nav{display:block}
+      .content{max-height:calc(100vh - 73px - 60px);padding:20px 16px 90px}
+    }
+    @media(max-width:600px){
+      .stats-row{grid-template-columns:1fr}
+      .header{padding:12px 16px}
+      .content{padding:16px 14px 90px}
+      .summary-grid{grid-template-columns:1fr}
+      .summary-item.gaji-box,.summary-item.kas-box{grid-column:span 1}
+      .gajian-stats{grid-template-columns:1fr}
+      .gajian-stats2{grid-template-columns:1fr}
+      .page-title{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="toast" id="toast"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect, useRef, useCallback } = React;
+
+    // === Konfigurasi Supabase ===
+    // Ganti dua nilai di bawah dengan milik project Supabase Anda.
+    // Dapatkan di: Supabase Dashboard → Project Settings → API
+    const SUPABASE_URL      = "https://rhhothozowdxpxeotlad.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoaG90aG96b3dkeHB4ZW90bGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTk1MTYsImV4cCI6MjA5MjY5NTUxNn0.d9U1vvJNTjbVSvV83scDD_RXyHtNcXFvG40uBKgsNpk";
+
+    const supabaseReady =
+      SUPABASE_URL.startsWith("http") &&
+      SUPABASE_ANON_KEY.length > 20 &&
+      !SUPABASE_URL.includes("GANTI_") &&
+      !SUPABASE_ANON_KEY.includes("GANTI_");
+
+    const sb = supabaseReady
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    // Mapper baris DB <-> bentuk entry yang dipakai UI
+    function rowToEntry(row) {
+      return {
+        date: row.date,
+        quantities: row.quantities || {},
+        expenses: row.expenses || [],
+        totalPenjualan: Number(row.total_penjualan) || 0,
+        gaji: Number(row.gaji) || 0,
+        totalPengeluaran: Number(row.total_pengeluaran) || 0,
+        sisaKas: Number(row.sisa_kas) || 0,
+      };
+    }
+    function entryToRow(e) {
+      return {
+        date: e.date,
+        quantities: e.quantities || {},
+        expenses: e.expenses || [],
+        total_penjualan: e.totalPenjualan || 0,
+        gaji: e.gaji || 0,
+        total_pengeluaran: e.totalPengeluaran || 0,
+        sisa_kas: e.sisaKas || 0,
+      };
+    }
+
+    const PRODUCTS = [
+      { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500, emoji: '☕' },
+      { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000, emoji: '🍵' },
+      { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300, emoji: '🫖' },
+      { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  emoji: '📶' },
+      { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500, emoji: '🎟️' },
+      { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000, emoji: '📆' },
+      { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000, emoji: '🎮' },
+    ];
+
+    const IDR = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
+    const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const MO = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const ML = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    function fmtDate(d) { const dt = new Date(d+'T00:00:00'); return DAYS[dt.getDay()]+', '+dt.getDate()+' '+MO[dt.getMonth()]+' '+dt.getFullYear(); }
+    function todayISO() { return new Date().toISOString().split('T')[0]; }
+
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function getPayPeriods(year, month) {
+      const mm = String(month+1).padStart(2,'0');
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear  = month === 0 ? year - 1 : year;
+      const pmm = String(prevMonth+1).padStart(2,'0');
+      const lastDayPrev = new Date(year, month, 0).getDate();
+      const overflowDays = [];
+      for (let d = 29; d <= lastDayPrev; d++) overflowDays.push(d);
+      return [
+        { label:'Periode 1', start:year+'-'+mm+'-01', end:year+'-'+mm+'-14', payday:14, startDay:1, endDay:14,
+          overflowStart: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(overflowDays[0]).padStart(2,'0') : null,
+          overflowEnd: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(lastDayPrev).padStart(2,'0') : null,
+          overflowDays, prevYear, prevMonth },
+        { label:'Periode 2', start:year+'-'+mm+'-15', end:year+'-'+mm+'-28', payday:28, startDay:15, endDay:28,
+          overflowStart:null, overflowEnd:null, overflowDays:[], prevYear, prevMonth },
+      ];
+    }
+
+    const Icon = ({type, size=18}) => {
+      const s = {width:size,height:size,fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round",strokeLinejoin:"round"};
+      const P = {
+        coffee:<><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>,
+        dollar:<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></>,
+        clock:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></>,
+        trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>,
+        download:<><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+      };
+      return <svg viewBox="0 0 24 24" style={s}>{P[type]}</svg>;
+    };
+
+    function downloadCSV(filename, csvContent) {
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportGajianCSV(entries, periodSaldoMap, initialSaldo) {
+      const today = new Date();
+      const currentMonth = today.getMonth(), currentYear = today.getFullYear();
+      const monthsToShow = [
+        currentMonth===0 ? {year:currentYear-1,month:11} : {year:currentYear,month:currentMonth-1},
+        {year:currentYear, month:currentMonth}
+      ];
+      let rows = [['Periode','Tanggal','Hari Kerja','Penjualan','Gaji','Pengeluaran','Saldo Awal','Kas Periode','Sisa Kas (+Saldo)','Status']];
+      monthsToShow.forEach(({year,month}) => {
+        const periods = getPayPeriods(year, month);
+        const isCurrentMonth = (year===currentYear && month===currentMonth);
+        const currentDay = today.getDate();
+        periods.forEach((p,pi) => {
+          const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
+          const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
+          const periodEntries = [...overflowEntries,...mainEntries];
+          const totalGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
+          const totalPenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+          const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+          const periodKey = year+'-'+month+'-'+pi;
+          const saldoAwal = periodSaldoMap[periodKey] || 0;
+          const kasPeriode = totalPenjualan - totalGaji - totalPengeluaran;
+          const sisaKas = kasPeriode + saldoAwal;
+          const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
+          const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
+          const status = (isPast && !isCurrent) ? 'Selesai' : isCurrent ? 'Berjalan' : 'Belum';
+          rows.push([ML[month]+' '+year+' - '+p.label, 'Tgl '+p.startDay+'-'+p.endDay, periodEntries.length, totalPenjualan, totalGaji, totalPengeluaran, saldoAwal, kasPeriode, sisaKas, status]);
+          // Detail per hari
+          if(overflowEntries.length>0){
+            p.overflowDays.forEach(d => {
+              const dd = String(d).padStart(2,'0');
+              const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
+              const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00');
+              if(entry){
+                const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]).join('; ');
+                rows.push(['  '+d+' '+MO[p.prevMonth]+' ('+DAYS[dt.getDay()]+') [limpahan]', items, '', entry.totalPenjualan, entry.gaji, entry.totalPengeluaran||0, '','','','']);
+              }
+            });
+          }
+          Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).forEach(d => {
+            const dd = String(d).padStart(2,'0');
+            const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
+            const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00');
+            if(entry){
+              const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]).join('; ');
+              rows.push(['  '+d+' '+MO[month]+' ('+DAYS[dt.getDay()]+')', items, '', entry.totalPenjualan, entry.gaji, entry.totalPengeluaran||0, '','','','']);
+            }
+          });
+          rows.push([]); // empty row separator
+        });
+      });
+      const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
+      downloadCSV('Rekap_Gajian_Warkopsaja_'+todayISO()+'.csv', csv);
+      showToast('Rekap Gajian berhasil di-export!');
+    }
+
+    function exportRiwayatCSV(entries) {
+      const sorted = Object.values(entries).sort((a,b)=>a.date.localeCompare(b.date));
+      if(sorted.length===0){ showToast('Belum ada data untuk di-export'); return; }
+      const prodHeaders = PRODUCTS.map(p=>p.name);
+      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Sisa Kas']];
+      sorted.forEach(e => {
+        const dt = new Date(e.date+'T00:00:00');
+        const prodQtys = PRODUCTS.map(p => e.quantities?.[p.id] || 0);
+        const totalQty = prodQtys.reduce((s,q)=>s+q,0);
+        const expDetail = (e.expenses||[]).map(x => (x.desc||'Pengeluaran')+' '+Math.round(x.amount)).join('; ');
+        const totalExp = e.totalPengeluaran || 0;
+        const sisaKas = e.sisaKas != null ? e.sisaKas : (e.totalPenjualan - e.gaji - totalExp);
+        rows.push([e.date, DAYS[dt.getDay()], ...prodQtys, totalQty, e.totalPenjualan, e.gaji, expDetail, totalExp, sisaKas]);
+      });
+      // Totals row
+      const totProd = PRODUCTS.map((_,i) => sorted.reduce((s,e) => s+(rows.find(r=>r[0]===e.date)?.[i+2]||0),0));
+      const totQty = totProd.reduce((s,q)=>s+q,0);
+      const totSales = sorted.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+      const totGaji = sorted.reduce((s,e)=>s+(e.gaji||0),0);
+      const totExp = sorted.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+      const totSisa = totSales - totGaji - totExp;
+      rows.push(['TOTAL','', ...totProd, totQty, totSales, totGaji, '', totExp, totSisa]);
+      const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
+      downloadCSV('Riwayat_Warkopsaja_'+todayISO()+'.csv', csv);
+      showToast('Riwayat berhasil di-export!');
+    }
+
+    // Hook: animasi angka smooth (easeOutCubic ~500ms)
+    function useAnimatedNumber(target, duration = 600) {
+      const [value, setValue] = useState(target);
+      const fromRef = useRef(target);
+      const rafRef = useRef(null);
+      useEffect(() => {
+        const from = fromRef.current;
+        if (from === target) return;
+        const start = performance.now();
+        const tick = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setValue(from + (target - from) * eased);
+          if (t < 1) rafRef.current = requestAnimationFrame(tick);
+          else { fromRef.current = target; setValue(target); }
+        };
+        rafRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafRef.current);
+      }, [target, duration]);
+      return value;
+    }
+
+    const AnimatedIDR = ({ value, className = '' }) => {
+      const v = useAnimatedNumber(Number(value) || 0);
+      return <span className={"num-anim "+className}>{IDR(v)}</span>;
+    };
+
+    // Skeleton untuk halaman input saat loading data dari Supabase
+    function SkeletonInput() {
+      return (
+        <>
+          <div className="posisi-kas">
+            <span className="sk sk-line" style={{width:140,marginBottom:10}}/>
+            <span className="sk sk-line xl" style={{width:240}}/>
+            <div className="posisi-kas-breakdown">
+              {[0,1,2,3].map(i => (
+                <div key={i} className="posisi-kas-item">
+                  <span className="sk sk-line" style={{width:70,height:9}}/>
+                  <span className="sk sk-line lg" style={{width:90,marginTop:6}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <span className="sk sk-line" style={{width:90,marginBottom:14}}/>
+            <span className="sk sk-block" style={{height:46}}/>
+          </div>
+          <div className="card">
+            <span className="sk sk-line" style={{width:120,marginBottom:14}}/>
+            {[0,1,2,3,4].map(i => (
+              <div key={i} className="sk-row">
+                <span className="sk sk-circle"/>
+                <div style={{flex:1}}>
+                  <span className="sk sk-line lg" style={{width:'60%'}}/>
+                  <span className="sk sk-line" style={{width:'35%',marginTop:6,height:9}}/>
+                </div>
+                <span className="sk" style={{width:140,height:42,borderRadius:13}}/>
+              </div>
+            ))}
+          </div>
+        </>
+      );
+    }
+
+    function LoginScreen({ onSession, theme, setTheme }) {
+      const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [busy, setBusy] = useState(false);
+      const [err, setErr] = useState('');
+
+      async function submit(e) {
+        e.preventDefault(); setErr(''); setBusy(true);
+        try {
+          if (mode === 'signin') {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            onSession(data.session);
+          } else {
+            const { data, error } = await sb.auth.signUp({ email, password });
+            if (error) throw error;
+            if (data.session) { onSession(data.session); }
+            else { showToast('Cek email untuk konfirmasi akun'); setMode('signin'); }
+          }
+        } catch(ex) { setErr(ex.message || 'Gagal'); }
+        setBusy(false);
+      }
+
+      return (
+        <div className="app">
+          <div className="header">
+            <div className="header-logo">☕</div>
+            <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
+            <div className="header-right">
+              <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
+                {theme==='dark' ? '☀️' : '🌙'}
+              </button>
+            </div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 73px)",padding:20}}>
+            <form onSubmit={submit} className="card" style={{width:380,maxWidth:"100%",margin:0}}>
+              <div className="card-title">{mode==='signin' ? '🔐 Masuk' : '✨ Daftar Akun'}</div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input className="form-input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@contoh.com"/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input className="form-input" type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimal 6 karakter"/>
+              </div>
+              {err && <div style={{padding:"10px 12px",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-border)",borderRadius:10,fontSize:12,marginBottom:12}}>{err}</div>}
+              <button type="submit" className="btn-save" disabled={busy} style={{marginTop:4}}>
+                {busy ? 'Memproses…' : (mode==='signin' ? 'Masuk' : 'Daftar')}
+              </button>
+              <div style={{textAlign:"center",marginTop:14,fontSize:12,color:"var(--text2)"}}>
+                {mode==='signin' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
+                <a href="#" onClick={(e)=>{e.preventDefault();setErr('');setMode(mode==='signin'?'signup':'signin');}} style={{color:"var(--accent)",fontWeight:600,textDecoration:"none"}}>
+                  {mode==='signin' ? 'Daftar' : 'Masuk'}
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [page, setPage] = useState("input");
+      const [session, setSession] = useState(null);
+      const [authChecked, setAuthChecked] = useState(false);
+      const [syncStatus, setSyncStatus] = useState(supabaseReady ? "loading" : "not_configured");
+      const [loading, setLoading] = useState(supabaseReady);
+      const [entries, setEntries] = useState({});
+      const [selectedDate, setSelectedDate] = useState(todayISO());
+      const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
+      const [expenses, setExpenses] = useState([]);
+      const [saving, setSaving] = useState(false);
+      const [openDetail, setOpenDetail] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [initialSaldo, setInitialSaldo] = useState(0);
+      const [editingSaldo, setEditingSaldo] = useState(false);
+      const [saldoInput, setSaldoInput] = useState('');
+      const [theme, setTheme] = useState(() => {
+        try { return localStorage.getItem('theme') || 'dark'; } catch(e) { return 'dark'; }
+      });
+
+      useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('theme', theme); } catch(e) {}
+      }, [theme]);
+
+      // Auth: cek session awal + listen perubahan
+      useEffect(() => {
+        if (!sb) { setAuthChecked(true); return; }
+        sb.auth.getSession().then(({ data }) => {
+          setSession(data.session || null);
+          setAuthChecked(true);
+        });
+        const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
+          setSession(s || null);
+        });
+        return () => sub.subscription.unsubscribe();
+      }, []);
+
+      // Load data + realtime subscribe — hanya setelah login
+      useEffect(() => {
+        if (!sb || !session) { if (!session) { setEntries({}); setInitialSaldo(0); } setLoading(false); return; }
+        setLoading(true);
+        let cancelled = false;
+        (async () => {
+          // Saldo awal
+          const { data: cfg } = await sb.from('config').select('value').eq('key', 'saldo_awal').maybeSingle();
+          if (!cancelled && cfg?.value != null) setInitialSaldo(Number(cfg.value) || 0);
+          // Entries
+          const { data: rows, error } = await sb.from('entries').select('*');
+          if (cancelled) return;
+          if (error) { setSyncStatus('offline'); setLoading(false); return; }
+          const map = {};
+          (rows || []).forEach(r => { const e = rowToEntry(r); map[e.date] = e; });
+          setEntries(map);
+          setSyncStatus('online');
+          setLoading(false);
+        })();
+        // Realtime
+        const ch = sb.channel('rt-entries')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
+            setEntries(prev => {
+              const next = { ...prev };
+              if (payload.eventType === 'DELETE') {
+                const oldDate = payload.old?.date; if (oldDate) delete next[oldDate];
+              } else {
+                const e = rowToEntry(payload.new); next[e.date] = e;
+              }
+              return next;
+            });
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, payload => {
+            if (payload.new?.key === 'saldo_awal') setInitialSaldo(Number(payload.new.value) || 0);
+          })
+          .subscribe();
+        return () => { cancelled = true; sb.removeChannel(ch); };
+      }, [session]);
+
+      async function saveInitialSaldo(val) {
+        const v = parseInt(val) || 0;
+        setInitialSaldo(v);
+        setEditingSaldo(false);
+        try {
+          if (sb && session) {
+            const { error } = await sb.from('config').upsert({ key: 'saldo_awal', value: v }, { onConflict: 'key' });
+            if (error) throw error;
+          }
+          showToast('Saldo awal disimpan: '+IDR(v));
+        } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
+      }
+
+      // Compute saldo awal for each period by chaining from initialSaldo
+      const periodSaldoMap = useMemo(() => {
+        // Generate all periods from earliest entry to current month
+        const allDates = Object.keys(entries).sort();
+        if (allDates.length === 0) return {};
+        const earliest = new Date(allDates[0]+'T00:00:00');
+        const latest = new Date();
+        const periods = [];
+        let y = earliest.getFullYear(), m = earliest.getMonth();
+        while (y < latest.getFullYear() || (y === latest.getFullYear() && m <= latest.getMonth())) {
+          const pp = getPayPeriods(y, m);
+          pp.forEach((p,pi) => periods.push({ ...p, year:y, month:m, key:y+'-'+m+'-'+pi }));
+          m++; if(m>11){m=0;y++;}
+        }
+        // Chain saldo
+        const map = {};
+        let runSaldo = initialSaldo;
+        periods.forEach(p => {
+          map[p.key] = runSaldo;
+          const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
+          const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
+          const all = [...overflowEntries, ...mainEntries];
+          const penjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+          const gaji = all.reduce((s,e)=>s+(e.gaji||0),0);
+          const pengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+          runSaldo = runSaldo + penjualan - gaji - pengeluaran;
+        });
+        return map;
+      }, [entries, initialSaldo]);
+
+      const existingEntry = entries[selectedDate] || null;
+      const inputTotals = useMemo(() => {
+        let totalQty=0, totalSales=0, totalGaji=0;
+        PRODUCTS.forEach(p => { const q=quantities[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+        const totalExpense = expenses.reduce((s,e) => s+(e.amount||0), 0);
+        return { totalQty, totalSales, totalGaji, totalExpense, sisaKas: totalSales-totalGaji-totalExpense };
+      }, [quantities, expenses]);
+
+      function changeQty(id, delta) { setQuantities(prev => ({...prev, [id]: Math.max(0, (prev[id]||0)+delta)})); }
+      function setQty(id, val) { setQuantities(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
+      function addExpense() { setExpenses(prev => [...prev, {desc:'',amount:0}]); }
+      function removeExpense(i) { setExpenses(prev => prev.filter((_,idx)=>idx!==i)); }
+      function updateExpense(i, field, val) { setExpenses(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? (parseInt(val)||0) : val} : e)); }
+
+      async function saveEntry() {
+        const hasQty = PRODUCTS.some(p => (quantities[p.id]||0) > 0);
+        const hasExp = expenses.some(e => (e.amount||0) > 0);
+        if (!hasQty && !hasExp) { showToast('Belum ada input!'); return; }
+        setSaving(true);
+        const existing = entries[selectedDate] || null;
+        const accQty = {}; PRODUCTS.forEach(p => { accQty[p.id] = (existing?(existing.quantities?.[p.id]||0):0) + (quantities[p.id]||0); });
+        const accExpenses = [...(existing?(existing.expenses||[]):[]), ...expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='')];
+        let totalSales=0, totalGaji=0;
+        PRODUCTS.forEach(p => { const q=accQty[p.id]||0; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+        const totalExpense = accExpenses.reduce((s,e) => s+(e.amount||0), 0);
+        const entry = { date:selectedDate, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
+        try {
+          if (sb && session) {
+            const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' });
+            if (error) throw error;
+          }
+          showToast((existing?'Ditambahkan':'Tersimpan')+' · '+fmtDate(selectedDate));
+        } catch(e) { showToast('Gagal menyimpan: '+e.message); }
+        const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setSaving(false);
+      }
+
+      async function deleteEntry(date) {
+        if(!confirm('Yakin hapus data tanggal '+fmtDate(date)+'?')) return;
+        try {
+          if (sb && session) {
+            const { error } = await sb.from('entries').delete().eq('date', date);
+            if (error) throw error;
+          }
+          showToast('Entri dihapus');
+        } catch(e) { showToast('Gagal: '+e.message); }
+      }
+
+      const kasSummary = useMemo(() => {
+        const all = Object.values(entries);
+        const totalPenjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+        const totalGaji = all.reduce((s,e)=>s+(e.gaji||0),0);
+        const totalPengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+        const kasSekarang = initialSaldo + totalPenjualan - totalGaji - totalPengeluaran;
+        const todayStr = todayISO();
+        const y = new Date(); y.setDate(y.getDate()-1);
+        const yestStr = y.toISOString().split('T')[0];
+        const tE = entries[todayStr], yE = entries[yestStr];
+        const todayKas = tE ? ((tE.totalPenjualan||0)-(tE.gaji||0)-(tE.totalPengeluaran||0)) : 0;
+        const yestKas = yE ? ((yE.totalPenjualan||0)-(yE.gaji||0)-(yE.totalPengeluaran||0)) : 0;
+        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, todayKas, yestKas, hasToday:!!tE, hasYest:!!yE };
+      }, [entries, initialSaldo]);
+
+      const paydayInfo = useMemo(() => {
+        const today = new Date(); const day = today.getDate(); const year = today.getFullYear(); const month = today.getMonth();
+        const periods = getPayPeriods(year, month); let show=null, period=null;
+        if (day===14||day===28) { period=day===14?periods[0]:periods[1]; show='today'; }
+        else if (day>=12&&day<=13) { period=periods[0]; show='upcoming'; }
+        else if (day>=26&&day<=27) { period=periods[1]; show='upcoming'; }
+        if (!show||!period) return null;
+        const periodGaji = Object.values(entries).filter(e=>e.date>=period.start&&e.date<=period.end).reduce((s,e)=>s+(e.gaji||0),0);
+        const overflowGaji = (period.overflowStart&&period.overflowEnd) ? Object.values(entries).filter(e=>e.date>=period.overflowStart&&e.date<=period.overflowEnd).reduce((s,e)=>s+(e.gaji||0),0) : 0;
+        return { show, period, totalGaji:periodGaji+overflowGaji, daysLeft:show==='today'?0:(period.payday-day), month };
+      }, [entries]);
+
+      const sortedEntries = useMemo(() => Object.values(entries).sort((a,b)=>b.date.localeCompare(a.date)), [entries]);
+
+      const filteredEntries = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return sortedEntries;
+        return sortedEntries.filter(e => {
+          if (e.date.toLowerCase().includes(q)) return true;
+          const fmt = fmtDate(e.date).toLowerCase();
+          if (fmt.includes(q)) return true;
+          const prodMatch = PRODUCTS.some(p => (e.quantities?.[p.id]||0) > 0 && p.name.toLowerCase().includes(q));
+          if (prodMatch) return true;
+          const expMatch = (e.expenses||[]).some(x => (x.desc||'').toLowerCase().includes(q));
+          return expMatch;
+        });
+      }, [sortedEntries, searchQuery]);
+
+      if(syncStatus==="not_configured") return (
+        <div className="app">
+          <div className="header"><div className="header-logo">☕</div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"70vh",padding:40,textAlign:"center"}}>
+            <div style={{fontSize:56,marginBottom:24}}>⚙️</div>
+            <h2 style={{marginBottom:12,fontSize:22}}>Konfigurasi Supabase</h2>
+            <p style={{color:"var(--text2)",maxWidth:520,lineHeight:1.8,marginBottom:24}}>Buka file <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>index.html</code>, cari <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_URL</code> dan <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_ANON_KEY</code>, lalu isi dengan nilai dari Supabase Dashboard → Project Settings → API.</p>
+          </div>
+        </div>
+      );
+
+      if (!authChecked) return (
+        <div className="app">
+          <div className="header"><div className="header-logo">☕</div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
+            <div style={{width:40,height:40,border:"3px solid var(--border)",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin .8s linear infinite"}}></div>
+          </div>
+        </div>
+      );
+
+      if (!session) return <LoginScreen onSession={s => setSession(s)} theme={theme} setTheme={setTheme}/>;
+
+      if(loading) return (
+        <div className="app">
+          <div className="header">
+            <div className="header-logo">☕</div>
+            <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
+            <div className="header-right">
+              <span className="sk" style={{width:120,height:30,borderRadius:99}}/>
+            </div>
+          </div>
+          <div className="main-area">
+            <div className="sidebar">
+              <div className="sidebar-label">Menu</div>
+              {[0,1,2].map(i => <span key={i} className="sk" style={{height:38,margin:'4px 0',borderRadius:11}}/>)}
+            </div>
+            <div className="content">
+              <span className="sk sk-line xl" style={{width:220}}/>
+              <span className="sk sk-line" style={{width:300,marginBottom:24}}/>
+              <SkeletonInput/>
+            </div>
+          </div>
+        </div>
+      );
+
+      const SyncBadge = () => (<div className={"sync-badge "+(syncStatus==="online"?"sync-online":"sync-offline")}><div className={"sync-dot "+(syncStatus==="online"?"online":"offline")}/>{syncStatus==="online"?"Real-time":"Offline"}</div>);
+      const today = new Date();
+
+      return (
+        <div className="app">
+          <div className="header">
+            <div className="header-logo">☕</div>
+            <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
+            <div className="header-right">
+              <div className="kas-badge" title={"Saldo Awal "+IDR(initialSaldo)+" + Penjualan "+IDR(kasSummary.totalPenjualan)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+                <span className="kas-badge-label">💼 Kas</span>
+                <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
+              </div>
+              <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
+                {theme==='dark' ? '☀️' : '🌙'}
+              </button>
+              <SyncBadge/>
+              <button className="theme-toggle" onClick={async()=>{ if(sb) await sb.auth.signOut(); }} title={"Logout ("+(session?.user?.email||'')+")"}>⏻</button>
+            </div>
+          </div>
+
+          <div className="main-area">
+            <div className="sidebar">
+              <div className="sidebar-label">Menu</div>
+              <button className={"nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={18}/> Input Harian</button>
+              <button className={"nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={18}/> Gajian</button>
+              <button className={"nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={18}/> Riwayat</button>
+            </div>
+
+            <div className="content">
+              {page==="input" && <>
+                <h1 className="page-title">Input Harian</h1>
+                <p className="page-sub">Catat penjualan dan pengeluaran harian warkop</p>
+
+                <div className="posisi-kas">
+                  <div className="posisi-kas-label">💼 Kas Sekarang (Total Riil)</div>
+                  <div className={"posisi-kas-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
+                  <div className="posisi-kas-breakdown">
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">Saldo Awal</div><div className="posisi-kas-item-val" style={{color:"var(--text2)"}}><AnimatedIDR value={initialSaldo}/></div></div>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}}><AnimatedIDR value={kasSummary.totalPenjualan}/></div></div>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Gaji</div><div className="posisi-kas-item-val" style={{color:"var(--accent)"}}><AnimatedIDR value={kasSummary.totalGaji}/></div></div>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Pengeluaran</div><div className="posisi-kas-item-val" style={{color:"var(--red)"}}><AnimatedIDR value={kasSummary.totalPengeluaran}/></div></div>
+                  </div>
+                  <div className="posisi-kas-day">
+                    <div className="posisi-kas-day-item">
+                      <span style={{color:"var(--text3)"}}>Hari ini:</span>
+                      <span className={"posisi-kas-day-val "+(!kasSummary.hasToday?"none":kasSummary.todayKas>=0?"pos":"neg")}>{kasSummary.hasToday?(kasSummary.todayKas>=0?'+':'')+IDR(kasSummary.todayKas):'belum input'}</span>
+                    </div>
+                    <div className="posisi-kas-day-item">
+                      <span style={{color:"var(--text3)"}}>Kemarin:</span>
+                      <span className={"posisi-kas-day-val "+(!kasSummary.hasYest?"none":kasSummary.yestKas>=0?"pos":"neg")}>{kasSummary.hasYest?(kasSummary.yestKas>=0?'+':'')+IDR(kasSummary.yestKas):'tidak ada'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {paydayInfo && (
+                  <div className={"payday-banner "+paydayInfo.show}>
+                    <div className="payday-title">{paydayInfo.show==='today'?'🎉 Hari Ini Gajian!':'📅 Gajian '+paydayInfo.daysLeft+' hari lagi (tgl '+paydayInfo.period.payday+')'}</div>
+                    <div className="payday-detail">{paydayInfo.period.label}: Tgl {paydayInfo.period.startDay}–{paydayInfo.period.endDay} {MO[paydayInfo.month]}</div>
+                    <div className="payday-amount">{IDR(paydayInfo.totalGaji)}</div>
+                    {paydayInfo.show==='upcoming' && <div className="payday-detail" style={{marginTop:4}}>Sementara terkumpul</div>}
+                  </div>
+                )}
+
+                <div className="card">
+                  <div className="card-title">📅 Tanggal</div>
+                  <div className="date-row">
+                    <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+                    <button className="btn btn-ghost" onClick={()=>{ if(existingEntry) showToast('Data '+fmtDate(selectedDate)+' ditemukan'); else showToast('Belum ada data untuk tanggal ini'); }}>Cek data</button>
+                  </div>
+                  {existingEntry && (
+                    <div className="day-total">
+                      📦 Sudah tercatat: <strong>{PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ')||'–'}</strong><br/>
+                      💰 Penjualan: <strong>{IDR(existingEntry.totalPenjualan)}</strong> · Gaji: <strong>{IDR(existingEntry.gaji)}</strong><br/>
+                      💸 Pengeluaran: <strong>{IDR(existingEntry.totalPengeluaran||0)}</strong> ({(existingEntry.expenses||[]).length} item)<br/>
+                      <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card">
+                  <div className="card-title">☕ Jumlah Laku</div>
+                  {PRODUCTS.map(p => (
+                    <div key={p.id} className="product-row">
+                      <div className="product-emoji">{p.emoji}</div>
+                      <div className="product-info">
+                        <div className="product-name">{p.name}</div>
+                        <div className="product-meta">{IDR(p.price)} · Gaji: {IDR(p.gaji)}</div>
+                      </div>
+                      <div className="qty-control">
+                        <button className="qty-btn" onClick={()=>changeQty(p.id,-1)}>−</button>
+                        <input className="qty-display" type="number" min="0" value={quantities[p.id]} onChange={e=>setQty(p.id,e.target.value)}/>
+                        <button className="qty-btn" onClick={()=>changeQty(p.id,1)}>+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="card">
+                  <div className="card-title">📊 Ringkasan</div>
+                  <div className="summary-grid">
+                    <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value">{inputTotals.totalQty} item</div></div>
+                    <div className="summary-item"><div className="summary-label">Total Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
+                    <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
+                    <div className="summary-item outbox"><div className="summary-label">Total Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
+                    <div className="summary-item kas-box"><div className="summary-label">Sisa Kas (Penjualan − Gaji − Pengeluaran)</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-title">💸 Pengeluaran</div>
+                  {expenses.map((exp, i) => (
+                    <div key={i} className="expense-row">
+                      <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
+                      <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
+                      <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
+                    </div>
+                  ))}
+                  <button className="add-expense-btn" onClick={addExpense}>+ Tambah Pengeluaran</button>
+                </div>
+
+                <button className="btn-save" disabled={saving} onClick={saveEntry}>☕ Tambah & Simpan</button>
+              </>}
+
+              {page==="gajian" && <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+                  <div><h1 className="page-title">Rekap Gajian</h1><p className="page-sub" style={{marginBottom:0}}>Ringkasan gaji per periode (tgl 1–14 dan 15–28)</p></div>
+                  <button className="btn-export" onClick={()=>exportGajianCSV(entries, periodSaldoMap, initialSaldo)}><Icon type="download" size={15}/> Export CSV</button>
+                </div>
+                <div style={{marginBottom:28}}></div>
+
+                {/* Saldo Awal Setting */}
+                <div className="card" style={{marginBottom:20}}>
+                  <div className="card-title">💰 Saldo Awal</div>
+                  {editingSaldo ? (
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <input className="expense-amount" style={{flex:1,width:"auto",textAlign:"left"}} type="number" autoFocus placeholder="Masukkan saldo awal..." value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
+                      <button className="btn btn-primary" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
+                      <button className="btn btn-ghost" onClick={()=>setEditingSaldo(false)}>Batal</button>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:20,fontWeight:700,color:"var(--accent)"}}>{IDR(initialSaldo)}</div>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}>✏️ Ubah</button>
+                      <div style={{fontSize:11,color:"var(--text3)",marginLeft:4}}>Saldo ini akan terakumulasi ke setiap periode berikutnya</div>
+                    </div>
+                  )}
+                </div>
+
+                {(()=>{
+                  const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); const currentDay = today.getDate();
+                  const monthsToShow = [{ year:currentYear, month:currentMonth }, currentMonth===0?{year:currentYear-1,month:11}:{year:currentYear,month:currentMonth-1}];
+                  return monthsToShow.map(({year, month}) => {
+                    const periods = getPayPeriods(year, month);
+                    const isCurrentMonth = (year===currentYear && month===currentMonth);
+                    const monthLabel = ML[month]+' '+year;
+                    return periods.map((p,pi) => {
+                      const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
+                      const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
+                      const periodEntries = [...overflowEntries, ...mainEntries];
+                      const totalGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
+                      const totalPenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+                      const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+                      const periodKey = year+'-'+month+'-'+pi;
+                      const saldoAwal = periodSaldoMap[periodKey] || 0;
+                      const totalSisaKas = totalPenjualan - totalGaji - totalPengeluaran;
+                      const sisaKasDenganSaldo = totalSisaKas + saldoAwal;
+                      const totalDays = periodEntries.length;
+                      const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
+                      const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
+                      let statusClass, statusText;
+                      if (isPast && !isCurrent) { statusClass='paid'; statusText='Selesai'; }
+                      else if (isCurrent) { statusClass='pending'; statusText='Berjalan'; }
+                      else { statusClass='future'; statusText='Belum'; }
+                      const overflowLabel = overflowEntries.length>0 ? ' (+tgl '+p.overflowDays[0]+'–'+p.overflowDays[p.overflowDays.length-1]+' '+MO[p.prevMonth]+')' : '';
+
+                      return (
+                        <div key={year+'-'+month+'-'+pi} className={"gajian-card"+(isCurrent?" active-period":"")}>
+                          <div className="gajian-header">
+                            <div>
+                              <div className="gajian-period-label">{monthLabel} · {p.label}</div>
+                              <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · Gajian tgl {p.payday} · {totalDays} hari kerja</div>
+                            </div>
+                            <div className="gajian-total-box">
+                              <div className="gajian-total-label">Total Gaji</div>
+                              <div className="gajian-total-value"><AnimatedIDR value={totalGaji}/></div>
+                              <span className={"gajian-status-badge "+statusClass}>{statusText}</span>
+                            </div>
+                          </div>
+                          <div className="gajian-stats">
+                            <div className="gajian-stat"><div className="gajian-stat-label">Penjualan</div><div className="gajian-stat-value" style={{color:"var(--text)"}}>{IDR(totalPenjualan)}</div></div>
+                            <div className="gajian-stat" style={{background:"var(--red-bg)",borderColor:"var(--red-border)"}}><div className="gajian-stat-label">Pengeluaran</div><div className="gajian-stat-value" style={{color:"var(--red)"}}>{IDR(totalPengeluaran)}</div></div>
+                            <div className="gajian-stat" style={{background:"var(--accent-bg)",borderColor:"var(--accent-border)"}}><div className="gajian-stat-label">Saldo Awal</div><div className="gajian-stat-value" style={{color:"var(--accent)"}}>{IDR(saldoAwal)}</div></div>
+                          </div>
+                          <div className="gajian-stats2">
+                            <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">Sisa Kas (+Saldo Awal)</div><div className="gajian-stat-value" style={{color:sisaKasDenganSaldo<0?"var(--red)":"var(--green)",fontSize:16}}><AnimatedIDR value={sisaKasDenganSaldo}/></div></div>
+                            <div className="gajian-stat"><div className="gajian-stat-label">Kas Periode Ini</div><div className="gajian-stat-value" style={{color:totalSisaKas<0?"var(--red)":"var(--text)"}}><AnimatedIDR value={totalSisaKas}/></div></div>
+                          </div>
+
+                          {overflowEntries.length>0 && (
+                            <div style={{borderBottom:"1px dashed var(--border)",marginBottom:4,paddingBottom:4}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px"}}>⬆ Limpahan bulan {ML[p.prevMonth]}</div>
+                              {p.overflowDays.map(d => {
+                                const dd = String(d).padStart(2,'0');
+                                const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
+                                const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
+                                if (entry) {
+                                  const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]).join(', ');
+                                  const dayExp = entry.totalPengeluaran||0;
+                                  return (<div key={dateStr} className="gajian-day-row" style={{background:"rgba(232,163,77,.04)"}}><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(entry.gaji)}</div></div>);
+                                } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
+                              })}
+                            </div>
+                          )}
+
+                          {Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).map(d => {
+                            const dd = String(d).padStart(2,'0');
+                            const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
+                            const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
+                            if (entry) {
+                              const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]).join(', ');
+                              const dayExp = entry.totalPengeluaran||0;
+                              return (<div key={dateStr} className="gajian-day-row"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(entry.gaji)}</div></div>);
+                            } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
+                          })}
+                        </div>
+                      );
+                    });
+                  });
+                })()}
+              </>}
+
+              {page==="riwayat" && <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+                  <div><h1 className="page-title">Riwayat</h1><p className="page-sub" style={{marginBottom:0}}>Data penjualan yang sudah tersimpan</p></div>
+                  {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries)}><Icon type="download" size={15}/> Export CSV</button>}
+                </div>
+                <div style={{marginBottom:20}}></div>
+                {sortedEntries.length>0 && (
+                  <div className="search-wrap">
+                    <span className="search-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    </span>
+                    <input
+                      className="search-input"
+                      type="text"
+                      placeholder="Cari tanggal, hari, produk, atau pengeluaran…"
+                      value={searchQuery}
+                      onChange={e=>setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && <button className="search-clear" onClick={()=>setSearchQuery('')} title="Hapus">×</button>}
+                  </div>
+                )}
+                {searchQuery && (
+                  <div className="search-meta">
+                    {filteredEntries.length} dari {sortedEntries.length} entri cocok dengan "{searchQuery}"
+                  </div>
+                )}
+                {sortedEntries.length===0 ? (
+                  <div className="empty"><div className="empty-icon">📋</div>Belum ada data tersimpan.<br/>Mulai input di tab "Input Harian".</div>
+                ) : filteredEntries.length===0 ? (
+                  <div className="empty"><div className="empty-icon">🔍</div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
+                ) : filteredEntries.map((e, i) => {
+                  const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
+                  const totalExp = e.totalPengeluaran||0;
+                  const sisaKas = e.sisaKas!=null ? e.sisaKas : (e.totalPenjualan-e.gaji-totalExp);
+                  const isOpen = openDetail===i;
+                  return (
+                    <div key={e.date} className="history-item" onClick={()=>setOpenDetail(isOpen?null:i)}>
+                      <div className="history-item-header"><span className="history-date">{fmtDate(e.date)}</span><span className="history-gaji">{IDR(sisaKas)}</span></div>
+                      <div className="history-pills">
+                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : <span className="pill" style={{color:"var(--text3)"}}>–</span>}
+                        {totalExp>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(totalExp)}</span>}
+                      </div>
+                      {isOpen && (
+                        <div className="history-detail">
+                          <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)",margin:"0 0 8px"}}>Penjualan & Gaji</div>
+                          {sold.length>0 ? sold.map(p=>(<div key={p.id} className="detail-row"><span>{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span>{IDR(e.quantities[p.id]*p.gaji)}</span></div>)) : <div className="detail-row"><span style={{color:"var(--text3)"}}>Tidak ada</span><span></span></div>}
+                          <div className="detail-row total"><span>Total Gaji</span><span>{IDR(e.gaji)}</span></div>
+                          {((e.expenses||[]).length>0 || totalExp>0) && <>
+                            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--red)",margin:"14px 0 8px"}}>Pengeluaran</div>
+                            {(e.expenses||[]).map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)"}}>{IDR(x.amount)}</span></div>))}
+                            <div className="detail-row" style={{fontWeight:700}}><span>Total Pengeluaran</span><span style={{color:"var(--red)"}}>{IDR(totalExp)}</span></div>
+                          </>}
+                          <div className="detail-row" style={{color:"var(--green)",fontWeight:700,borderTop:"2px solid var(--border)",marginTop:8,paddingTop:10,fontSize:14}}><span>Sisa Kas</span><span>{IDR(sisaKas)}</span></div>
+                          <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>}
+            </div>
+          </div>
+
+          <div className="mobile-nav"><div className="mobile-nav-inner">
+            <button className={"mobile-nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={20}/> Input</button>
+            <button className={"mobile-nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={20}/> Gajian</button>
+            <button className={"mobile-nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={20}/> Riwayat</button>
+          </div></div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
