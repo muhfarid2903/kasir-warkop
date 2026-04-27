@@ -844,24 +844,29 @@
       const sorted = Object.values(entries).sort((a,b)=>a.date.localeCompare(b.date));
       if(sorted.length===0){ showToast('Belum ada data untuk di-export'); return; }
       const prodHeaders = PRODUCTS.map(p=>p.name);
-      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Sisa Kas']];
+      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Bayar Cash','Sisa Kas']];
       sorted.forEach(e => {
         const dt = new Date(e.date+'T00:00:00');
         const prodQtys = PRODUCTS.map(p => e.quantities?.[p.id] || 0);
         const totalQty = prodQtys.reduce((s,q)=>s+q,0);
-        const expDetail = (e.expenses||[]).map(x => (x.desc||'Pengeluaran')+' '+Math.round(x.amount)).join('; ');
-        const totalExp = e.totalPengeluaran || 0;
+        const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
+        const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
+        const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
+        const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
+        const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[BAYAR CASH] ':'')+(x.desc||(x.type==='cashin'?'Bayar Cash':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
+        const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
         const sisaKas = e.sisaKas != null ? e.sisaKas : (e.totalPenjualan - e.gaji - totalExp);
-        rows.push([e.date, DAYS[dt.getDay()], ...prodQtys, totalQty, e.totalPenjualan, e.gaji, expDetail, totalExp, sisaKas]);
+        rows.push([e.date, DAYS[dt.getDay()], ...prodQtys, totalQty, e.totalPenjualan, e.gaji, expDetail, expGross, cashGross, sisaKas]);
       });
       // Totals row
       const totProd = PRODUCTS.map((_,i) => sorted.reduce((s,e) => s+(rows.find(r=>r[0]===e.date)?.[i+2]||0),0));
       const totQty = totProd.reduce((s,q)=>s+q,0);
       const totSales = sorted.reduce((s,e)=>s+(e.totalPenjualan||0),0);
       const totGaji = sorted.reduce((s,e)=>s+(e.gaji||0),0);
-      const totExp = sorted.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-      const totSisa = totSales - totGaji - totExp;
-      rows.push(['TOTAL','', ...totProd, totQty, totSales, totGaji, '', totExp, totSisa]);
+      const totExp = sorted.reduce((s,e)=>s+((e.expenses||[]).filter(x=>x.type!=='cashin').reduce((ss,x)=>ss+(x.amount||0),0)),0);
+      const totCash = sorted.reduce((s,e)=>s+((e.expenses||[]).filter(x=>x.type==='cashin').reduce((ss,x)=>ss+(x.amount||0),0)),0);
+      const totSisa = totSales - totGaji - (totExp - totCash);
+      rows.push(['TOTAL','', ...totProd, totQty, totSales, totGaji, '', totExp, totCash, totSisa]);
       const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
       downloadCSV('Riwayat_Warkopsaja_'+todayISO()+'.csv', csv);
       showToast('Riwayat berhasil di-export!');
@@ -1003,6 +1008,7 @@
       const [selectedDate, setSelectedDate] = useState(todayISO());
       const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
       const [expenses, setExpenses] = useState([]);
+      const [cashIns, setCashIns] = useState([]);
       const [saving, setSaving] = useState(false);
       const [openDetail, setOpenDetail] = useState(null);
       const [searchQuery, setSearchQuery] = useState('');
@@ -1118,26 +1124,35 @@
         let totalQty=0, totalSales=0, totalGaji=0;
         PRODUCTS.forEach(p => { const q=quantities[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
         const totalExpense = expenses.reduce((s,e) => s+(e.amount||0), 0);
-        return { totalQty, totalSales, totalGaji, totalExpense, sisaKas: totalSales-totalGaji-totalExpense };
-      }, [quantities, expenses]);
+        const totalCashIn = cashIns.reduce((s,e) => s+(e.amount||0), 0);
+        return { totalQty, totalSales, totalGaji, totalExpense, totalCashIn, sisaKas: totalSales-totalGaji-totalExpense+totalCashIn };
+      }, [quantities, expenses, cashIns]);
 
       function changeQty(id, delta) { setQuantities(prev => ({...prev, [id]: Math.max(0, (prev[id]||0)+delta)})); }
       function setQty(id, val) { setQuantities(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
       function addExpense() { setExpenses(prev => [...prev, {desc:'',amount:0}]); }
       function removeExpense(i) { setExpenses(prev => prev.filter((_,idx)=>idx!==i)); }
       function updateExpense(i, field, val) { setExpenses(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? (parseInt(val)||0) : val} : e)); }
+      function addCashIn() { setCashIns(prev => [...prev, {desc:'',amount:0}]); }
+      function removeCashIn(i) { setCashIns(prev => prev.filter((_,idx)=>idx!==i)); }
+      function updateCashIn(i, field, val) { setCashIns(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? (parseInt(val)||0) : val} : e)); }
 
       async function saveEntry() {
         const hasQty = PRODUCTS.some(p => (quantities[p.id]||0) > 0);
         const hasExp = expenses.some(e => (e.amount||0) > 0);
-        if (!hasQty && !hasExp) { showToast('Belum ada input!'); return; }
+        const hasCash = cashIns.some(e => (e.amount||0) > 0);
+        if (!hasQty && !hasExp && !hasCash) { showToast('Belum ada input!'); return; }
         setSaving(true);
         const existing = entries[selectedDate] || null;
         const accQty = {}; PRODUCTS.forEach(p => { accQty[p.id] = (existing?(existing.quantities?.[p.id]||0):0) + (quantities[p.id]||0); });
-        const accExpenses = [...(existing?(existing.expenses||[]):[]), ...expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='')];
+        const newExpenses = expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='');
+        const newCashIns = cashIns.filter(e => (e.amount||0)>0 || e.desc.trim()!=='').map(e => ({...e, type:'cashin'}));
+        const accExpenses = [...(existing?(existing.expenses||[]):[]), ...newExpenses, ...newCashIns];
         let totalSales=0, totalGaji=0;
         PRODUCTS.forEach(p => { const q=accQty[p.id]||0; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
-        const totalExpense = accExpenses.reduce((s,e) => s+(e.amount||0), 0);
+        const grossExp = accExpenses.filter(e => e.type !== 'cashin').reduce((s,e) => s+(e.amount||0), 0);
+        const totalCash = accExpenses.filter(e => e.type === 'cashin').reduce((s,e) => s+(e.amount||0), 0);
+        const totalExpense = grossExp - totalCash;
         const entry = { date:selectedDate, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
         try {
           if (sb && session) {
@@ -1146,7 +1161,7 @@
           }
           showToast((existing?'Ditambahkan':'Tersimpan')+' · '+fmtDate(selectedDate));
         } catch(e) { showToast('Gagal menyimpan: '+e.message); }
-        const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setSaving(false);
+        const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]); setSaving(false);
       }
 
       async function deleteEntry(date) {
@@ -1318,14 +1333,20 @@
                     <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                     <button className="btn btn-ghost" onClick={()=>{ if(existingEntry) showToast('Data '+fmtDate(selectedDate)+' ditemukan'); else showToast('Belum ada data untuk tanggal ini'); }}>Cek data</button>
                   </div>
-                  {existingEntry && (
-                    <div className="day-total">
-                      📦 Sudah tercatat: <strong>{PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ')||'–'}</strong><br/>
-                      💰 Penjualan: <strong>{IDR(existingEntry.totalPenjualan)}</strong> · Gaji: <strong>{IDR(existingEntry.gaji)}</strong><br/>
-                      💸 Pengeluaran: <strong>{IDR(existingEntry.totalPengeluaran||0)}</strong> ({(existingEntry.expenses||[]).length} item)<br/>
-                      <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
-                    </div>
-                  )}
+                  {existingEntry && (() => {
+                    const exItems = (existingEntry.expenses||[]).filter(x=>x.type!=='cashin');
+                    const cashItems = (existingEntry.expenses||[]).filter(x=>x.type==='cashin');
+                    const exGross = exItems.reduce((s,x)=>s+(x.amount||0),0);
+                    const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
+                    return (
+                      <div className="day-total">
+                        📦 Sudah tercatat: <strong>{PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ')||'–'}</strong><br/>
+                        💰 Penjualan: <strong>{IDR(existingEntry.totalPenjualan)}</strong> · Gaji: <strong>{IDR(existingEntry.gaji)}</strong><br/>
+                        💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Bayar Cash: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/>
+                        <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="card">
@@ -1353,7 +1374,8 @@
                     <div className="summary-item"><div className="summary-label">Total Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
                     <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
                     <div className="summary-item outbox"><div className="summary-label">Total Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
-                    <div className="summary-item kas-box"><div className="summary-label">Sisa Kas (Penjualan − Gaji − Pengeluaran)</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
+                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">💵 Bayar Cash (Hutang)</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
+                    <div className="summary-item kas-box"><div className="summary-label">Sisa Kas (Penjualan − Gaji − Pengeluaran + Bayar Cash)</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
                   </div>
                 </div>
 
@@ -1367,6 +1389,19 @@
                     </div>
                   ))}
                   <button className="add-expense-btn" onClick={addExpense}>+ Tambah Pengeluaran</button>
+                </div>
+
+                <div className="card">
+                  <div className="card-title">💵 Bayar Cash (Hutang)</div>
+                  <div style={{fontSize:12,color:"var(--text3)",marginTop:-6,marginBottom:12}}>Catat pelanggan yang bayar hutangnya. Cash masuk ini akan menambah kas tanpa menambah gaji.</div>
+                  {cashIns.map((exp, i) => (
+                    <div key={i} className="expense-row">
+                      <input className="expense-input" type="text" placeholder="Cth: Bayar hutang Pak Budi…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
+                      <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
+                      <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
+                    </div>
+                  ))}
+                  <button className="add-expense-btn" onClick={addCashIn}>+ Tambah Bayar Cash</button>
                 </div>
 
                 <button className="btn-save" disabled={saving} onClick={saveEntry}>☕ Tambah & Simpan</button>
@@ -1512,7 +1547,11 @@
                   <div className="empty"><div className="empty-icon">🔍</div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
                 ) : filteredEntries.map((e, i) => {
                   const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
-                  const totalExp = e.totalPengeluaran||0;
+                  const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
+                  const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
+                  const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
+                  const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
+                  const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
                   const sisaKas = e.sisaKas!=null ? e.sisaKas : (e.totalPenjualan-e.gaji-totalExp);
                   const isOpen = openDetail===i;
                   return (
@@ -1520,17 +1559,23 @@
                       <div className="history-item-header"><span className="history-date">{fmtDate(e.date)}</span><span className="history-gaji">{IDR(sisaKas)}</span></div>
                       <div className="history-pills">
                         {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : <span className="pill" style={{color:"var(--text3)"}}>–</span>}
-                        {totalExp>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(totalExp)}</span>}
+                        {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
+                        {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
                       </div>
                       {isOpen && (
                         <div className="history-detail">
                           <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)",margin:"0 0 8px"}}>Penjualan & Gaji</div>
                           {sold.length>0 ? sold.map(p=>(<div key={p.id} className="detail-row"><span>{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span>{IDR(e.quantities[p.id]*p.gaji)}</span></div>)) : <div className="detail-row"><span style={{color:"var(--text3)"}}>Tidak ada</span><span></span></div>}
                           <div className="detail-row total"><span>Total Gaji</span><span>{IDR(e.gaji)}</span></div>
-                          {((e.expenses||[]).length>0 || totalExp>0) && <>
+                          {expItems.length>0 && <>
                             <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--red)",margin:"14px 0 8px"}}>Pengeluaran</div>
-                            {(e.expenses||[]).map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)"}}>{IDR(x.amount)}</span></div>))}
-                            <div className="detail-row" style={{fontWeight:700}}><span>Total Pengeluaran</span><span style={{color:"var(--red)"}}>{IDR(totalExp)}</span></div>
+                            {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)"}}>{IDR(x.amount)}</span></div>))}
+                            <div className="detail-row" style={{fontWeight:700}}><span>Total Pengeluaran</span><span style={{color:"var(--red)"}}>{IDR(expGross)}</span></div>
+                          </>}
+                          {cashItems.length>0 && <>
+                            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--green)",margin:"14px 0 8px"}}>💵 Bayar Cash (Hutang)</div>
+                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Bayar Cash'}</span><span style={{color:"var(--green)"}}>+{IDR(x.amount)}</span></div>))}
+                            <div className="detail-row" style={{fontWeight:700}}><span>Total Bayar Cash</span><span style={{color:"var(--green)"}}>+{IDR(cashGross)}</span></div>
                           </>}
                           <div className="detail-row" style={{color:"var(--green)",fontWeight:700,borderTop:"2px solid var(--border)",marginTop:8,paddingTop:10,fontSize:14}}><span>Sisa Kas</span><span>{IDR(sisaKas)}</span></div>
                           <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
