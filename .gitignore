@@ -2,3 +2,5 @@
 *.log
 .vscode/
 .idea/
+import_riwayat.sql
+*.csv

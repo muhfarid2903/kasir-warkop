@@ -670,6 +670,7 @@
       .qty-display{width:36px;height:36px;font-size:13px}
       .expense-amount{width:88px}
       .gajian-total-value{font-size:20px}
+      .mobile-nav-btn{padding:8px 10px;font-size:10px;min-width:0;flex:1}
     }
   </style>
 </head>
@@ -730,6 +731,57 @@
       { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000, emoji: '🎮' },
     ];
 
+    // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
+    // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
+    const TOKO = [
+      { id: 'dadi',   name: 'Dadi',    emoji: '🏪' },
+      { id: 'dio',    name: 'Dio',     emoji: '🏬' },
+      { id: 'hrahim', name: 'H Rahim', emoji: '🏢' },
+      { id: 'anci',   name: 'Anci',   emoji: '🏠' },
+    ];
+    const VOUCHER_TOKO_CUTOFF = '2026-05-01';
+    const V2K = PRODUCTS.find(p => p.id === 'v2k');
+
+    // Hitung agregat voucher (drop & laku × harga/gaji v2k) untuk satu tanggal.
+    // vtData berbentuk: { '2026-05-01': { dadi: {drop, laku}, dio: {...}, ... }, ... }
+    function voucherForDate(date, vtData) {
+      const dayMap = vtData?.[date] || {};
+      let drop = 0, laku = 0;
+      TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { drop += r.drop||0; laku += r.laku||0; } });
+      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K.price };
+    }
+    // Sum voucher untuk semua tanggal di [start..end] (inklusif), hanya yang >= cutoff.
+    function voucherInRange(start, end, vtData) {
+      let drop = 0, laku = 0;
+      Object.keys(vtData || {}).forEach(d => {
+        if (d < VOUCHER_TOKO_CUTOFF) return;
+        if (d >= start && d <= end) {
+          const r = voucherForDate(d, vtData); drop += r.drop; laku += r.laku;
+        }
+      });
+      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K.price };
+    }
+    // Stok berjalan per toko sampai (≤) endDate.
+    function voucherStockPerToko(endDate, vtData) {
+      const stok = {}; TOKO.forEach(t => stok[t.id] = { drop:0, laku:0 });
+      Object.keys(vtData || {}).forEach(d => {
+        if (d > endDate) return;
+        const dayMap = vtData[d] || {};
+        TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { stok[t.id].drop += r.drop||0; stok[t.id].laku += r.laku||0; } });
+      });
+      return stok;
+    }
+    // Stok per toko SEBELUM tanggal (eksklusif).
+    function voucherStockBefore(date, vtData) {
+      const stok = {}; TOKO.forEach(t => stok[t.id] = { drop:0, laku:0 });
+      Object.keys(vtData || {}).forEach(d => {
+        if (d >= date) return;
+        const dayMap = vtData[d] || {};
+        TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { stok[t.id].drop += r.drop||0; stok[t.id].laku += r.laku||0; } });
+      });
+      return stok;
+    }
+
     const IDR = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
     const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     const MO = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -784,7 +836,7 @@
       URL.revokeObjectURL(url);
     }
 
-    function exportGajianCSV(entries, periodSaldoMap, initialSaldo) {
+    function exportGajianCSV(entries, periodSaldoMap, initialSaldo, voucherToko) {
       const today = new Date();
       const currentMonth = today.getMonth(), currentYear = today.getFullYear();
       const monthsToShow = [
@@ -800,9 +852,13 @@
           const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
           const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
           const periodEntries = [...overflowEntries,...mainEntries];
-          const totalGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
-          const totalPenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+          const eGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
+          const ePenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
           const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+          const vMain = voucherInRange(p.start, p.end, voucherToko);
+          const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0 };
+          const totalGaji = eGaji + vMain.gaji + vOver.gaji;
+          const totalPenjualan = ePenjualan + vMain.penjualan + vOver.penjualan;
           const periodKey = year+'-'+month+'-'+pi;
           const saldoAwal = periodSaldoMap[periodKey] || 0;
           const kasPeriode = totalPenjualan - totalGaji - totalPengeluaran;
@@ -810,28 +866,36 @@
           const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
           const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
           const status = (isPast && !isCurrent) ? 'Selesai' : isCurrent ? 'Berjalan' : 'Belum';
-          rows.push([ML[month]+' '+year+' - '+p.label, 'Tgl '+p.startDay+'-'+p.endDay, periodEntries.length, totalPenjualan, totalGaji, totalPengeluaran, saldoAwal, kasPeriode, sisaKas, status]);
-          // Detail per hari
-          if(overflowEntries.length>0){
-            p.overflowDays.forEach(d => {
-              const dd = String(d).padStart(2,'0');
-              const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
-              const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00');
-              if(entry){
-                const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]).join('; ');
-                rows.push(['  '+d+' '+MO[p.prevMonth]+' ('+DAYS[dt.getDay()]+') [limpahan]', items, '', entry.totalPenjualan, entry.gaji, entry.totalPengeluaran||0, '','','','']);
-              }
-            });
-          }
-          Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).forEach(d => {
-            const dd = String(d).padStart(2,'0');
-            const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
-            const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00');
-            if(entry){
-              const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]).join('; ');
-              rows.push(['  '+d+' '+MO[month]+' ('+DAYS[dt.getDay()]+')', items, '', entry.totalPenjualan, entry.gaji, entry.totalPengeluaran||0, '','','','']);
+          // Hari kerja: gabungkan tanggal yang punya entry atau voucher activity
+          const dateSet = new Set(periodEntries.map(e=>e.date));
+          Object.keys(voucherToko||{}).forEach(d => {
+            if ((d>=p.start && d<=p.end) || (p.overflowStart && d>=p.overflowStart && d<=p.overflowEnd)) {
+              const v = voucherForDate(d, voucherToko); if (v.laku>0||v.drop>0) dateSet.add(d);
             }
           });
+          rows.push([ML[month]+' '+year+' - '+p.label, 'Tgl '+p.startDay+'-'+p.endDay, dateSet.size, totalPenjualan, totalGaji, totalPengeluaran, saldoAwal, kasPeriode, sisaKas, status]);
+          // Detail per hari
+          const renderDay = (d, monLabel, prevYearArg, prevMonthArg, isOverflow) => {
+            const dd = String(d).padStart(2,'0');
+            const yArg = isOverflow ? prevYearArg : year;
+            const mArg = isOverflow ? prevMonthArg : month;
+            const dateStr = yArg+'-'+String(mArg+1).padStart(2,'0')+'-'+dd;
+            const entry = entries[dateStr]; const v = voucherForDate(dateStr, voucherToko); const dt = new Date(dateStr+'T00:00:00');
+            if (!entry && !(v.laku>0||v.drop>0)) return;
+            const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]) : [];
+            if (v.laku>0) itemArr.push('Voucher x'+v.laku+' (laku)');
+            if (v.drop>0) itemArr.push('Drop '+v.drop);
+            const items = itemArr.join('; ');
+            const dPenjualan = (entry?.totalPenjualan||0) + v.penjualan;
+            const dGaji = (entry?.gaji||0) + v.gaji;
+            const dPengeluaran = entry?.totalPengeluaran||0;
+            const tag = isOverflow ? ' [limpahan]' : '';
+            rows.push(['  '+d+' '+monLabel+' ('+DAYS[dt.getDay()]+')'+tag, items, '', dPenjualan, dGaji, dPengeluaran, '','','','']);
+          };
+          if (p.overflowDays.length>0) {
+            p.overflowDays.forEach(d => renderDay(d, MO[p.prevMonth], p.prevYear, p.prevMonth, true));
+          }
+          Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).forEach(d => renderDay(d, MO[month], null, null, false));
           rows.push([]); // empty row separator
         });
       });
@@ -840,33 +904,46 @@
       showToast('Rekap Gajian berhasil di-export!');
     }
 
-    function exportRiwayatCSV(entries) {
-      const sorted = Object.values(entries).sort((a,b)=>a.date.localeCompare(b.date));
-      if(sorted.length===0){ showToast('Belum ada data untuk di-export'); return; }
+    function exportRiwayatCSV(entries, voucherToko) {
+      // Gabungkan tanggal dari entries + voucher_toko
+      const dateSet = new Set(Object.keys(entries));
+      Object.keys(voucherToko||{}).forEach(d => { const v = voucherForDate(d, voucherToko); if (v.laku>0||v.drop>0) dateSet.add(d); });
+      const sortedDates = [...dateSet].sort();
+      if(sortedDates.length===0){ showToast('Belum ada data untuk di-export'); return; }
       const prodHeaders = PRODUCTS.map(p=>p.name);
-      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Bayar Cash','Sisa Kas']];
-      sorted.forEach(e => {
-        const dt = new Date(e.date+'T00:00:00');
+      const tokoHeaders = TOKO.flatMap(t => [t.name+' Drop', t.name+' Laku']);
+      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Bayar Cash','Sisa Kas']];
+      const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
+      sortedDates.forEach(d => {
+        const e = entries[d] || { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0 };
+        const dt = new Date(d+'T00:00:00');
         const prodQtys = PRODUCTS.map(p => e.quantities?.[p.id] || 0);
         const totalQty = prodQtys.reduce((s,q)=>s+q,0);
+        const tokoCells = []; let vLakuTotal=0, vDropTotal=0;
+        TOKO.forEach(t => {
+          const r = (voucherToko?.[d]||{})[t.id] || { drop:0, laku:0 };
+          tokoCells.push(r.drop||0, r.laku||0); vLakuTotal += r.laku||0; vDropTotal += r.drop||0;
+        });
+        const v = voucherForDate(d, voucherToko);
         const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
         const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
         const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
         const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
         const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[BAYAR CASH] ':'')+(x.desc||(x.type==='cashin'?'Bayar Cash':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
         const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
-        const sisaKas = e.sisaKas != null ? e.sisaKas : (e.totalPenjualan - e.gaji - totalExp);
-        rows.push([e.date, DAYS[dt.getDay()], ...prodQtys, totalQty, e.totalPenjualan, e.gaji, expDetail, expGross, cashGross, sisaKas]);
+        const totalPenjualan = (e.totalPenjualan||0) + v.penjualan;
+        const totalGaji = (e.gaji||0) + v.gaji;
+        const sisaKas = totalPenjualan - totalGaji - totalExp;
+        rows.push([d, DAYS[dt.getDay()], ...prodQtys, totalQty, ...tokoCells, vLakuTotal, vDropTotal, totalPenjualan, totalGaji, expDetail, expGross, cashGross, sisaKas]);
+        prodQtys.forEach((q,i)=>totals.prod[i]+=q);
+        tokoCells.forEach((c,i)=>totals.toko[i]+=c);
+        totals.vLaku+=vLakuTotal; totals.vDrop+=vDropTotal;
+        totals.sales+=totalPenjualan; totals.gaji+=totalGaji;
+        totals.exp+=expGross; totals.cash+=cashGross;
       });
-      // Totals row
-      const totProd = PRODUCTS.map((_,i) => sorted.reduce((s,e) => s+(rows.find(r=>r[0]===e.date)?.[i+2]||0),0));
-      const totQty = totProd.reduce((s,q)=>s+q,0);
-      const totSales = sorted.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-      const totGaji = sorted.reduce((s,e)=>s+(e.gaji||0),0);
-      const totExp = sorted.reduce((s,e)=>s+((e.expenses||[]).filter(x=>x.type!=='cashin').reduce((ss,x)=>ss+(x.amount||0),0)),0);
-      const totCash = sorted.reduce((s,e)=>s+((e.expenses||[]).filter(x=>x.type==='cashin').reduce((ss,x)=>ss+(x.amount||0),0)),0);
-      const totSisa = totSales - totGaji - (totExp - totCash);
-      rows.push(['TOTAL','', ...totProd, totQty, totSales, totGaji, '', totExp, totCash, totSisa]);
+      const totQty = totals.prod.reduce((s,q)=>s+q,0);
+      const totSisa = totals.sales - totals.gaji - (totals.exp - totals.cash);
+      rows.push(['TOTAL','', ...totals.prod, totQty, ...totals.toko, totals.vLaku, totals.vDrop, totals.sales, totals.gaji, '', totals.exp, totals.cash, totSisa]);
       const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
       downloadCSV('Riwayat_Warkopsaja_'+todayISO()+'.csv', csv);
       showToast('Riwayat berhasil di-export!');
@@ -1005,6 +1082,7 @@
       const [syncStatus, setSyncStatus] = useState(supabaseReady ? "loading" : "not_configured");
       const [loading, setLoading] = useState(supabaseReady);
       const [entries, setEntries] = useState({});
+      const [voucherToko, setVoucherToko] = useState({});
       const [selectedDate, setSelectedDate] = useState(todayISO());
       const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
       const [expenses, setExpenses] = useState([]);
@@ -1018,6 +1096,8 @@
       const [theme, setTheme] = useState(() => {
         try { return localStorage.getItem('theme') || 'dark'; } catch(e) { return 'dark'; }
       });
+      const [voucherDraft, setVoucherDraft] = useState({});
+      const [voucherSaving, setVoucherSaving] = useState(false);
 
       useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -1039,7 +1119,7 @@
 
       // Load data + realtime subscribe — hanya setelah login
       useEffect(() => {
-        if (!sb || !session) { if (!session) { setEntries({}); setInitialSaldo(0); } setLoading(false); return; }
+        if (!sb || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); } setLoading(false); return; }
         setLoading(true);
         let cancelled = false;
         (async () => {
@@ -1053,6 +1133,16 @@
           const map = {};
           (rows || []).forEach(r => { const e = rowToEntry(r); map[e.date] = e; });
           setEntries(map);
+          // Voucher Toko (opsional — abaikan error jika tabel belum ada)
+          const { data: vtRows, error: vtErr } = await sb.from('voucher_toko').select('*');
+          if (!cancelled && !vtErr) {
+            const vmap = {};
+            (vtRows || []).forEach(r => {
+              const d = r.date; if (!vmap[d]) vmap[d] = {};
+              vmap[d][r.toko_id] = { drop: Number(r.drop_qty)||0, laku: Number(r.laku_qty)||0 };
+            });
+            setVoucherToko(vmap);
+          }
           setSyncStatus('online');
           setLoading(false);
         })();
@@ -1071,6 +1161,19 @@
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, payload => {
             if (payload.new?.key === 'saldo_awal') setInitialSaldo(Number(payload.new.value) || 0);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'voucher_toko' }, payload => {
+            setVoucherToko(prev => {
+              const next = { ...prev };
+              if (payload.eventType === 'DELETE') {
+                const d = payload.old?.date, t = payload.old?.toko_id;
+                if (d && next[d]) { const dm = { ...next[d] }; delete dm[t]; if (Object.keys(dm).length===0) delete next[d]; else next[d] = dm; }
+              } else {
+                const r = payload.new; const d = r.date;
+                next[d] = { ...(next[d]||{}), [r.toko_id]: { drop: Number(r.drop_qty)||0, laku: Number(r.laku_qty)||0 } };
+              }
+              return next;
+            });
           })
           .subscribe();
         return () => { cancelled = true; sb.removeChannel(ch); };
@@ -1092,7 +1195,9 @@
       // Compute saldo awal for each period by chaining from initialSaldo
       const periodSaldoMap = useMemo(() => {
         // Generate all periods from earliest entry to current month
-        const allDates = Object.keys(entries).sort();
+        const entryDates = Object.keys(entries);
+        const voucherDates = Object.keys(voucherToko);
+        const allDates = [...entryDates, ...voucherDates].sort();
         if (allDates.length === 0) return {};
         const earliest = new Date(allDates[0]+'T00:00:00');
         const latest = new Date();
@@ -1111,13 +1216,17 @@
           const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
           const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
           const all = [...overflowEntries, ...mainEntries];
-          const penjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-          const gaji = all.reduce((s,e)=>s+(e.gaji||0),0);
+          const penjualanE = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+          const gajiE = all.reduce((s,e)=>s+(e.gaji||0),0);
           const pengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+          const vMain = voucherInRange(p.start, p.end, voucherToko);
+          const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0 };
+          const penjualan = penjualanE + vMain.penjualan + vOver.penjualan;
+          const gaji = gajiE + vMain.gaji + vOver.gaji;
           runSaldo = runSaldo + penjualan - gaji - pengeluaran;
         });
         return map;
-      }, [entries, initialSaldo]);
+      }, [entries, voucherToko, initialSaldo]);
 
       const existingEntry = entries[selectedDate] || null;
       const inputTotals = useMemo(() => {
@@ -1127,6 +1236,44 @@
         const totalCashIn = cashIns.reduce((s,e) => s+(e.amount||0), 0);
         return { totalQty, totalSales, totalGaji, totalExpense, totalCashIn, sisaKas: totalSales-totalGaji-totalExpense+totalCashIn };
       }, [quantities, expenses, cashIns]);
+
+      // Sinkronkan draft voucher dari data tersimpan saat tanggal/voucherToko berubah
+      useEffect(() => {
+        const day = voucherToko[selectedDate] || {};
+        const next = {};
+        TOKO.forEach(t => {
+          const r = day[t.id] || { drop:0, laku:0 };
+          next[t.id] = { drop: String(r.drop||0), laku: String(r.laku||0) };
+        });
+        setVoucherDraft(next);
+      }, [selectedDate, voucherToko]);
+
+      function setDraft(tokoId, field, val) {
+        setVoucherDraft(prev => ({ ...prev, [tokoId]: { ...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val } }));
+      }
+
+      async function saveVoucherTokoDay() {
+        if (selectedDate < VOUCHER_TOKO_CUTOFF) { showToast('Voucher Toko hanya untuk 1 Mei 2026 dan setelahnya'); return; }
+        setVoucherSaving(true);
+        const rows = TOKO.map(t => {
+          const d = voucherDraft[t.id] || { drop:'0', laku:'0' };
+          return { date: selectedDate, toko_id: t.id, drop_qty: parseInt(d.drop)||0, laku_qty: parseInt(d.laku)||0 };
+        });
+        try {
+          if (sb && session) {
+            const { error } = await sb.from('voucher_toko').upsert(rows, { onConflict: 'date,toko_id' });
+            if (error) throw error;
+          }
+          // Optimistic local update
+          setVoucherToko(prev => {
+            const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
+            rows.forEach(r => { dayMap[r.toko_id] = { drop: r.drop_qty, laku: r.laku_qty }; });
+            next[selectedDate] = dayMap; return next;
+          });
+          showToast('Voucher tersimpan · '+fmtDate(selectedDate));
+        } catch(e) { showToast('Gagal simpan voucher: '+e.message); }
+        setVoucherSaving(false);
+      }
 
       function changeQty(id, delta) { setQuantities(prev => ({...prev, [id]: Math.max(0, (prev[id]||0)+delta)})); }
       function setQty(id, val) { setQuantities(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
@@ -1177,18 +1324,24 @@
 
       const kasSummary = useMemo(() => {
         const all = Object.values(entries);
-        const totalPenjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-        const totalGaji = all.reduce((s,e)=>s+(e.gaji||0),0);
+        const ePenjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+        const eGaji = all.reduce((s,e)=>s+(e.gaji||0),0);
         const totalPengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+        const vAll = voucherInRange('1900-01-01','9999-12-31', voucherToko);
+        const totalPenjualan = ePenjualan + vAll.penjualan;
+        const totalGaji = eGaji + vAll.gaji;
         const kasSekarang = initialSaldo + totalPenjualan - totalGaji - totalPengeluaran;
         const todayStr = todayISO();
         const y = new Date(); y.setDate(y.getDate()-1);
         const yestStr = y.toISOString().split('T')[0];
         const tE = entries[todayStr], yE = entries[yestStr];
-        const todayKas = tE ? ((tE.totalPenjualan||0)-(tE.gaji||0)-(tE.totalPengeluaran||0)) : 0;
-        const yestKas = yE ? ((yE.totalPenjualan||0)-(yE.gaji||0)-(yE.totalPengeluaran||0)) : 0;
-        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, todayKas, yestKas, hasToday:!!tE, hasYest:!!yE };
-      }, [entries, initialSaldo]);
+        const tV = voucherForDate(todayStr, voucherToko); const yV = voucherForDate(yestStr, voucherToko);
+        const hasToday = !!tE || tV.drop>0 || tV.laku>0;
+        const hasYest = !!yE || yV.drop>0 || yV.laku>0;
+        const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
+        const yestKas = hasYest ? (((yE?.totalPenjualan||0)+yV.penjualan) - ((yE?.gaji||0)+yV.gaji) - (yE?.totalPengeluaran||0)) : 0;
+        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, todayKas, yestKas, hasToday, hasYest };
+      }, [entries, voucherToko, initialSaldo]);
 
       const paydayInfo = useMemo(() => {
         const today = new Date(); const day = today.getDate(); const year = today.getFullYear(); const month = today.getMonth();
@@ -1199,10 +1352,21 @@
         if (!show||!period) return null;
         const periodGaji = Object.values(entries).filter(e=>e.date>=period.start&&e.date<=period.end).reduce((s,e)=>s+(e.gaji||0),0);
         const overflowGaji = (period.overflowStart&&period.overflowEnd) ? Object.values(entries).filter(e=>e.date>=period.overflowStart&&e.date<=period.overflowEnd).reduce((s,e)=>s+(e.gaji||0),0) : 0;
-        return { show, period, totalGaji:periodGaji+overflowGaji, daysLeft:show==='today'?0:(period.payday-day), month };
-      }, [entries]);
+        const vMain = voucherInRange(period.start, period.end, voucherToko);
+        const vOver = (period.overflowStart&&period.overflowEnd) ? voucherInRange(period.overflowStart, period.overflowEnd, voucherToko) : { gaji:0 };
+        return { show, period, totalGaji:periodGaji+overflowGaji+vMain.gaji+vOver.gaji, daysLeft:show==='today'?0:(period.payday-day), month };
+      }, [entries, voucherToko]);
 
-      const sortedEntries = useMemo(() => Object.values(entries).sort((a,b)=>b.date.localeCompare(a.date)), [entries]);
+      const sortedEntries = useMemo(() => {
+        const map = { ...entries };
+        Object.keys(voucherToko||{}).forEach(d => {
+          if (!map[d] && d >= VOUCHER_TOKO_CUTOFF) {
+            const v = voucherForDate(d, voucherToko);
+            if (v.laku>0 || v.drop>0) map[d] = { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0, sisaKas:0 };
+          }
+        });
+        return Object.values(map).sort((a,b)=>b.date.localeCompare(a.date));
+      }, [entries, voucherToko]);
 
       const filteredEntries = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -1214,9 +1378,16 @@
           const prodMatch = PRODUCTS.some(p => (e.quantities?.[p.id]||0) > 0 && p.name.toLowerCase().includes(q));
           if (prodMatch) return true;
           const expMatch = (e.expenses||[]).some(x => (x.desc||'').toLowerCase().includes(q));
-          return expMatch;
+          if (expMatch) return true;
+          const v = voucherForDate(e.date, voucherToko);
+          if ((v.laku>0||v.drop>0) && ('voucher'.includes(q) || 'v2k'.includes(q))) return true;
+          if (v.laku>0||v.drop>0) {
+            const dayMap = voucherToko[e.date]||{};
+            return TOKO.some(t => (dayMap[t.id]?.drop>0||dayMap[t.id]?.laku>0) && t.name.toLowerCase().includes(q));
+          }
+          return false;
         });
-      }, [sortedEntries, searchQuery]);
+      }, [sortedEntries, searchQuery, voucherToko]);
 
       if(syncStatus==="not_configured") return (
         <div className="app">
@@ -1288,6 +1459,7 @@
             <div className="sidebar">
               <div className="sidebar-label">Menu</div>
               <button className={"nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={18}/> Input Harian</button>
+              <button className={"nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><span style={{fontSize:16}}>📶</span> Voucher Toko</button>
               <button className={"nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={18}/> Gajian</button>
               <button className={"nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={18}/> Riwayat</button>
             </div>
@@ -1333,16 +1505,23 @@
                     <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                     <button className="btn btn-ghost" onClick={()=>{ if(existingEntry) showToast('Data '+fmtDate(selectedDate)+' ditemukan'); else showToast('Belum ada data untuk tanggal ini'); }}>Cek data</button>
                   </div>
-                  {existingEntry && (() => {
-                    const exItems = (existingEntry.expenses||[]).filter(x=>x.type!=='cashin');
-                    const cashItems = (existingEntry.expenses||[]).filter(x=>x.type==='cashin');
+                  {(() => {
+                    const v = voucherForDate(selectedDate, voucherToko);
+                    const hasVoucher = v.laku>0 || v.drop>0;
+                    if (!existingEntry && !hasVoucher) return null;
+                    const exItems = (existingEntry?.expenses||[]).filter(x=>x.type!=='cashin');
+                    const cashItems = (existingEntry?.expenses||[]).filter(x=>x.type==='cashin');
                     const exGross = exItems.reduce((s,x)=>s+(x.amount||0),0);
                     const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
+                    const items = existingEntry ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
+                    const totalPenj = (existingEntry?.totalPenjualan||0) + v.penjualan;
+                    const totalGaji = (existingEntry?.gaji||0) + v.gaji;
                     return (
                       <div className="day-total">
-                        📦 Sudah tercatat: <strong>{PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ')||'–'}</strong><br/>
-                        💰 Penjualan: <strong>{IDR(existingEntry.totalPenjualan)}</strong> · Gaji: <strong>{IDR(existingEntry.gaji)}</strong><br/>
-                        💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Bayar Cash: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/>
+                        📦 Sudah tercatat: <strong>{items || (hasVoucher ? '(hanya voucher)' : '–')}</strong><br/>
+                        {hasVoucher && <>📶 Voucher: <strong>laku ×{v.laku}{v.drop>0&&', drop '+v.drop}</strong> <span style={{fontSize:11,color:"var(--text3)"}}>(dari menu Voucher Toko)</span><br/></>}
+                        💰 Penjualan: <strong>{IDR(totalPenj)}</strong> · Gaji: <strong>{IDR(totalGaji)}</strong><br/>
+                        {existingEntry && <>💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Bayar Cash: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
                         <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
                       </div>
                     );
@@ -1351,7 +1530,7 @@
 
                 <div className="card">
                   <div className="card-title">☕ Jumlah Laku</div>
-                  {PRODUCTS.map(p => (
+                  {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
                     <div key={p.id} className="product-row">
                       <div className="product-emoji">{p.emoji}</div>
                       <div className="product-info">
@@ -1365,6 +1544,12 @@
                       </div>
                     </div>
                   ))}
+                  {selectedDate >= VOUCHER_TOKO_CUTOFF && (
+                    <div className="day-total" style={{marginTop:10,background:"var(--accent-bg)",borderColor:"var(--accent-border)"}}>
+                      📶 <strong>Voucher 2000</strong> tidak diinput di sini lagi sejak 1 Mei 2026.<br/>
+                      <span style={{fontSize:11,color:"var(--text3)"}}>Pakai menu <strong>📶 Voucher Toko</strong> — gaji & penjualan v2k ikut <em>laku</em> per toko.</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card">
@@ -1407,10 +1592,127 @@
                 <button className="btn-save" disabled={saving} onClick={saveEntry}>☕ Tambah & Simpan</button>
               </>}
 
+              {page==="voucher" && <>
+                <h1 className="page-title">📶 Voucher Toko</h1>
+                <p className="page-sub">Drop = stok dititipkan ke toko · Laku = laporan setoran toko. Gaji Jaya = laku × {IDR(V2K.gaji)}.</p>
+
+                <div className="card">
+                  <div className="card-title">📅 Tanggal</div>
+                  <div className="date-row">
+                    <input type="date" className="date-input" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+                  </div>
+                  {selectedDate < VOUCHER_TOKO_CUTOFF && (
+                    <div className="day-total" style={{background:"var(--orange-bg)",borderColor:"var(--orange-border)",color:"var(--orange)"}}>
+                      ⚠️ Voucher Toko hanya berlaku mulai 1 Mei 2026. Pilih tanggal 1 Mei 2026 atau setelahnya.
+                    </div>
+                  )}
+                </div>
+
+                {selectedDate >= VOUCHER_TOKO_CUTOFF && (() => {
+                  const stockBefore = voucherStockBefore(selectedDate, voucherToko);
+                  let dayDrop=0, dayLaku=0;
+                  TOKO.forEach(t => { const d = voucherDraft[t.id]||{drop:'0',laku:'0'}; dayDrop += parseInt(d.drop)||0; dayLaku += parseInt(d.laku)||0; });
+                  return (
+                    <>
+                      <div className="card">
+                        <div className="card-title">📊 Ringkasan Hari Ini</div>
+                        <div className="summary-grid">
+                          <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{dayDrop}</div></div>
+                          <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{dayLaku}</div></div>
+                          <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Jaya Hari Ini</div><div className="summary-value">{IDR(dayLaku*V2K.gaji)}</div></div>
+                          <div className="summary-item kas-box"><div className="summary-label">💵 Penjualan Hari Ini</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K.price)}</div></div>
+                        </div>
+                      </div>
+
+                      {TOKO.map(t => {
+                        const sBefore = stockBefore[t.id];
+                        const stokAwal = (sBefore.drop||0) - (sBefore.laku||0);
+                        const draft = voucherDraft[t.id] || { drop:'0', laku:'0' };
+                        const dDrop = parseInt(draft.drop)||0;
+                        const dLaku = parseInt(draft.laku)||0;
+                        const stokAkhir = stokAwal + dDrop - dLaku;
+                        const overLaku = dLaku > (stokAwal + dDrop);
+                        return (
+                          <div key={t.id} className="card">
+                            <div className="card-title">{t.emoji} {t.name}</div>
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                              <div className="gajian-stat"><div className="gajian-stat-label">Stok Awal</div><div className="gajian-stat-value" style={{color: stokAwal<0?"var(--red)":"var(--text)"}}>{stokAwal}</div></div>
+                              <div className="gajian-stat" style={{background:"var(--blue-bg)"}}><div className="gajian-stat-label">+ Drop</div><div className="gajian-stat-value" style={{color:"var(--blue)"}}>{dDrop}</div></div>
+                              <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">− Laku</div><div className="gajian-stat-value" style={{color:"var(--green)"}}>{dLaku}</div></div>
+                            </div>
+                            <div className="expense-row" style={{marginBottom:8}}>
+                              <input className="expense-input" type="text" value="Drop hari ini (titip ke toko)" readOnly style={{cursor:"default",background:"var(--bg3)"}}/>
+                              <input className="expense-amount" type="number" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
+                            </div>
+                            <div className="expense-row">
+                              <input className="expense-input" type="text" value="Laku hari ini (setoran toko)" readOnly style={{cursor:"default",background:"var(--bg3)"}}/>
+                              <input className="expense-amount" type="number" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
+                            </div>
+                            <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,padding:"10px 12px",background: overLaku?"var(--red-bg)":"var(--bg3)",borderRadius:10,border:"1px solid "+(overLaku?"var(--red-border)":"var(--border)")}}>
+                              <span style={{color:overLaku?"var(--red)":"var(--text2)"}}>
+                                {overLaku ? '⚠️ Laku melebihi stok!' : 'Stok akhir hari ini'}
+                              </span>
+                              <strong style={{fontFamily:"'Space Mono',monospace",color:stokAkhir<0?"var(--red)":"var(--text)"}}>{stokAkhir}</strong>
+                            </div>
+                            <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text3)"}}>
+                              <span>Penjualan toko: <strong style={{color:"var(--green)"}}>{IDR(dLaku*V2K.price)}</strong></span>
+                              <span>Gaji Jaya: <strong style={{color:"var(--accent)"}}>{IDR(dLaku*V2K.gaji)}</strong></span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <button className="btn-save" disabled={voucherSaving} onClick={saveVoucherTokoDay}>
+                        {voucherSaving ? 'Menyimpan…' : '📶 Simpan Voucher Hari Ini'}
+                      </button>
+
+                      {/* Rekap periode berjalan */}
+                      {(() => {
+                        const today = new Date(); const y = today.getFullYear(); const m = today.getMonth();
+                        const periods = getPayPeriods(y, m);
+                        const sd = new Date(selectedDate+'T00:00:00');
+                        const sy = sd.getFullYear(), sm = sd.getMonth(), sday = sd.getDate();
+                        const periodsForSelected = getPayPeriods(sy, sm);
+                        const p = sday<=14 ? periodsForSelected[0] : periodsForSelected[1];
+                        const range = voucherInRange(p.start, p.end, voucherToko);
+                        return (
+                          <div className="card" style={{marginTop:24}}>
+                            <div className="card-title">📅 Rekap Periode {ML[sm]} · {p.label} (tgl {p.startDay}–{p.endDay})</div>
+                            <div className="summary-grid">
+                              <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{range.drop}</div></div>
+                              <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{range.laku}</div></div>
+                              <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Jaya Periode</div><div className="summary-value">{IDR(range.gaji)}</div></div>
+                              <div className="summary-item kas-box"><div className="summary-label">💵 Penjualan Periode</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(range.penjualan)}</div></div>
+                            </div>
+                            <div style={{marginTop:14,fontSize:11,color:"var(--text3)"}}>
+                              Sisa stok di toko (drop − laku, kumulatif sampai {fmtDate(p.end)}):
+                            </div>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginTop:8}}>
+                              {(() => {
+                                const stokEnd = voucherStockPerToko(p.end, voucherToko);
+                                return TOKO.map(t => {
+                                  const s = stokEnd[t.id]; const sisa = (s.drop||0) - (s.laku||0);
+                                  return (
+                                    <div key={t.id} className="gajian-stat">
+                                      <div className="gajian-stat-label">{t.emoji} {t.name}</div>
+                                      <div className="gajian-stat-value" style={{color:sisa<0?"var(--red)":"var(--text)"}}>{sisa}</div>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  );
+                })()}
+              </>}
+
               {page==="gajian" && <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
                   <div><h1 className="page-title">Rekap Gajian</h1><p className="page-sub" style={{marginBottom:0}}>Ringkasan gaji per periode (tgl 1–14 dan 15–28)</p></div>
-                  <button className="btn-export" onClick={()=>exportGajianCSV(entries, periodSaldoMap, initialSaldo)}><Icon type="download" size={15}/> Export CSV</button>
+                  <button className="btn-export" onClick={()=>exportGajianCSV(entries, periodSaldoMap, initialSaldo, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>
                 </div>
                 <div style={{marginBottom:28}}></div>
 
@@ -1443,14 +1745,25 @@
                       const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
                       const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
                       const periodEntries = [...overflowEntries, ...mainEntries];
-                      const totalGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
-                      const totalPenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+                      const eGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
+                      const ePenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
                       const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+                      const vMain = voucherInRange(p.start, p.end, voucherToko);
+                      const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0, laku:0, drop:0 };
+                      const totalGaji = eGaji + vMain.gaji + vOver.gaji;
+                      const totalPenjualan = ePenjualan + vMain.penjualan + vOver.penjualan;
                       const periodKey = year+'-'+month+'-'+pi;
                       const saldoAwal = periodSaldoMap[periodKey] || 0;
                       const totalSisaKas = totalPenjualan - totalGaji - totalPengeluaran;
                       const sisaKasDenganSaldo = totalSisaKas + saldoAwal;
-                      const totalDays = periodEntries.length;
+                      // Hitung hari kerja: gabungan tanggal dari entries + voucher_toko (yang punya laku/drop)
+                      const periodDateSet = new Set(periodEntries.map(e=>e.date));
+                      Object.keys(voucherToko||{}).forEach(d => {
+                        if ((d>=p.start && d<=p.end) || (p.overflowStart && d>=p.overflowStart && d<=p.overflowEnd)) {
+                          const v = voucherForDate(d, voucherToko); if (v.laku>0 || v.drop>0) periodDateSet.add(d);
+                        }
+                      });
+                      const totalDays = periodDateSet.size;
                       const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
                       const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
                       let statusClass, statusText;
@@ -1489,10 +1802,14 @@
                                 const dd = String(d).padStart(2,'0');
                                 const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
                                 const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
-                                if (entry) {
-                                  const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]).join(', ');
-                                  const dayExp = entry.totalPengeluaran||0;
-                                  return (<div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(entry.gaji)}</div></div>);
+                                const v = voucherForDate(dateStr, voucherToko);
+                                if (entry || v.laku>0 || v.drop>0) {
+                                  const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]) : [];
+                                  if (v.laku>0) itemArr.push('Voucher ×'+v.laku);
+                                  const items = itemArr.join(', ') || '–';
+                                  const dayExp = entry?.totalPengeluaran||0;
+                                  const totalDayGaji = (entry?.gaji||0) + v.gaji;
+                                  return (<div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{v.drop>0&&<span style={{color:"var(--blue)",fontSize:10}}> +drop:{v.drop}</span>}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(totalDayGaji)}</div></div>);
                                 } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
                               })}
                             </div>
@@ -1502,10 +1819,14 @@
                             const dd = String(d).padStart(2,'0');
                             const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
                             const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
-                            if (entry) {
-                              const items = PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]).join(', ');
-                              const dayExp = entry.totalPengeluaran||0;
-                              return (<div key={dateStr} className="gajian-day-row"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(entry.gaji)}</div></div>);
+                            const v = voucherForDate(dateStr, voucherToko);
+                            if (entry || v.laku>0 || v.drop>0) {
+                              const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]) : [];
+                              if (v.laku>0) itemArr.push('Voucher ×'+v.laku);
+                              const items = itemArr.join(', ') || '–';
+                              const dayExp = entry?.totalPengeluaran||0;
+                              const totalDayGaji = (entry?.gaji||0) + v.gaji;
+                              return (<div key={dateStr} className="gajian-day-row"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{v.drop>0&&<span style={{color:"var(--blue)",fontSize:10}}> +drop:{v.drop}</span>}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(totalDayGaji)}</div></div>);
                             } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
                           })}
                         </div>
@@ -1518,7 +1839,7 @@
               {page==="riwayat" && <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
                   <div><h1 className="page-title">Riwayat</h1><p className="page-sub" style={{marginBottom:0}}>Data penjualan yang sudah tersimpan</p></div>
-                  {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries)}><Icon type="download" size={15}/> Export CSV</button>}
+                  {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>}
                 </div>
                 <div style={{marginBottom:20}}></div>
                 {sortedEntries.length>0 && (
@@ -1552,21 +1873,34 @@
                   const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
                   const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
                   const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
-                  const sisaKas = e.sisaKas!=null ? e.sisaKas : (e.totalPenjualan-e.gaji-totalExp);
+                  const v = voucherForDate(e.date, voucherToko);
+                  const totalGajiRow = (e.gaji||0) + v.gaji;
+                  const totalPenjualanRow = (e.totalPenjualan||0) + v.penjualan;
+                  const sisaKas = totalPenjualanRow - totalGajiRow - totalExp;
+                  const hasVoucher = v.laku>0 || v.drop>0;
+                  const tokoBreakdown = hasVoucher ? TOKO.map(t => {
+                    const r = (voucherToko[e.date]||{})[t.id]; if (!r || (!r.drop && !r.laku)) return null;
+                    return { id:t.id, name:t.name, emoji:t.emoji, drop:r.drop||0, laku:r.laku||0 };
+                  }).filter(Boolean) : [];
                   const isOpen = openDetail===i;
                   return (
                     <div key={e.date} className="history-item" onClick={()=>setOpenDetail(isOpen?null:i)}>
                       <div className="history-item-header"><span className="history-date">{fmtDate(e.date)}</span><span className="history-gaji">{IDR(sisaKas)}</span></div>
                       <div className="history-pills">
-                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : <span className="pill" style={{color:"var(--text3)"}}>–</span>}
+                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
+                        {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)"}}>📶 Voucher ×{v.laku}</span>}
+                        {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)"}}>📦 Drop {v.drop}</span>}
                         {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
                         {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
                       </div>
                       {isOpen && (
                         <div className="history-detail">
                           <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)",margin:"0 0 8px"}}>Penjualan & Gaji</div>
-                          {sold.length>0 ? sold.map(p=>(<div key={p.id} className="detail-row"><span>{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span>{IDR(e.quantities[p.id]*p.gaji)}</span></div>)) : <div className="detail-row"><span style={{color:"var(--text3)"}}>Tidak ada</span><span></span></div>}
-                          <div className="detail-row total"><span>Total Gaji</span><span>{IDR(e.gaji)}</span></div>
+                          {sold.length>0 ? sold.map(p=>(<div key={p.id} className="detail-row"><span>{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span>{IDR(e.quantities[p.id]*p.gaji)}</span></div>)) : (!hasVoucher && <div className="detail-row"><span style={{color:"var(--text3)"}}>Tidak ada</span><span></span></div>)}
+                          {tokoBreakdown.map(t => (
+                            <div key={t.id} className="detail-row"><span>{t.emoji} {t.name} — Voucher laku ×{t.laku}{t.drop>0&&<span style={{color:"var(--blue)"}}> (drop {t.drop})</span>}</span><span>{IDR(t.laku*V2K.gaji)}</span></div>
+                          ))}
+                          <div className="detail-row total"><span>Total Gaji</span><span>{IDR(totalGajiRow)}</span></div>
                           {expItems.length>0 && <>
                             <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--red)",margin:"14px 0 8px"}}>Pengeluaran</div>
                             {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)"}}>{IDR(x.amount)}</span></div>))}
@@ -1590,6 +1924,7 @@
 
           <div className="mobile-nav"><div className="mobile-nav-inner">
             <button className={"mobile-nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={20}/> Input</button>
+            <button className={"mobile-nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><span style={{fontSize:18}}>📶</span> Voucher</button>
             <button className={"mobile-nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={20}/> Gajian</button>
             <button className={"mobile-nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={20}/> Riwayat</button>
           </div></div>
