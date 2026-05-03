@@ -1326,14 +1326,28 @@
       }
 
       const kasSummary = useMemo(() => {
+        const now = new Date();
+        const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const all = Object.values(entries);
-        const ePenjualan = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-        const eGaji = all.reduce((s,e)=>s+(e.gaji||0),0);
-        const totalPengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+
+        // All-time → kasSekarang (posisi riil)
+        const ePenjualanAll = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+        const eGajiAll = all.reduce((s,e)=>s+(e.gaji||0),0);
+        const ePengeluaranAll = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
         const vAll = voucherInRange('1900-01-01','9999-12-31', voucherToko);
-        const totalPenjualan = ePenjualan + vAll.penjualan;
-        const totalGaji = eGaji + vAll.gaji;
-        const kasSekarang = initialSaldo + totalPenjualan - totalGaji - totalPengeluaran;
+        const kasSekarang = initialSaldo + (ePenjualanAll + vAll.penjualan) - (eGajiAll + vAll.gaji) - ePengeluaranAll;
+
+        // Bulan berjalan
+        const monthEntries = all.filter(e => e.date >= monthStart);
+        const ePenjualan = monthEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+        const eGaji = monthEntries.reduce((s,e)=>s+(e.gaji||0),0);
+        const totalPengeluaran = monthEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+        const vMonth = voucherInRange(monthStart, '9999-12-31', voucherToko);
+        const totalPenjualan = ePenjualan + vMonth.penjualan;
+        const totalGaji = eGaji + vMonth.gaji;
+        // Saldo awal bulan = kas akhir bulan lalu (carry-over, biar rumus tetap konsisten)
+        const saldoAwalBulan = kasSekarang - totalPenjualan + totalGaji + totalPengeluaran;
+
         const todayStr = todayISO();
         const y = new Date(); y.setDate(y.getDate()-1);
         const yestStr = y.toISOString().split('T')[0];
@@ -1343,7 +1357,7 @@
         const hasYest = !!yE || yV.drop>0 || yV.laku>0;
         const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
         const yestKas = hasYest ? (((yE?.totalPenjualan||0)+yV.penjualan) - ((yE?.gaji||0)+yV.gaji) - (yE?.totalPengeluaran||0)) : 0;
-        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, todayKas, yestKas, hasToday, hasYest };
+        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, saldoAwalBulan, monthStart, todayKas, yestKas, hasToday, hasYest };
       }, [entries, voucherToko, initialSaldo]);
 
       const paydayInfo = useMemo(() => {
@@ -1446,7 +1460,7 @@
             <div className="header-logo">☕</div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
-              <div className="kas-badge" title={"Saldo Awal "+IDR(initialSaldo)+" + Penjualan "+IDR(kasSummary.totalPenjualan)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+              <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Penjualan "+IDR(kasSummary.totalPenjualan)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
                 <span className="kas-badge-label">💼 Kas</span>
                 <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
               </div>
@@ -1475,8 +1489,9 @@
                 <div className="posisi-kas">
                   <div className="posisi-kas-label">💼 Kas Sekarang (Total Riil)</div>
                   <div className={"posisi-kas-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
-                  <div className="posisi-kas-breakdown">
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">Saldo Awal</div><div className="posisi-kas-item-val" style={{color:"var(--text2)"}}><AnimatedIDR value={initialSaldo}/></div></div>
+                  <div style={{fontSize:10,color:"var(--text3)",marginTop:10,letterSpacing:".06em",textTransform:"uppercase",fontWeight:600}}>Rincian bulan {ML[today.getMonth()]} {today.getFullYear()}</div>
+                  <div className="posisi-kas-breakdown" style={{marginTop:6}}>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">Saldo Awal Bulan</div><div className="posisi-kas-item-val" style={{color:"var(--text2)"}}><AnimatedIDR value={kasSummary.saldoAwalBulan}/></div></div>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}}><AnimatedIDR value={kasSummary.totalPenjualan}/></div></div>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Gaji</div><div className="posisi-kas-item-val" style={{color:"var(--accent)"}}><AnimatedIDR value={kasSummary.totalGaji}/></div></div>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Pengeluaran</div><div className="posisi-kas-item-val" style={{color:"var(--red)"}}><AnimatedIDR value={kasSummary.totalPengeluaran}/></div></div>
