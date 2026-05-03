@@ -725,7 +725,7 @@
       { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500, emoji: '☕' },
       { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000, emoji: '🍵' },
       { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300, emoji: '🫖' },
-      { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  emoji: '📶' },
+      { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  komisi_toko: 500, emoji: '📶' },
       { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500, emoji: '🎟️' },
       { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000, emoji: '📆' },
       { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000, emoji: '🎮' },
@@ -741,6 +741,9 @@
     ];
     const VOUCHER_TOKO_CUTOFF = '2026-05-01';
     const V2K = PRODUCTS.find(p => p.id === 'v2k');
+    // Setoran toko per voucher = harga jual − komisi toko (mulai 1 Mei 2026).
+    // Toko ambil 500/voucher sebagai komisi mereka, hanya menyetor 1500 ke kas warkop.
+    const V2K_SETORAN = V2K.price - (V2K.komisi_toko || 0);
 
     // Hitung agregat voucher (drop & laku × harga/gaji v2k) untuk satu tanggal.
     // vtData berbentuk: { '2026-05-01': { dadi: {drop, laku}, dio: {...}, ... }, ... }
@@ -748,7 +751,7 @@
       const dayMap = vtData?.[date] || {};
       let drop = 0, laku = 0;
       TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { drop += r.drop||0; laku += r.laku||0; } });
-      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K.price };
+      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
     }
     // Sum voucher untuk semua tanggal di [start..end] (inklusif), hanya yang >= cutoff.
     function voucherInRange(start, end, vtData) {
@@ -759,7 +762,7 @@
           const r = voucherForDate(d, vtData); drop += r.drop; laku += r.laku;
         }
       });
-      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K.price };
+      return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
     }
     // Stok berjalan per toko sampai (≤) endDate.
     function voucherStockPerToko(endDate, vtData) {
@@ -1594,7 +1597,7 @@
 
               {page==="voucher" && <>
                 <h1 className="page-title">📶 Voucher Toko</h1>
-                <p className="page-sub">Drop = stok dititipkan ke toko · Laku = laporan setoran toko. Gaji Jaya = laku × {IDR(V2K.gaji)}.</p>
+                <p className="page-sub">Drop = stok dititipkan ke toko · Laku = laporan setoran toko. Harga jual {IDR(V2K.price)}/voucher — toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}. Gaji Jaya = laku × {IDR(V2K.gaji)}.</p>
 
                 <div className="card">
                   <div className="card-title">📅 Tanggal</div>
@@ -1620,7 +1623,7 @@
                           <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{dayDrop}</div></div>
                           <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{dayLaku}</div></div>
                           <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Jaya Hari Ini</div><div className="summary-value">{IDR(dayLaku*V2K.gaji)}</div></div>
-                          <div className="summary-item kas-box"><div className="summary-label">💵 Penjualan Hari Ini</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K.price)}</div></div>
+                          <div className="summary-item kas-box"><div className="summary-label">💵 Setoran ke Kas</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K_SETORAN)}</div><div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>kotor {IDR(dayLaku*V2K.price)} − komisi toko {IDR(dayLaku*V2K.komisi_toko)}</div></div>
                         </div>
                       </div>
 
@@ -1654,8 +1657,8 @@
                               </span>
                               <strong style={{fontFamily:"'Space Mono',monospace",color:stokAkhir<0?"var(--red)":"var(--text)"}}>{stokAkhir}</strong>
                             </div>
-                            <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text3)"}}>
-                              <span>Penjualan toko: <strong style={{color:"var(--green)"}}>{IDR(dLaku*V2K.price)}</strong></span>
+                            <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text3)",flexWrap:"wrap",gap:6}}>
+                              <span>Setoran toko: <strong style={{color:"var(--green)"}}>{IDR(dLaku*V2K_SETORAN)}</strong> <span style={{color:"var(--text3)"}}>(komisi {IDR(dLaku*V2K.komisi_toko)})</span></span>
                               <span>Gaji Jaya: <strong style={{color:"var(--accent)"}}>{IDR(dLaku*V2K.gaji)}</strong></span>
                             </div>
                           </div>
