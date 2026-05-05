@@ -1119,6 +1119,18 @@
         return () => document.removeEventListener('wheel', onWheel);
       }, []);
 
+      // Auto-select isi input number saat di-focus, supaya ketikan baru menggantikan nilai lama (0 → 1, bukan 01/10)
+      useEffect(() => {
+        const onFocusIn = (e) => {
+          const el = e.target;
+          if (el && el.tagName === 'INPUT' && el.type === 'number') {
+            setTimeout(() => { try { el.select(); } catch(_) {} }, 0);
+          }
+        };
+        document.addEventListener('focusin', onFocusIn);
+        return () => document.removeEventListener('focusin', onFocusIn);
+      }, []);
+
       // Auth: cek session awal + listen perubahan
       useEffect(() => {
         if (!sb) { setAuthChecked(true); return; }
