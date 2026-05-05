@@ -1107,6 +1107,18 @@
         try { localStorage.setItem('theme', theme); } catch(e) {}
       }, [theme]);
 
+      // Cegah wheel/scroll mengubah nilai input number
+      useEffect(() => {
+        const onWheel = (e) => {
+          const el = e.target;
+          if (el && el.tagName === 'INPUT' && el.type === 'number' && document.activeElement === el) {
+            el.blur();
+          }
+        };
+        document.addEventListener('wheel', onWheel, { passive: true });
+        return () => document.removeEventListener('wheel', onWheel);
+      }, []);
+
       // Auth: cek session awal + listen perubahan
       useEffect(() => {
         if (!sb) { setAuthChecked(true); return; }
