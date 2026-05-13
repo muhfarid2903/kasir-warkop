@@ -470,7 +470,7 @@
     .posisi-kas-label{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
     .posisi-kas-value{font-family:'Space Mono',monospace;font-size:44px;font-weight:700;color:var(--accent);letter-spacing:-1px;line-height:1.05}
     .posisi-kas-value.neg{color:var(--red)}
-    .posisi-kas-breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+    .posisi-kas-breakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
     .posisi-kas-item{display:flex;flex-direction:column;gap:4px}
     .posisi-kas-item-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
     .posisi-kas-item-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700}
@@ -1355,6 +1355,10 @@
         const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
         const all = Object.values(entries);
 
+        // Warkop = kopi vietnam, teh, kopi lain. WiFi = sisanya (voucher, ps4) + setoran voucher toko.
+        const WARKOP_IDS = new Set(['vietnam','teh','kopilain']);
+        const warkopOf = (e) => PRODUCTS.reduce((s,p) => WARKOP_IDS.has(p.id) ? s + (e.quantities?.[p.id]||0)*p.price : s, 0);
+
         // All-time → kasSekarang (posisi riil)
         const ePenjualanAll = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
         const eGajiAll = all.reduce((s,e)=>s+(e.gaji||0),0);
@@ -1365,10 +1369,14 @@
         // Bulan berjalan
         const monthEntries = all.filter(e => e.date >= monthStart);
         const ePenjualan = monthEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
+        const ePenjualanWarkop = monthEntries.reduce((s,e)=>s+warkopOf(e),0);
+        const ePenjualanWifi = ePenjualan - ePenjualanWarkop;
         const eGaji = monthEntries.reduce((s,e)=>s+(e.gaji||0),0);
         const totalPengeluaran = monthEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
         const vMonth = voucherInRange(monthStart, '9999-12-31', voucherToko);
         const totalPenjualan = ePenjualan + vMonth.penjualan;
+        const totalPenjualanWarkop = ePenjualanWarkop;
+        const totalPenjualanWifi = ePenjualanWifi + vMonth.penjualan;
         const totalGaji = eGaji + vMonth.gaji;
         // Saldo awal bulan = kas akhir bulan lalu (carry-over, biar rumus tetap konsisten)
         const saldoAwalBulan = kasSekarang - totalPenjualan + totalGaji + totalPengeluaran;
@@ -1382,7 +1390,7 @@
         const hasYest = !!yE || yV.drop>0 || yV.laku>0;
         const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
         const yestKas = hasYest ? (((yE?.totalPenjualan||0)+yV.penjualan) - ((yE?.gaji||0)+yV.gaji) - (yE?.totalPengeluaran||0)) : 0;
-        return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, saldoAwalBulan, monthStart, todayKas, yestKas, hasToday, hasYest };
+        return { totalPenjualan, totalPenjualanWarkop, totalPenjualanWifi, totalGaji, totalPengeluaran, kasSekarang, saldoAwalBulan, monthStart, todayKas, yestKas, hasToday, hasYest };
       }, [entries, voucherToko, initialSaldo]);
 
       const paydayInfo = useMemo(() => {
@@ -1485,7 +1493,7 @@
             <div className="header-logo">☕</div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
-              <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Penjualan "+IDR(kasSummary.totalPenjualan)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+              <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
                 <span className="kas-badge-label">💼 Kas</span>
                 <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
               </div>
@@ -1517,7 +1525,8 @@
                   <div style={{fontSize:10,color:"var(--text3)",marginTop:10,letterSpacing:".06em",textTransform:"uppercase",fontWeight:600}}>Rincian bulan {ML[today.getMonth()]} {today.getFullYear()}</div>
                   <div className="posisi-kas-breakdown" style={{marginTop:6}}>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">Saldo Awal Bulan</div><div className="posisi-kas-item-val" style={{color:"var(--text2)"}}><AnimatedIDR value={kasSummary.saldoAwalBulan}/></div></div>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}}><AnimatedIDR value={kasSummary.totalPenjualan}/></div></div>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan Warkop</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}} title="Kopi Vietnam, Teh, Kopi Lain"><AnimatedIDR value={kasSummary.totalPenjualanWarkop}/></div></div>
+                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan WiFi</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}} title="Voucher 2K (toko), Paket Lite/Bulanan, PS4"><AnimatedIDR value={kasSummary.totalPenjualanWifi}/></div></div>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Gaji</div><div className="posisi-kas-item-val" style={{color:"var(--accent)"}}><AnimatedIDR value={kasSummary.totalGaji}/></div></div>
                     <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Pengeluaran</div><div className="posisi-kas-item-val" style={{color:"var(--red)"}}><AnimatedIDR value={kasSummary.totalPengeluaran}/></div></div>
                   </div>
