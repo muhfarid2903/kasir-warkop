@@ -415,12 +415,25 @@
     .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
     .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
     .gajian-stat-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;margin-top:4px}
-    .gajian-day-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(218,41,28,.4);font-size:13px}
+    .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(218,41,28,.18);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
-    .gajian-day-date{color:var(--text2)}
-    .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace}
-    .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--accent)}
+    .gajian-day-row.empty{padding:6px 0;opacity:.55}
+    .gajian-day-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+    .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
+    .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:6px;letter-spacing:.02em}
+    .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--accent);font-size:14px;white-space:nowrap;padding-top:1px}
     .gajian-day-row.empty .gajian-day-amount{color:var(--text3);font-weight:400}
+    .gajian-day-chips{display:flex;gap:4px;flex-wrap:wrap}
+    .gajian-day-chip{
+      display:inline-flex;align-items:center;
+      font-size:10.5px;padding:2px 9px;border-radius:14px;
+      background:var(--bg3);color:var(--text2);
+      font-family:'Space Mono',monospace;font-weight:400;
+      border:1px solid var(--border);line-height:1.6;white-space:nowrap;
+    }
+    .gajian-day-chip.voucher{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+    .gajian-day-chip.drop{background:var(--blue-bg);color:var(--blue);border-color:rgba(77,171,247,.28)}
+    .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
     .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:6px}
     .gajian-status-badge.paid{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
     .gajian-status-badge.pending{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
@@ -581,6 +594,7 @@
     [data-theme="light"] .form-input,
     [data-theme="light"] .date-input{background:rgba(243,239,232,.8)}
     [data-theme="light"] .pill{background:rgba(243,239,232,.85)}
+    [data-theme="light"] .gajian-day-chip{background:rgba(243,239,232,.85)}
     [data-theme="light"] td{border-bottom-color:rgba(218,41,28,.10)}
     [data-theme="light"] .gajian-day-row{border-bottom-color:rgba(218,41,28,.10)}
     [data-theme="light"] tr:hover td{background:rgba(218,41,28,.04)}
@@ -688,7 +702,10 @@
       .gajian-header{flex-direction:column;gap:10px}
       .gajian-total-box{text-align:left;align-self:flex-start}
       .gajian-total-value{font-size:22px}
-      .gajian-day-row{padding:8px 0;font-size:12px}
+      .gajian-day-row{padding:9px 0;font-size:12px}
+      .gajian-day-date{font-size:12px}
+      .gajian-day-amount{font-size:13px}
+      .gajian-day-chip{font-size:10px;padding:2px 8px}
       .gajian-card{padding:18px}
 
       /* Riwayat history pills */
@@ -1902,13 +1919,24 @@
                                 const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
                                 const v = voucherForDate(dateStr, voucherToko);
                                 if (entry || v.laku>0 || v.drop>0) {
-                                  const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]) : [];
-                                  if (v.laku>0) itemArr.push('Voucher ×'+v.laku);
-                                  const items = itemArr.join(', ') || '–';
+                                  const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
                                   const dayExp = entry?.totalPengeluaran||0;
                                   const totalDayGaji = (entry?.gaji||0) + v.gaji;
-                                  return (<div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{v.drop>0&&<span style={{color:"var(--blue)",fontSize:10}}> +drop:{v.drop}</span>}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(totalDayGaji)}</div></div>);
-                                } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
+                                  return (
+                                    <div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}>
+                                      <div className="gajian-day-left">
+                                        <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
+                                        <div className="gajian-day-chips">
+                                          {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
+                                          {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
+                                          {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
+                                          {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
+                                        </div>
+                                      </div>
+                                      <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
+                                    </div>
+                                  );
+                                } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-left"><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div></div><div className="gajian-day-amount">–</div></div>); }
                               })}
                             </div>
                           )}
@@ -1919,13 +1947,24 @@
                             const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
                             const v = voucherForDate(dateStr, voucherToko);
                             if (entry || v.laku>0 || v.drop>0) {
-                              const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name.split(' ').slice(-1)[0]+' ×'+entry.quantities[pr.id]) : [];
-                              if (v.laku>0) itemArr.push('Voucher ×'+v.laku);
-                              const items = itemArr.join(', ') || '–';
+                              const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
                               const dayExp = entry?.totalPengeluaran||0;
                               const totalDayGaji = (entry?.gaji||0) + v.gaji;
-                              return (<div key={dateStr} className="gajian-day-row"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span><div style={{fontSize:10,color:"var(--text3)",fontFamily:"'Space Mono',monospace"}}>{items}{v.drop>0&&<span style={{color:"var(--blue)",fontSize:10}}> +drop:{v.drop}</span>}{dayExp>0&&<span style={{color:"var(--red)",fontSize:10}}> −{IDR(dayExp)}</span>}</div></div><div className="gajian-day-amount">{IDR(totalDayGaji)}</div></div>);
-                            } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div><div className="gajian-day-amount">–</div></div>); }
+                              return (
+                                <div key={dateStr} className="gajian-day-row">
+                                  <div className="gajian-day-left">
+                                    <div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div>
+                                    <div className="gajian-day-chips">
+                                      {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
+                                      {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
+                                      {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
+                                      {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
+                                    </div>
+                                  </div>
+                                  <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
+                                </div>
+                              );
+                            } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-left"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div></div><div className="gajian-day-amount">–</div></div>); }
                           })}
                         </div>
                       );
