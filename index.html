@@ -329,14 +329,28 @@
     .history-item{
       background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
       border:1px solid var(--border);
-      border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:10px;
+      border-radius:var(--radius-lg);padding:18px 20px 18px 22px;margin-bottom:10px;
       cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);animation:fadeUp .3s ease both;
       backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+      position:relative;overflow:hidden;
     }
+    .history-item::before{
+      content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+      background:var(--border2);transition:background .25s;
+    }
+    .history-item.profit::before{background:linear-gradient(180deg,var(--green),rgba(0,210,122,.35))}
+    .history-item.loss::before{background:linear-gradient(180deg,var(--red),rgba(255,71,87,.35))}
     .history-item:hover{border-color:var(--accent-border);transform:translateY(-1px);box-shadow:var(--shadow-glow)}
-    .history-item-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-    .history-date{font-size:13px;font-weight:600}
-    .history-gaji{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent)}
+    .history-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+    .history-date{font-size:13px;font-weight:600;padding-top:2px}
+    .history-amount{display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.1}
+    .history-amount-label{
+      font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--text3);font-family:'Space Mono',monospace;
+    }
+    .history-gaji{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+    .history-gaji.pos{color:var(--green)}
+    .history-gaji.neg{color:var(--red)}
     .history-pills{display:flex;gap:6px;flex-wrap:wrap}
     .pill{
       font-size:11px;padding:4px 12px;border-radius:20px;
@@ -344,8 +358,36 @@
       font-weight:400;border:1px solid var(--border);
     }
     .history-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);animation:fadeUp .25s ease}
-    .detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;font-family:'Space Mono',monospace}
+    .history-summary{
+      background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+      padding:10px 14px;margin-bottom:14px;
+    }
+    .summary-row{
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+      padding:5px 0;font-size:13px;font-family:'Space Mono',monospace;color:var(--text2);
+    }
+    .summary-row .summary-value{font-weight:600;white-space:nowrap}
+    .summary-row.add .summary-value{color:var(--text)}
+    .summary-row.sub .summary-value{color:var(--red)}
+    .summary-row.cash .summary-value{color:var(--green)}
+    .summary-row.total{
+      border-top:1px solid var(--border2);margin-top:4px;padding-top:9px;
+      font-size:14px;
+    }
+    .summary-row.total .summary-label{color:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12px}
+    .summary-row.total .summary-value{font-size:16px;font-weight:700}
+    .summary-row.total .summary-value.pos{color:var(--green)}
+    .summary-row.total .summary-value.neg{color:var(--red)}
+    .detail-section-label{
+      font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--text3);margin:14px 0 8px;
+    }
+    .detail-section-label.red{color:var(--red)}
+    .detail-section-label.green{color:var(--green)}
+    .detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:'Space Mono',monospace}
     .detail-row.total{font-weight:700;color:var(--accent);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
+    .detail-row .detail-item-name{color:var(--text2)}
+    .detail-row .detail-item-value{color:var(--text);font-weight:600}
 
     .gajian-card{
       background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
@@ -506,6 +548,11 @@
     [data-theme="light"] .history-gaji,
     [data-theme="light"] .gajian-total-value,
     [data-theme="light"] .gajian-day-amount{color:var(--accent-deep)}
+    [data-theme="light"] .history-gaji.pos,
+    [data-theme="light"] .summary-row.total .summary-value.pos{color:#00754a}
+    [data-theme="light"] .history-gaji.neg,
+    [data-theme="light"] .summary-row.total .summary-value.neg{color:#c4001e}
+    [data-theme="light"] .history-summary{background:rgba(243,239,232,.7)}
     [data-theme="light"] .summary-item.gaji-box .summary-value{color:var(--accent-deep)}
     [data-theme="light"] body{
       background-image:
@@ -1929,9 +1976,17 @@
                     return { id:t.id, name:t.name, emoji:t.emoji, drop:r.drop||0, laku:r.laku||0 };
                   }).filter(Boolean) : [];
                   const isOpen = openDetail===i;
+                  const kasClass = sisaKas>0?'profit':sisaKas<0?'loss':'';
+                  const sisaSign = sisaKas>0?'pos':sisaKas<0?'neg':'';
                   return (
-                    <div key={e.date} className="history-item" onClick={()=>setOpenDetail(isOpen?null:i)}>
-                      <div className="history-item-header"><span className="history-date">{fmtDate(e.date)}</span><span className="history-gaji">{IDR(sisaKas)}</span></div>
+                    <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)}>
+                      <div className="history-item-header">
+                        <span className="history-date">{fmtDate(e.date)}</span>
+                        <div className="history-amount">
+                          <span className="history-amount-label">Sisa Kas</span>
+                          <span className={"history-gaji "+sisaSign}>{IDR(sisaKas)}</span>
+                        </div>
+                      </div>
                       <div className="history-pills">
                         {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
                         {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)"}}>📶 Voucher ×{v.laku}</span>}
@@ -1941,23 +1996,31 @@
                       </div>
                       {isOpen && (
                         <div className="history-detail">
-                          <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)",margin:"0 0 8px"}}>Penjualan & Gaji</div>
-                          {sold.length>0 ? sold.map(p=>(<div key={p.id} className="detail-row"><span>{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span>{IDR(e.quantities[p.id]*p.gaji)}</span></div>)) : (!hasVoucher && <div className="detail-row"><span style={{color:"var(--text3)"}}>Tidak ada</span><span></span></div>)}
-                          {tokoBreakdown.map(t => (
-                            <div key={t.id} className="detail-row"><span>{t.emoji} {t.name} — Voucher laku ×{t.laku}{t.drop>0&&<span style={{color:"var(--blue)"}}> (drop {t.drop})</span>}</span><span>{IDR(t.laku*V2K.gaji)}</span></div>
-                          ))}
-                          <div className="detail-row total"><span>Total Gaji</span><span>{IDR(totalGajiRow)}</span></div>
+                          <div className="history-summary">
+                            <div className="summary-row add"><span className="summary-label">Total Penjualan</span><span className="summary-value">{IDR(totalPenjualanRow)}</span></div>
+                            <div className="summary-row sub"><span className="summary-label">Total Gaji</span><span className="summary-value">−{IDR(totalGajiRow)}</span></div>
+                            {expGross>0 && <div className="summary-row sub"><span className="summary-label">Pengeluaran</span><span className="summary-value">−{IDR(expGross)}</span></div>}
+                            {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Bayar Cash (Hutang)</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
+                            <div className="summary-row total">
+                              <span className="summary-label">Sisa Kas</span>
+                              <span className={"summary-value "+sisaSign}>{IDR(sisaKas)}</span>
+                            </div>
+                          </div>
+                          {(sold.length>0 || tokoBreakdown.length>0) && <>
+                            <div className="detail-section-label">Rincian Gaji per Item</div>
+                            {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name">{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
+                            {tokoBreakdown.map(t => (
+                              <div key={t.id} className="detail-row"><span className="detail-item-name">{t.emoji} {t.name} — Voucher laku ×{t.laku}{t.drop>0&&<span style={{color:"var(--blue)"}}> (drop {t.drop})</span>}</span><span className="detail-item-value">{IDR(t.laku*V2K.gaji)}</span></div>
+                            ))}
+                          </>}
                           {expItems.length>0 && <>
-                            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--red)",margin:"14px 0 8px"}}>Pengeluaran</div>
-                            {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)"}}>{IDR(x.amount)}</span></div>))}
-                            <div className="detail-row" style={{fontWeight:700}}><span>Total Pengeluaran</span><span style={{color:"var(--red)"}}>{IDR(expGross)}</span></div>
+                            <div className="detail-section-label red">Rincian Pengeluaran</div>
+                            {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)",fontWeight:600}}>−{IDR(x.amount)}</span></div>))}
                           </>}
                           {cashItems.length>0 && <>
-                            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"var(--green)",margin:"14px 0 8px"}}>💵 Bayar Cash (Hutang)</div>
-                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span>{x.desc||'Bayar Cash'}</span><span style={{color:"var(--green)"}}>+{IDR(x.amount)}</span></div>))}
-                            <div className="detail-row" style={{fontWeight:700}}><span>Total Bayar Cash</span><span style={{color:"var(--green)"}}>+{IDR(cashGross)}</span></div>
+                            <div className="detail-section-label green">💵 Bayar Cash (Hutang)</div>
+                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Bayar Cash'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                           </>}
-                          <div className="detail-row" style={{color:"var(--green)",fontWeight:700,borderTop:"2px solid var(--border)",marginTop:8,paddingTop:10,fontSize:14}}><span>Sisa Kas</span><span>{IDR(sisaKas)}</span></div>
                           <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
                         </div>
                       )}
