@@ -388,6 +388,11 @@
     .detail-row.total{font-weight:700;color:var(--accent);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
     .detail-row .detail-item-name{color:var(--text2)}
     .detail-row .detail-item-value{color:var(--text);font-weight:600}
+    .toko-detail-row{align-items:flex-start;padding:8px 0}
+    .toko-info{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+    .toko-main{color:var(--text2);font-size:13px;line-height:1.4}
+    .toko-main strong{color:var(--text);font-weight:700}
+    .toko-sub{color:var(--text3);font-size:11px;line-height:1.4;letter-spacing:.02em}
 
     .gajian-card{
       background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
@@ -2009,9 +2014,28 @@
                           {(sold.length>0 || tokoBreakdown.length>0) && <>
                             <div className="detail-section-label">Rincian Gaji per Item</div>
                             {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name">{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
-                            {tokoBreakdown.map(t => (
-                              <div key={t.id} className="detail-row"><span className="detail-item-name">{t.emoji} {t.name} — Voucher laku ×{t.laku}{t.drop>0&&<span style={{color:"var(--blue)"}}> (drop {t.drop})</span>}</span><span className="detail-item-value">{IDR(t.laku*V2K.gaji)}</span></div>
-                            ))}
+                            {tokoBreakdown.map(t => {
+                              const hasLaku = t.laku>0, hasDrop = t.drop>0;
+                              let dropNote = '';
+                              if (hasDrop && hasLaku) {
+                                if (t.laku === t.drop) dropNote = ' · semua terjual hari ini';
+                                else if (t.laku < t.drop) dropNote = ' · sisa '+(t.drop-t.laku)+' di toko';
+                                else dropNote = ' · ada laku dari stok sebelumnya';
+                              }
+                              return (
+                                <div key={t.id} className="detail-row toko-detail-row">
+                                  <div className="toko-info">
+                                    <div className="toko-main">
+                                      {t.emoji} {t.name}
+                                      {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(V2K.gaji)}</>}
+                                      {!hasLaku && hasDrop && <span style={{color:"var(--text3)"}}> · drop saja, belum laku</span>}
+                                    </div>
+                                    {hasDrop && <div className="toko-sub">📦 Drop {t.drop} voucher ke toko{dropNote}</div>}
+                                  </div>
+                                  <span className="detail-item-value">{hasLaku ? IDR(t.laku*V2K.gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
+                                </div>
+                              );
+                            })}
                           </>}
                           {expItems.length>0 && <>
                             <div className="detail-section-label red">Rincian Pengeluaran</div>
