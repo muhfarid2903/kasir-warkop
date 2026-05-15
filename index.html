@@ -18,7 +18,7 @@
     /* === Old Trafford (dark): Manchester United red + Cash App black === */
     :root{
       --bg:#0a0a0a;--bg2:#141414;--bg3:#1c1c1c;--bg4:#262626;
-      --border:rgba(218,41,28,.18);--border2:rgba(218,41,28,.32);
+      --border:rgba(250,250,250,.09);--border2:rgba(250,250,250,.18);
       --text:#fafafa;--text2:#a3a3a3;--text3:#737373;
       --accent:#DA291C;--accent2:#b51f12;--accent3:#ff5347;--accent-deep:#7a1108;
       --accent-bg:rgba(218,41,28,.10);--accent-border:rgba(218,41,28,.30);
@@ -46,9 +46,8 @@
       font-feature-settings:"ss01","cv11";
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
       background-image:
-        radial-gradient(ellipse 60% 40% at 15% -5%,rgba(218,41,28,.18) 0%,transparent 60%),
-        radial-gradient(ellipse 50% 35% at 85% 105%,rgba(251,225,34,.10) 0%,transparent 55%),
-        radial-gradient(ellipse 40% 30% at 50% 50%,rgba(218,41,28,.05) 0%,transparent 70%);
+        radial-gradient(ellipse 60% 40% at 15% -5%,rgba(218,41,28,.08) 0%,transparent 60%),
+        radial-gradient(ellipse 50% 35% at 85% 105%,rgba(251,225,34,.05) 0%,transparent 55%);
       background-attachment:fixed;
     }
     body::before{
@@ -188,7 +187,7 @@
 
     .product-row{
       display:flex;align-items:center;padding:14px 0;
-      border-bottom:1px solid rgba(218,41,28,.06);gap:14px;transition:all .2s cubic-bezier(.4,0,.2,1);
+      border-bottom:1px solid var(--border);gap:14px;transition:all .2s cubic-bezier(.4,0,.2,1);
     }
     .product-row:last-child{border-bottom:none}
     .product-row:hover{padding-left:6px}
@@ -348,7 +347,7 @@
       font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
       color:var(--text3);font-family:'Space Mono',monospace;
     }
-    .history-gaji{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+    .history-gaji{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--text2)}
     .history-gaji.pos{color:var(--green)}
     .history-gaji.neg{color:var(--red)}
     .history-pills{display:flex;gap:6px;flex-wrap:wrap}
@@ -385,7 +384,7 @@
     .detail-section-label.red{color:var(--red)}
     .detail-section-label.green{color:var(--green)}
     .detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:'Space Mono',monospace}
-    .detail-row.total{font-weight:700;color:var(--accent);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
+    .detail-row.total{font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
     .detail-row .detail-item-name{color:var(--text2)}
     .detail-row .detail-item-value{color:var(--text);font-weight:600}
     .toko-detail-row{align-items:flex-start;padding:8px 0}
@@ -415,13 +414,13 @@
     .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
     .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
     .gajian-stat-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;margin-top:4px}
-    .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(218,41,28,.18);font-size:13px}
+    .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
     .gajian-day-row.empty{padding:6px 0;opacity:.55}
     .gajian-day-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
     .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
     .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:6px;letter-spacing:.02em}
-    .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--accent);font-size:14px;white-space:nowrap;padding-top:1px}
+    .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--text);font-size:14px;white-space:nowrap;padding-top:1px}
     .gajian-day-row.empty .gajian-day-amount{color:var(--text3);font-weight:400}
     .gajian-day-chips{display:flex;gap:4px;flex-wrap:wrap}
     .gajian-day-chip{
@@ -436,7 +435,7 @@
     .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
     .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:6px}
     .gajian-status-badge.paid{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-    .gajian-status-badge.pending{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+    .gajian-status-badge.pending{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
     .gajian-status-badge.future{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
 
     .toast{
@@ -474,8 +473,8 @@
 
     table{width:100%;border-collapse:collapse}
     th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);border-bottom:1px solid var(--border)}
-    td{padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(218,41,28,.4)}
-    tr:hover td{background:rgba(218,41,28,.03)}
+    td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+    tr:hover td{background:rgba(255,255,255,.02)}
     .tag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
 
     .form-group{margin-bottom:16px}
@@ -583,7 +582,7 @@
     /* === Treble Cream (light): Cash App cream + United red === */
     [data-theme="light"]{
       --bg:#f9f6f1;--bg2:#ffffff;--bg3:#f3efe8;--bg4:#e7e1d6;
-      --border:rgba(218,41,28,.14);--border2:rgba(218,41,28,.26);
+      --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
       --text:#0a0a0a;--text2:#404040;--text3:#737373;
       --accent:#DA291C;--accent2:#b51f12;--accent3:#ff5347;--accent-deep:#7a1108;
       --accent-bg:rgba(218,41,28,.08);--accent-border:rgba(218,41,28,.24);
@@ -600,9 +599,7 @@
     [data-theme="light"] .page-title{background:linear-gradient(135deg,#0a0a0a 20%,#7a1108 60%,#DA291C 100%);-webkit-background-clip:text;background-clip:text}
     [data-theme="light"] .header-title{background:linear-gradient(180deg,var(--text),var(--accent-deep));-webkit-background-clip:text;background-clip:text}
     [data-theme="light"] .card-title{text-shadow:none}
-    [data-theme="light"] .history-gaji,
-    [data-theme="light"] .gajian-total-value,
-    [data-theme="light"] .gajian-day-amount{color:var(--accent-deep)}
+    [data-theme="light"] .gajian-total-value{color:var(--accent-deep)}
     [data-theme="light"] .history-gaji.pos,
     [data-theme="light"] .summary-row.total .summary-value.pos{color:#00754a}
     [data-theme="light"] .history-gaji.neg,
@@ -632,9 +629,8 @@
     [data-theme="light"] .date-input{background:rgba(243,239,232,.8)}
     [data-theme="light"] .pill{background:rgba(243,239,232,.85)}
     [data-theme="light"] .gajian-day-chip{background:rgba(243,239,232,.85)}
-    [data-theme="light"] td{border-bottom-color:rgba(218,41,28,.10)}
-    [data-theme="light"] .gajian-day-row{border-bottom-color:rgba(218,41,28,.10)}
-    [data-theme="light"] tr:hover td{background:rgba(218,41,28,.04)}
+    [data-theme="light"] td{border-bottom-color:var(--border)}
+    [data-theme="light"] tr:hover td{background:rgba(0,0,0,.03)}
     [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:hue-rotate(345deg) saturate(1.4);opacity:.6}
     [data-theme="light"] .theme-toggle{background:rgba(243,239,232,.8)}
     [data-theme="light"] .sk{background:linear-gradient(90deg,rgba(243,239,232,.85) 0%,rgba(231,225,214,.95) 50%,rgba(243,239,232,.85) 100%);background-size:200% 100%}
@@ -649,7 +645,7 @@
     .sk-line.lg{height:18px}
     .sk-line.xl{height:34px;border-radius:10px}
     .sk-block{height:80px;border-radius:14px;margin-bottom:10px}
-    .sk-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(218,41,28,.06)}
+    .sk-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
     .sk-circle{width:44px;height:44px;border-radius:13px;flex-shrink:0}
     [data-theme="light"] .sk{background:linear-gradient(90deg,rgba(238,241,248,.8) 0%,rgba(221,227,239,.95) 50%,rgba(238,241,248,.8) 100%);background-size:200% 100%}
 
