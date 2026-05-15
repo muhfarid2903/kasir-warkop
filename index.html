@@ -1018,7 +1018,7 @@
       if(sortedDates.length===0){ showToast('Belum ada data untuk di-export'); return; }
       const prodHeaders = PRODUCTS.map(p=>p.name);
       const tokoHeaders = TOKO.flatMap(t => [t.name+' Drop', t.name+' Laku']);
-      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Bayar Cash','Sisa Kas']];
+      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Hutang Dibayar','Sisa Kas']];
       const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
       sortedDates.forEach(d => {
         const e = entries[d] || { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0 };
@@ -1035,7 +1035,7 @@
         const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
         const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
         const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
-        const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[BAYAR CASH] ':'')+(x.desc||(x.type==='cashin'?'Bayar Cash':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
+        const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[HUTANG DIBAYAR] ':'')+(x.desc||(x.type==='cashin'?'Hutang Dibayar':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
         const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
         const totalPenjualan = (e.totalPenjualan||0) + v.penjualan;
         const totalGaji = (e.gaji||0) + v.gaji;
@@ -1590,7 +1590,7 @@
             <div className="header-logo">☕</div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
-              {page!=="input" && <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+              {page!=="input" && <div className="kas-badge" title={"Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
                 <span className="kas-badge-label">💼 Kas</span>
                 <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
               </div>}
@@ -1665,7 +1665,7 @@
                         📦 Sudah tercatat: <strong>{items || (hasVoucher ? '(hanya voucher)' : '–')}</strong><br/>
                         {hasVoucher && <>📶 Voucher: <strong>laku ×{v.laku}{v.drop>0&&', drop '+v.drop}</strong> <span style={{fontSize:11,color:"var(--text3)"}}>(dari menu Voucher Toko)</span><br/></>}
                         💰 Penjualan: <strong>{IDR(totalPenj)}</strong> · Gaji: <strong>{IDR(totalGaji)}</strong><br/>
-                        {existingEntry && <>💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Bayar Cash: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
+                        {existingEntry && <>💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Hutang Dibayar: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
                         <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
                       </div>
                     );
@@ -1694,11 +1694,11 @@
                   <div className="card-title">📊 Ringkasan</div>
                   <div className="summary-grid">
                     <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value">{inputTotals.totalQty} item</div></div>
-                    <div className="summary-item"><div className="summary-label">Total Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
+                    <div className="summary-item"><div className="summary-label">Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
                     <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
-                    <div className="summary-item outbox"><div className="summary-label">Total Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
-                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">💵 Bayar Cash (Hutang)</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
-                    <div className="summary-item kas-box"><div className="summary-label">Sisa Kas (Penjualan − Gaji − Pengeluaran + Bayar Cash)</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
+                    <div className="summary-item outbox"><div className="summary-label">Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
+                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">💵 Hutang Dibayar</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
+                    <div className="summary-item kas-box"><div className="summary-label">{inputTotals.sisaKas>0?'Untung Hari Ini':inputTotals.sisaKas<0?'Rugi Hari Ini':'Impas'}</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
                   </div>
                 </div>
 
@@ -1715,16 +1715,16 @@
                 </div>
 
                 <div className="card">
-                  <div className="card-title">💵 Bayar Cash (Hutang)</div>
-                  <div style={{fontSize:12,color:"var(--text3)",marginTop:-6,marginBottom:12}}>Catat pelanggan yang bayar hutangnya. Cash masuk ini akan menambah kas tanpa menambah gaji.</div>
+                  <div className="card-title">💵 Hutang Dibayar</div>
+                  <div style={{fontSize:12,color:"var(--text3)",marginTop:-6,marginBottom:12}}>Catat pelanggan yang bayar hutangnya. Akan menambah kas tanpa menambah gaji.</div>
                   {cashIns.map((exp, i) => (
                     <div key={i} className="expense-row">
-                      <input className="expense-input" type="text" placeholder="Cth: Bayar hutang Pak Budi…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
+                      <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
                       <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
                       <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
                     </div>
                   ))}
-                  <button className="add-expense-btn" onClick={addCashIn}>+ Tambah Bayar Cash</button>
+                  <button className="add-expense-btn" onClick={addCashIn}>+ Tambah Hutang Dibayar</button>
                 </div>
 
                 <button className="btn-save" disabled={saving} onClick={saveEntry}>☕ Tambah & Simpan</button>
@@ -1849,7 +1849,7 @@
 
               {page==="gajian" && <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div><h1 className="page-title">Rekap Gajian</h1><p className="page-sub" style={{marginBottom:0}}>Ringkasan gaji per periode (tgl 1–14 dan 15–28)</p></div>
+                  <div><h1 className="page-title">Rekap Gajian</h1><p className="page-sub" style={{marginBottom:0}}>Gaji per periode — tanggal 1–14 dan 15–28 tiap bulan</p></div>
                   <button className="btn-export" onClick={()=>exportGajianCSV(entries, periodSaldoMap, initialSaldo, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>
                 </div>
                 <div style={{marginBottom:28}}></div>
@@ -1927,13 +1927,13 @@
                             </div>
                           </div>
                           <div className="gajian-stats">
-                            <div className="gajian-stat"><div className="gajian-stat-label">Penjualan</div><div className="gajian-stat-value" style={{color:"var(--text)"}}>{IDR(totalPenjualan)}</div></div>
+                            <div className="gajian-stat"><div className="gajian-stat-label">Pemasukan</div><div className="gajian-stat-value" style={{color:"var(--text)"}}>{IDR(totalPenjualan)}</div></div>
                             <div className="gajian-stat" style={{background:"var(--red-bg)",borderColor:"var(--red-border)"}}><div className="gajian-stat-label">Pengeluaran</div><div className="gajian-stat-value" style={{color:"var(--red)"}}>{IDR(totalPengeluaran)}</div></div>
-                            <div className="gajian-stat" style={{background:"var(--accent-bg)",borderColor:"var(--accent-border)"}}><div className="gajian-stat-label">Saldo Awal</div><div className="gajian-stat-value" style={{color:"var(--accent)"}}>{IDR(saldoAwal)}</div></div>
+                            <div className="gajian-stat" style={{background:"var(--accent-bg)",borderColor:"var(--accent-border)"}}><div className="gajian-stat-label">Awal Periode</div><div className="gajian-stat-value" style={{color:"var(--accent)"}}>{IDR(saldoAwal)}</div></div>
                           </div>
                           <div className="gajian-stats2">
-                            <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">Sisa Kas (+Saldo Awal)</div><div className="gajian-stat-value" style={{color:sisaKasDenganSaldo<0?"var(--red)":"var(--green)",fontSize:16}}><AnimatedIDR value={sisaKasDenganSaldo}/></div></div>
-                            <div className="gajian-stat"><div className="gajian-stat-label">Kas Periode Ini</div><div className="gajian-stat-value" style={{color:totalSisaKas<0?"var(--red)":"var(--text)"}}><AnimatedIDR value={totalSisaKas}/></div></div>
+                            <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">Kas di Akhir</div><div className="gajian-stat-value" style={{color:sisaKasDenganSaldo<0?"var(--red)":"var(--green)",fontSize:16}}><AnimatedIDR value={sisaKasDenganSaldo}/></div></div>
+                            <div className="gajian-stat"><div className="gajian-stat-label">Bersih Periode</div><div className="gajian-stat-value" style={{color:totalSisaKas<0?"var(--red)":"var(--text)"}}><AnimatedIDR value={totalSisaKas}/></div></div>
                           </div>
 
                           {overflowEntries.length>0 && (
@@ -2054,12 +2054,13 @@
                   const isOpen = openDetail===i;
                   const kasClass = sisaKas>0?'profit':sisaKas<0?'loss':'';
                   const sisaSign = sisaKas>0?'pos':sisaKas<0?'neg':'';
+                  const sisaLabel = sisaKas>0?'Untung':sisaKas<0?'Rugi':'Impas';
                   return (
                     <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)}>
                       <div className="history-item-header">
                         <span className="history-date">{fmtDate(e.date)}</span>
                         <div className="history-amount">
-                          <span className="history-amount-label">Sisa Kas</span>
+                          <span className="history-amount-label">{sisaLabel}</span>
                           <span className={"history-gaji "+sisaSign}>{IDR(sisaKas)}</span>
                         </div>
                       </div>
@@ -2073,17 +2074,17 @@
                       {isOpen && (
                         <div className="history-detail">
                           <div className="history-summary">
-                            <div className="summary-row add"><span className="summary-label">Total Penjualan</span><span className="summary-value">{IDR(totalPenjualanRow)}</span></div>
-                            <div className="summary-row sub"><span className="summary-label">Total Gaji</span><span className="summary-value">−{IDR(totalGajiRow)}</span></div>
+                            <div className="summary-row add"><span className="summary-label">Pemasukan</span><span className="summary-value">{IDR(totalPenjualanRow)}</span></div>
+                            <div className="summary-row sub"><span className="summary-label">Gaji</span><span className="summary-value">−{IDR(totalGajiRow)}</span></div>
                             {expGross>0 && <div className="summary-row sub"><span className="summary-label">Pengeluaran</span><span className="summary-value">−{IDR(expGross)}</span></div>}
-                            {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Bayar Cash (Hutang)</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
+                            {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Hutang Dibayar</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
                             <div className="summary-row total">
-                              <span className="summary-label">Sisa Kas</span>
+                              <span className="summary-label">{sisaLabel} Hari Ini</span>
                               <span className={"summary-value "+sisaSign}>{IDR(sisaKas)}</span>
                             </div>
                           </div>
                           {(sold.length>0 || tokoBreakdown.length>0) && <>
-                            <div className="detail-section-label">Rincian Gaji per Item</div>
+                            <div className="detail-section-label">Rincian Gaji</div>
                             {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name">{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
                             {tokoBreakdown.map(t => {
                               const hasLaku = t.laku>0, hasDrop = t.drop>0;
@@ -2113,8 +2114,8 @@
                             {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)",fontWeight:600}}>−{IDR(x.amount)}</span></div>))}
                           </>}
                           {cashItems.length>0 && <>
-                            <div className="detail-section-label green">💵 Bayar Cash (Hutang)</div>
-                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Bayar Cash'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
+                            <div className="detail-section-label green">💵 Hutang Dibayar</div>
+                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Hutang Dibayar'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                           </>}
                           <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
                         </div>
