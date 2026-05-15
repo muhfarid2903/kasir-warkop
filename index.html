@@ -416,12 +416,20 @@
     .gajian-stat-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;margin-top:4px}
     .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
-    .gajian-day-row.empty{padding:6px 0;opacity:.55}
     .gajian-day-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
     .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
     .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:6px;letter-spacing:.02em}
     .gajian-day-amount{font-family:'Space Mono',monospace;font-weight:700;color:var(--text);font-size:14px;white-space:nowrap;padding-top:1px}
-    .gajian-day-row.empty .gajian-day-amount{color:var(--text3);font-weight:400}
+    .gajian-empty-state{
+      text-align:center;padding:28px 12px;
+      color:var(--text3);font-size:13px;font-style:italic;
+    }
+    .gajian-period-note{
+      text-align:center;padding:14px 0 2px;margin-top:2px;
+      font-size:11px;color:var(--text3);
+      font-family:'Space Mono',monospace;
+      letter-spacing:.04em;
+    }
     .gajian-day-chips{display:flex;gap:4px;flex-wrap:wrap}
     .gajian-day-chip{
       display:inline-flex;align-items:center;
@@ -1573,7 +1581,7 @@
         </div>
       );
 
-      const SyncBadge = () => (<div className={"sync-badge "+(syncStatus==="online"?"sync-online":"sync-offline")}><div className={"sync-dot "+(syncStatus==="online"?"online":"offline")}/>{syncStatus==="online"?"Real-time":"Offline"}</div>);
+      const SyncBadge = () => syncStatus==="online" ? null : (<div className="sync-badge sync-offline" title="Tidak terhubung — perubahan tidak tersinkron"><div className="sync-dot offline"/>Offline</div>);
       const today = new Date();
 
       return (
@@ -1871,7 +1879,10 @@
                     const periods = getPayPeriods(year, month);
                     const isCurrentMonth = (year===currentYear && month===currentMonth);
                     const monthLabel = ML[month]+' '+year;
-                    return periods.map((p,pi) => {
+                    // Newest period first; sembunyikan periode yang belum mulai
+                    const indexed = periods.map((p,pi) => ({p,pi}));
+                    const ordered = indexed.slice().reverse().filter(({p}) => !(isCurrentMonth && currentDay < p.startDay));
+                    return ordered.map(({p,pi}) => {
                       const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
                       const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
                       const periodEntries = [...overflowEntries, ...mainEntries];
@@ -1933,35 +1944,36 @@
                                 const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
                                 const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
                                 const v = voucherForDate(dateStr, voucherToko);
-                                if (entry || v.laku>0 || v.drop>0) {
-                                  const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
-                                  const dayExp = entry?.totalPengeluaran||0;
-                                  const totalDayGaji = (entry?.gaji||0) + v.gaji;
-                                  return (
-                                    <div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}>
-                                      <div className="gajian-day-left">
-                                        <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
-                                        <div className="gajian-day-chips">
-                                          {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
-                                          {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
-                                          {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
-                                          {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
-                                        </div>
+                                if (!(entry || v.laku>0 || v.drop>0)) return null;
+                                const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
+                                const dayExp = entry?.totalPengeluaran||0;
+                                const totalDayGaji = (entry?.gaji||0) + v.gaji;
+                                return (
+                                  <div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}>
+                                    <div className="gajian-day-left">
+                                      <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
+                                      <div className="gajian-day-chips">
+                                        {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
+                                        {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
+                                        {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
+                                        {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
                                       </div>
-                                      <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
                                     </div>
-                                  );
-                                } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-left"><div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div></div><div className="gajian-day-amount">–</div></div>); }
+                                    <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
+                                  </div>
+                                );
                               })}
                             </div>
                           )}
 
-                          {Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).map(d => {
-                            const dd = String(d).padStart(2,'0');
-                            const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
-                            const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
-                            const v = voucherForDate(dateStr, voucherToko);
-                            if (entry || v.laku>0 || v.drop>0) {
+                          {(() => {
+                            const days = Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i);
+                            const rows = days.map(d => {
+                              const dd = String(d).padStart(2,'0');
+                              const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+dd;
+                              const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
+                              const v = voucherForDate(dateStr, voucherToko);
+                              if (!(entry || v.laku>0 || v.drop>0)) return null;
                               const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
                               const dayExp = entry?.totalPengeluaran||0;
                               const totalDayGaji = (entry?.gaji||0) + v.gaji;
@@ -1979,8 +1991,13 @@
                                   <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
                                 </div>
                               );
-                            } else { return (<div key={dateStr} className="gajian-day-row empty"><div className="gajian-day-left"><div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div></div><div className="gajian-day-amount">–</div></div>); }
-                          })}
+                            }).filter(Boolean);
+                            if (rows.length === 0) return <div className="gajian-empty-state">Belum ada input di periode ini</div>;
+                            return <>
+                              {rows}
+                              {rows.length < days.length && <div className="gajian-period-note">{rows.length} dari {days.length} hari tercatat</div>}
+                            </>;
+                          })()}
                         </div>
                       );
                     });
