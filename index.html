@@ -922,13 +922,34 @@
     }
 
     const Icon = ({type, size=18}) => {
-      const s = {width:size,height:size,fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round",strokeLinejoin:"round"};
+      const s = {width:size,height:size,fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round",strokeLinejoin:"round",flexShrink:0,verticalAlign:"middle"};
       const P = {
         coffee:<><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>,
         dollar:<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></>,
         clock:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></>,
         trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>,
         download:<><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+        wallet:<><path d="M20 12V8H6a2 2 0 010-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 000 4h4v-4z"/></>,
+        calendar:<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+        chart:<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
+        'trending-down':<><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></>,
+        banknote:<><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></>,
+        coins:<><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1110.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/></>,
+        package:<><path d="M16.5 9.4l-9-5.19"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+        store:<><path d="M3 9l1-5h16l1 5"/><path d="M5 9v11h14V9"/><path d="M9 22V13h6v9"/></>,
+        signal:<><path d="M2 20l4-4 4 4"/><path d="M6 20V8"/><path d="M14 20l4-4 4 4"/><path d="M18 20V4"/></>,
+        inbox:<><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></>,
+        search:<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+        gift:<><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></>,
+        'arrow-up':<><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></>,
+        pencil:<><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+        'log-out':<><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+        sun:<><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></>,
+        moon:<><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></>,
+        alert:<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+        settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
+        lock:<><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
+        'user-plus':<><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>,
       };
       return <svg viewBox="0 0 24 24" style={s}>{P[type]}</svg>;
     };
@@ -1145,13 +1166,13 @@
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
             <div className="header-right">
               <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
-                {theme==='dark' ? '☀️' : '🌙'}
+                <Icon type={theme==='dark'?'sun':'moon'} size={16}/>
               </button>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 73px)",padding:20}}>
             <form onSubmit={submit} className="card" style={{width:380,maxWidth:"100%",margin:0}}>
-              <div className="card-title">{mode==='signin' ? '🔐 Masuk' : '✨ Daftar Akun'}</div>
+              <div className="card-title">{mode==='signin' ? <><Icon type="lock" size={16}/> Masuk</> : <><Icon type="user-plus" size={16}/> Daftar Akun</>}</div>
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input className="form-input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@contoh.com"/>
@@ -1540,7 +1561,7 @@
         <div className="app">
           <div className="header"><div className="header-logo">☕</div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"70vh",padding:40,textAlign:"center"}}>
-            <div style={{fontSize:56,marginBottom:24}}>⚙️</div>
+            <div style={{marginBottom:24,color:"var(--text3)"}}><Icon type="settings" size={56}/></div>
             <h2 style={{marginBottom:12,fontSize:22}}>Konfigurasi Supabase</h2>
             <p style={{color:"var(--text2)",maxWidth:520,lineHeight:1.8,marginBottom:24}}>Buka file <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>index.html</code>, cari <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_URL</code> dan <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_ANON_KEY</code>, lalu isi dengan nilai dari Supabase Dashboard → Project Settings → API.</p>
           </div>
@@ -1591,14 +1612,14 @@
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
               {page!=="input" && <div className="kas-badge" title={"Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
-                <span className="kas-badge-label">💼 Kas</span>
+                <span className="kas-badge-label"><Icon type="wallet" size={13}/> Kas</span>
                 <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
               </div>}
               <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
-                {theme==='dark' ? '☀️' : '🌙'}
+                <Icon type={theme==='dark'?'sun':'moon'} size={16}/>
               </button>
               <SyncBadge/>
-              <button className="theme-toggle" onClick={async()=>{ if(sb) await sb.auth.signOut(); }} title={"Logout ("+(session?.user?.email||'')+")"}>⏻</button>
+              <button className="theme-toggle" onClick={async()=>{ if(sb) await sb.auth.signOut(); }} title={"Logout ("+(session?.user?.email||'')+")"}><Icon type="log-out" size={16}/></button>
             </div>
           </div>
 
@@ -1606,7 +1627,7 @@
             <div className="sidebar">
               <div className="sidebar-label">Menu</div>
               <button className={"nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={18}/> Input Harian</button>
-              <button className={"nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><span style={{fontSize:16}}>📶</span> Voucher Toko</button>
+              <button className={"nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><Icon type="signal" size={18}/> Voucher Toko</button>
               <button className={"nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={18}/> Gajian</button>
               <button className={"nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={18}/> Riwayat</button>
             </div>
@@ -1636,7 +1657,7 @@
 
                 {paydayInfo && (
                   <div className={"payday-banner "+paydayInfo.show}>
-                    <div className="payday-title">{paydayInfo.show==='today'?'🎉 Hari Ini Gajian!':'📅 Gajian '+paydayInfo.daysLeft+' hari lagi (tgl '+paydayInfo.period.payday+')'}</div>
+                    <div className="payday-title">{paydayInfo.show==='today'?<><Icon type="gift" size={16}/> Hari Ini Gajian!</>:<><Icon type="calendar" size={15}/> Gajian {paydayInfo.daysLeft} hari lagi (tgl {paydayInfo.period.payday})</>}</div>
                     <div className="payday-detail">{paydayInfo.period.label}: Tgl {paydayInfo.period.startDay}–{paydayInfo.period.endDay} {MO[paydayInfo.month]}</div>
                     <div className="payday-amount">{IDR(paydayInfo.totalGaji)}</div>
                     {paydayInfo.show==='upcoming' && <div className="payday-detail" style={{marginTop:4}}>Sementara terkumpul</div>}
@@ -1644,7 +1665,7 @@
                 )}
 
                 <div className="card">
-                  <div className="card-title">📅 Tanggal</div>
+                  <div className="card-title"><Icon type="calendar" size={16}/> Tanggal</div>
                   <div className="date-row">
                     <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                     <button className="btn btn-ghost" onClick={()=>{ if(existingEntry) showToast('Data '+fmtDate(selectedDate)+' ditemukan'); else showToast('Belum ada data untuk tanggal ini'); }}>Cek data</button>
@@ -1662,10 +1683,10 @@
                     const totalGaji = (existingEntry?.gaji||0) + v.gaji;
                     return (
                       <div className="day-total">
-                        📦 Sudah tercatat: <strong>{items || (hasVoucher ? '(hanya voucher)' : '–')}</strong><br/>
-                        {hasVoucher && <>📶 Voucher: <strong>laku ×{v.laku}{v.drop>0&&', drop '+v.drop}</strong> <span style={{fontSize:11,color:"var(--text3)"}}>(dari menu Voucher Toko)</span><br/></>}
-                        💰 Penjualan: <strong>{IDR(totalPenj)}</strong> · Gaji: <strong>{IDR(totalGaji)}</strong><br/>
-                        {existingEntry && <>💸 Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · 💵 Hutang Dibayar: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
+                        <Icon type="package" size={13}/> Sudah tercatat: <strong>{items || (hasVoucher ? '(hanya voucher)' : '–')}</strong><br/>
+                        {hasVoucher && <><Icon type="signal" size={13}/> Voucher: <strong>laku ×{v.laku}{v.drop>0&&', drop '+v.drop}</strong> <span style={{fontSize:11,color:"var(--text3)"}}>(dari menu Voucher Toko)</span><br/></>}
+                        <Icon type="coins" size={13}/> Penjualan: <strong>{IDR(totalPenj)}</strong> · Gaji: <strong>{IDR(totalGaji)}</strong><br/>
+                        {existingEntry && <><Icon type="trending-down" size={13}/> Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · <Icon type="banknote" size={13}/> Hutang Dibayar: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
                         <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
                       </div>
                     );
@@ -1673,7 +1694,7 @@
                 </div>
 
                 <div className="card">
-                  <div className="card-title">☕ Jumlah Laku</div>
+                  <div className="card-title"><Icon type="coffee" size={16}/> Jumlah Laku</div>
                   {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
                     <div key={p.id} className="product-row">
                       <div className="product-emoji">{p.emoji}</div>
@@ -1691,19 +1712,19 @@
                 </div>
 
                 <div className="card">
-                  <div className="card-title">📊 Ringkasan</div>
+                  <div className="card-title"><Icon type="chart" size={16}/> Ringkasan</div>
                   <div className="summary-grid">
                     <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value">{inputTotals.totalQty} item</div></div>
                     <div className="summary-item"><div className="summary-label">Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
-                    <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
+                    <div className="summary-item gaji-box"><div className="summary-label">Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
                     <div className="summary-item outbox"><div className="summary-label">Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
-                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">💵 Hutang Dibayar</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
+                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">Hutang Dibayar</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
                     <div className="summary-item kas-box"><div className="summary-label">{inputTotals.sisaKas>0?'Untung Hari Ini':inputTotals.sisaKas<0?'Rugi Hari Ini':'Impas'}</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
                   </div>
                 </div>
 
                 <div className="card">
-                  <div className="card-title">💸 Pengeluaran</div>
+                  <div className="card-title"><Icon type="trending-down" size={16}/> Pengeluaran</div>
                   {expenses.map((exp, i) => (
                     <div key={i} className="expense-row">
                       <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
@@ -1715,7 +1736,7 @@
                 </div>
 
                 <div className="card">
-                  <div className="card-title">💵 Hutang Dibayar</div>
+                  <div className="card-title"><Icon type="banknote" size={16}/> Hutang Dibayar</div>
                   <div style={{fontSize:12,color:"var(--text3)",marginTop:-6,marginBottom:12}}>Catat pelanggan yang bayar hutangnya. Akan menambah kas tanpa menambah gaji.</div>
                   {cashIns.map((exp, i) => (
                     <div key={i} className="expense-row">
@@ -1727,21 +1748,21 @@
                   <button className="add-expense-btn" onClick={addCashIn}>+ Tambah Hutang Dibayar</button>
                 </div>
 
-                <button className="btn-save" disabled={saving} onClick={saveEntry}>☕ Tambah & Simpan</button>
+                <button className="btn-save" disabled={saving} onClick={saveEntry}><Icon type="coffee" size={16}/> Tambah & Simpan</button>
               </>}
 
               {page==="voucher" && <>
-                <h1 className="page-title">📶 Voucher Toko</h1>
+                <h1 className="page-title" style={{display:"flex",alignItems:"center",gap:12}}><Icon type="signal" size={28}/> Voucher Toko</h1>
                 <p className="page-sub">Drop = stok dititipkan ke toko · Laku = laporan setoran toko. Harga jual {IDR(V2K.price)}/voucher — toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}. Gaji Jaya = laku × {IDR(V2K.gaji)}.</p>
 
                 <div className="card">
-                  <div className="card-title">📅 Tanggal</div>
+                  <div className="card-title"><Icon type="calendar" size={16}/> Tanggal</div>
                   <div className="date-row">
                     <input type="date" className="date-input" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                   </div>
                   {selectedDate < VOUCHER_TOKO_CUTOFF && (
-                    <div className="day-total" style={{background:"var(--orange-bg)",borderColor:"var(--orange-border)",color:"var(--orange)"}}>
-                      ⚠️ Voucher Toko hanya berlaku mulai 1 Mei 2026. Pilih tanggal 1 Mei 2026 atau setelahnya.
+                    <div className="day-total" style={{background:"var(--orange-bg)",borderColor:"var(--orange-border)",color:"var(--orange)",display:"flex",alignItems:"center",gap:8}}>
+                      <Icon type="alert" size={16}/> Voucher Toko hanya berlaku mulai 1 Mei 2026. Pilih tanggal 1 Mei 2026 atau setelahnya.
                     </div>
                   )}
                 </div>
@@ -1753,12 +1774,12 @@
                   return (
                     <>
                       <div className="card">
-                        <div className="card-title">📊 Ringkasan Hari Ini</div>
+                        <div className="card-title"><Icon type="chart" size={16}/> Ringkasan Hari Ini</div>
                         <div className="summary-grid">
                           <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{dayDrop}</div></div>
                           <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{dayLaku}</div></div>
-                          <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Jaya Hari Ini</div><div className="summary-value">{IDR(dayLaku*V2K.gaji)}</div></div>
-                          <div className="summary-item kas-box"><div className="summary-label">💵 Setoran ke Kas</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K_SETORAN)}</div><div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>kotor {IDR(dayLaku*V2K.price)} − komisi toko {IDR(dayLaku*V2K.komisi_toko)}</div></div>
+                          <div className="summary-item gaji-box"><div className="summary-label">Gaji Jaya Hari Ini</div><div className="summary-value">{IDR(dayLaku*V2K.gaji)}</div></div>
+                          <div className="summary-item kas-box"><div className="summary-label">Setoran ke Kas</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K_SETORAN)}</div><div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>kotor {IDR(dayLaku*V2K.price)} − komisi toko {IDR(dayLaku*V2K.komisi_toko)}</div></div>
                         </div>
                       </div>
 
@@ -1787,8 +1808,8 @@
                               <input className="expense-amount" type="number" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
                             </div>
                             <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,padding:"10px 12px",background: overLaku?"var(--red-bg)":"var(--bg3)",borderRadius:10,border:"1px solid "+(overLaku?"var(--red-border)":"var(--border)")}}>
-                              <span style={{color:overLaku?"var(--red)":"var(--text2)"}}>
-                                {overLaku ? '⚠️ Laku melebihi stok!' : 'Stok akhir hari ini'}
+                              <span style={{color:overLaku?"var(--red)":"var(--text2)",display:"inline-flex",alignItems:"center",gap:6}}>
+                                {overLaku ? <><Icon type="alert" size={13}/> Laku melebihi stok!</> : 'Stok akhir hari ini'}
                               </span>
                               <strong style={{fontFamily:"'Space Mono',monospace",color:stokAkhir<0?"var(--red)":"var(--text)"}}>{stokAkhir}</strong>
                             </div>
@@ -1801,7 +1822,7 @@
                       })}
 
                       <button className="btn-save" disabled={voucherSaving} onClick={saveVoucherTokoDay}>
-                        {voucherSaving ? 'Menyimpan…' : '📶 Simpan Voucher Hari Ini'}
+                        {voucherSaving ? 'Menyimpan…' : <><Icon type="signal" size={16}/> Simpan Voucher Hari Ini</>}
                       </button>
 
                       {/* Rekap periode berjalan */}
@@ -1815,12 +1836,12 @@
                         const range = voucherInRange(p.start, p.end, voucherToko);
                         return (
                           <div className="card" style={{marginTop:24}}>
-                            <div className="card-title">📅 Rekap Periode {ML[sm]} · {p.label} (tgl {p.startDay}–{p.endDay})</div>
+                            <div className="card-title"><Icon type="calendar" size={16}/> Rekap Periode {ML[sm]} · {p.label} (tgl {p.startDay}–{p.endDay})</div>
                             <div className="summary-grid">
                               <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{range.drop}</div></div>
                               <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{range.laku}</div></div>
-                              <div className="summary-item gaji-box"><div className="summary-label">💰 Gaji Jaya Periode</div><div className="summary-value">{IDR(range.gaji)}</div></div>
-                              <div className="summary-item kas-box"><div className="summary-label">💵 Penjualan Periode</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(range.penjualan)}</div></div>
+                              <div className="summary-item gaji-box"><div className="summary-label">Gaji Jaya Periode</div><div className="summary-value">{IDR(range.gaji)}</div></div>
+                              <div className="summary-item kas-box"><div className="summary-label">Penjualan Periode</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(range.penjualan)}</div></div>
                             </div>
                             <div style={{marginTop:14,fontSize:11,color:"var(--text3)"}}>
                               Sisa stok di toko (drop − laku, kumulatif sampai {fmtDate(p.end)}):
@@ -1856,7 +1877,7 @@
 
                 {/* Saldo Awal Setting */}
                 <div className="card" style={{marginBottom:20}}>
-                  <div className="card-title">💰 Saldo Awal</div>
+                  <div className="card-title"><Icon type="coins" size={16}/> Saldo Awal</div>
                   {editingSaldo ? (
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       <input className="expense-amount" style={{flex:1,width:"auto",textAlign:"left"}} type="number" autoFocus placeholder="Masukkan saldo awal..." value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
@@ -1866,7 +1887,7 @@
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{fontFamily:"'Space Mono',monospace",fontSize:20,fontWeight:700,color:"var(--accent)"}}>{IDR(initialSaldo)}</div>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}>✏️ Ubah</button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={13}/> Ubah</button>
                       <div style={{fontSize:11,color:"var(--text3)",marginLeft:4}}>Saldo ini akan terakumulasi ke setiap periode berikutnya</div>
                     </div>
                   )}
@@ -1938,7 +1959,7 @@
 
                           {overflowEntries.length>0 && (
                             <div style={{borderBottom:"1px dashed var(--border)",marginBottom:4,paddingBottom:4}}>
-                              <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px"}}>⬆ Limpahan bulan {ML[p.prevMonth]}</div>
+                              <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px",display:"flex",alignItems:"center",gap:6}}><Icon type="arrow-up" size={11}/> Limpahan bulan {ML[p.prevMonth]}</div>
                               {p.overflowDays.map(d => {
                                 const dd = String(d).padStart(2,'0');
                                 const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
@@ -1954,8 +1975,8 @@
                                       <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
                                       <div className="gajian-day-chips">
                                         {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
-                                        {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
-                                        {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
+                                        {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
+                                        {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
                                         {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
                                       </div>
                                     </div>
@@ -1983,8 +2004,8 @@
                                     <div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div>
                                     <div className="gajian-day-chips">
                                       {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
-                                      {v.laku>0 && <span className="gajian-day-chip voucher">🏪 Voucher Toko ×{v.laku}</span>}
-                                      {v.drop>0 && <span className="gajian-day-chip drop">📦 Drop {v.drop}</span>}
+                                      {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
+                                      {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
                                       {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
                                     </div>
                                   </div>
@@ -2032,9 +2053,9 @@
                   </div>
                 )}
                 {sortedEntries.length===0 ? (
-                  <div className="empty"><div className="empty-icon">📋</div>Belum ada data tersimpan.<br/>Mulai input di tab "Input Harian".</div>
+                  <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="inbox" size={48}/></div>Belum ada data tersimpan.<br/>Mulai input di tab "Input Harian".</div>
                 ) : filteredEntries.length===0 ? (
-                  <div className="empty"><div className="empty-icon">🔍</div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
+                  <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
                 ) : filteredEntries.map((e, i) => {
                   const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
                   const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
@@ -2066,8 +2087,8 @@
                       </div>
                       <div className="history-pills">
                         {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
-                        {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)"}}>📶 Voucher ×{v.laku}</span>}
-                        {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)"}}>📦 Drop {v.drop}</span>}
+                        {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
+                        {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
                         {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
                         {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
                       </div>
@@ -2102,7 +2123,7 @@
                                       {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(V2K.gaji)}</>}
                                       {!hasLaku && hasDrop && <span style={{color:"var(--text3)"}}> · drop saja, belum laku</span>}
                                     </div>
-                                    {hasDrop && <div className="toko-sub">📦 Drop {t.drop} voucher ke toko{dropNote}</div>}
+                                    {hasDrop && <div className="toko-sub"><Icon type="package" size={11}/> Drop {t.drop} voucher ke toko{dropNote}</div>}
                                   </div>
                                   <span className="detail-item-value">{hasLaku ? IDR(t.laku*V2K.gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
                                 </div>
@@ -2114,7 +2135,7 @@
                             {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)",fontWeight:600}}>−{IDR(x.amount)}</span></div>))}
                           </>}
                           {cashItems.length>0 && <>
-                            <div className="detail-section-label green">💵 Hutang Dibayar</div>
+                            <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Hutang Dibayar</div>
                             {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Hutang Dibayar'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                           </>}
                           <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
@@ -2129,7 +2150,7 @@
 
           <div className="mobile-nav"><div className="mobile-nav-inner">
             <button className={"mobile-nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={20}/> Input</button>
-            <button className={"mobile-nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><span style={{fontSize:18}}>📶</span> Voucher</button>
+            <button className={"mobile-nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><Icon type="signal" size={20}/> Voucher</button>
             <button className={"mobile-nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={20}/> Gajian</button>
             <button className={"mobile-nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={20}/> Riwayat</button>
           </div></div>
