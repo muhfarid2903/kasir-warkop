@@ -518,30 +518,67 @@
     .kas-badge-val.neg{color:var(--red)}
     @media(max-width:600px){.kas-badge-label{display:none}.kas-badge{padding:6px 10px;font-size:12px}}
 
-    .posisi-kas{
-      background:linear-gradient(135deg,rgba(218,41,28,.12),rgba(20,20,20,.4));
-      border:1px solid var(--accent-border);border-radius:var(--radius-lg);
-      padding:22px;margin-bottom:18px;position:relative;overflow:hidden;
-      animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;
-      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-      box-shadow:0 8px 28px rgba(0,0,0,.18);
+    .kas-hero{
+      text-align:center;padding:56px 20px 32px;margin:0 0 28px;position:relative;
+      animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both;
     }
-    .posisi-kas::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad-warm);opacity:.7}
-    .posisi-kas-label{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-    .posisi-kas-value{font-family:'Space Mono',monospace;font-size:44px;font-weight:700;color:var(--accent);letter-spacing:-1px;line-height:1.05}
-    .posisi-kas-value.neg{color:var(--red)}
-    .posisi-kas-breakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
-    .posisi-kas-item{display:flex;flex-direction:column;gap:4px}
-    .posisi-kas-item-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-    .posisi-kas-item-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700}
-    .posisi-kas-day{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:12px;font-family:'Space Mono',monospace}
-    .posisi-kas-day-item{display:flex;align-items:center;gap:6px}
-    .posisi-kas-day-val.pos{color:var(--green)}
-    .posisi-kas-day-val.neg{color:var(--red)}
-    .posisi-kas-day-val.none{color:var(--text3);font-style:italic}
-    @media(max-width:600px){.posisi-kas-breakdown{grid-template-columns:repeat(2,1fr)}.posisi-kas-value{font-size:36px}}
+    .kas-hero::before{
+      content:'';position:absolute;left:50%;top:0;width:48px;height:2px;
+      transform:translateX(-50%);background:var(--grad-warm);opacity:.65;border-radius:2px;
+    }
+    .kas-hero-label{
+      font-size:11px;font-weight:700;color:var(--text3);
+      letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px;
+      font-family:'DM Sans',sans-serif;
+    }
+    .kas-hero-value{
+      font-family:'Space Mono',monospace;
+      font-size:clamp(48px,8.5vw,84px);
+      font-weight:700;letter-spacing:-2px;line-height:.95;
+      background:linear-gradient(180deg,var(--text) 35%,var(--accent) 100%);
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+    }
+    .kas-hero-value.neg{
+      background:linear-gradient(180deg,var(--text) 35%,var(--red) 100%);
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+    }
+    .kas-hero-delta{
+      margin-top:20px;font-size:13px;color:var(--text3);
+      font-family:'Space Mono',monospace;
+    }
+    .kas-hero-delta .pos{color:var(--green);font-weight:700}
+    .kas-hero-delta .neg{color:var(--red);font-weight:700}
+    .kas-hero-delta .delim{margin:0 12px;opacity:.4}
+    .kas-hero-breakdown{
+      display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:26px;
+    }
+    .kas-hero-chip{
+      font-size:11px;padding:4px 12px;border-radius:14px;
+      background:var(--bg3);color:var(--text3);
+      font-family:'Space Mono',monospace;font-weight:400;
+      border:1px solid var(--border);
+      display:inline-flex;align-items:center;gap:6px;
+    }
+    .kas-hero-chip strong{color:var(--text);font-weight:700}
+    .kas-hero-chip.in strong{color:var(--green)}
+    .kas-hero-chip.out strong{color:var(--accent)}
+    .kas-hero-chip.exp strong{color:var(--red)}
+    @media(max-width:600px){
+      .kas-hero{padding:36px 12px 24px;margin-bottom:20px}
+      .kas-hero-value{font-size:clamp(40px,11vw,60px);letter-spacing:-1.5px}
+      .kas-hero-label{font-size:10px;letter-spacing:.18em;margin-bottom:14px}
+      .kas-hero-delta{font-size:12px;margin-top:14px}
+      .kas-hero-chip{font-size:10px;padding:3px 10px}
+    }
 
-    [data-theme="light"] .posisi-kas{background:linear-gradient(135deg,rgba(99,102,241,.10),rgba(255,255,255,.7));box-shadow:0 6px 20px rgba(99,102,241,.10)}
+    [data-theme="light"] .kas-hero-value{
+      background:linear-gradient(180deg,#0a0a0a 35%,var(--accent-deep) 100%);
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+    }
+    [data-theme="light"] .kas-hero-chip{background:rgba(243,239,232,.85)}
 
     /* === Treble Cream (light): Cash App cream + United red === */
     [data-theme="light"]{
@@ -662,11 +699,6 @@
       .page-sub{margin-bottom:18px;font-size:13px}
 
       /* Posisi Kas: angka responsive, padding lebih kecil */
-      .posisi-kas{padding:18px;border-radius:14px}
-      .posisi-kas-value{font-size:clamp(28px,9vw,40px);letter-spacing:-.5px;word-break:break-all}
-      .posisi-kas-breakdown{grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px;padding-top:12px}
-      .posisi-kas-item-val{font-size:14px}
-      .posisi-kas-day{gap:14px;font-size:11px;margin-top:12px;padding-top:12px}
 
       /* Stats / summary */
       .stats-row{grid-template-columns:1fr;gap:10px}
@@ -731,9 +763,6 @@
       .kas-badge{padding:5px 10px;font-size:11px}
       .content{padding:12px 10px 96px}
       .card,.history-item,.gajian-card{padding:14px}
-      .posisi-kas{padding:16px}
-      .posisi-kas-value{font-size:clamp(24px,8.5vw,34px)}
-      .posisi-kas-breakdown{grid-template-columns:repeat(2,1fr);gap:10px}
       .product-emoji{width:34px;height:34px;font-size:15px}
       .qty-btn{width:32px;height:36px}
       .qty-display{width:36px;height:36px;font-size:13px}
@@ -1053,16 +1082,11 @@
     function SkeletonInput() {
       return (
         <>
-          <div className="posisi-kas">
-            <span className="sk sk-line" style={{width:140,marginBottom:10}}/>
-            <span className="sk sk-line xl" style={{width:240}}/>
-            <div className="posisi-kas-breakdown">
-              {[0,1,2,3].map(i => (
-                <div key={i} className="posisi-kas-item">
-                  <span className="sk sk-line" style={{width:70,height:9}}/>
-                  <span className="sk sk-line lg" style={{width:90,marginTop:6}}/>
-                </div>
-              ))}
+          <div className="kas-hero">
+            <span className="sk sk-line" style={{width:90,height:11,margin:"0 auto 18px",display:"block"}}/>
+            <span className="sk sk-line xl" style={{width:"min(320px,80%)",height:64,margin:"0 auto",display:"block"}}/>
+            <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:26,flexWrap:"wrap"}}>
+              {[0,1,2,3,4].map(i => <span key={i} className="sk sk-line" style={{width:96,height:22,borderRadius:14}}/>)}
             </div>
           </div>
           <div className="card">
@@ -1562,10 +1586,10 @@
             <div className="header-logo">☕</div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
-              <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+              {page!=="input" && <div className="kas-badge" title={"Saldo Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
                 <span className="kas-badge-label">💼 Kas</span>
                 <span className={"kas-badge-val"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></span>
-              </div>
+              </div>}
               <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
                 {theme==='dark' ? '☀️' : '🌙'}
               </button>
@@ -1585,29 +1609,24 @@
 
             <div className="content">
               {page==="input" && <>
-                <h1 className="page-title">Input Harian</h1>
-                <p className="page-sub">Catat penjualan dan pengeluaran harian warkop</p>
-
-                <div className="posisi-kas">
-                  <div className="posisi-kas-label">💼 Kas Sekarang (Total Riil)</div>
-                  <div className={"posisi-kas-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
-                  <div style={{fontSize:10,color:"var(--text3)",marginTop:10,letterSpacing:".06em",textTransform:"uppercase",fontWeight:600}}>Rincian bulan {ML[today.getMonth()]} {today.getFullYear()}</div>
-                  <div className="posisi-kas-breakdown" style={{marginTop:6}}>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">Saldo Awal Bulan</div><div className="posisi-kas-item-val" style={{color:"var(--text2)"}}><AnimatedIDR value={kasSummary.saldoAwalBulan}/></div></div>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan Warkop</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}} title="Kopi Vietnam, Teh, Kopi Lain"><AnimatedIDR value={kasSummary.totalPenjualanWarkop}/></div></div>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">+ Penjualan WiFi</div><div className="posisi-kas-item-val" style={{color:"var(--green)"}} title="Voucher 2K (toko), Paket Lite/Bulanan, PS4"><AnimatedIDR value={kasSummary.totalPenjualanWifi}/></div></div>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Gaji</div><div className="posisi-kas-item-val" style={{color:"var(--accent)"}}><AnimatedIDR value={kasSummary.totalGaji}/></div></div>
-                    <div className="posisi-kas-item"><div className="posisi-kas-item-label">− Pengeluaran</div><div className="posisi-kas-item-val" style={{color:"var(--red)"}}><AnimatedIDR value={kasSummary.totalPengeluaran}/></div></div>
+                <div className="kas-hero">
+                  <div className="kas-hero-label">Kas Saat Ini</div>
+                  <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
+                  <div className="kas-hero-delta">
+                    {kasSummary.hasToday
+                      ? <>Hari ini <span className={kasSummary.todayKas>=0?'pos':'neg'}>{kasSummary.todayKas>=0?'+':''}{IDR(kasSummary.todayKas)}</span></>
+                      : <span style={{color:"var(--text3)",fontStyle:"italic"}}>Hari ini belum input</span>}
+                    {kasSummary.hasYest && <>
+                      <span className="delim">·</span>
+                      Kemarin <span className={kasSummary.yestKas>=0?'pos':'neg'}>{kasSummary.yestKas>=0?'+':''}{IDR(kasSummary.yestKas)}</span>
+                    </>}
                   </div>
-                  <div className="posisi-kas-day">
-                    <div className="posisi-kas-day-item">
-                      <span style={{color:"var(--text3)"}}>Hari ini:</span>
-                      <span className={"posisi-kas-day-val "+(!kasSummary.hasToday?"none":kasSummary.todayKas>=0?"pos":"neg")}>{kasSummary.hasToday?(kasSummary.todayKas>=0?'+':'')+IDR(kasSummary.todayKas):'belum input'}</span>
-                    </div>
-                    <div className="posisi-kas-day-item">
-                      <span style={{color:"var(--text3)"}}>Kemarin:</span>
-                      <span className={"posisi-kas-day-val "+(!kasSummary.hasYest?"none":kasSummary.yestKas>=0?"pos":"neg")}>{kasSummary.hasYest?(kasSummary.yestKas>=0?'+':'')+IDR(kasSummary.yestKas):'tidak ada'}</span>
-                    </div>
+                  <div className="kas-hero-breakdown">
+                    <span className="kas-hero-chip">Awal {ML[today.getMonth()]} <strong>{IDR(kasSummary.saldoAwalBulan)}</strong></span>
+                    <span className="kas-hero-chip in" title="Kopi Vietnam, Teh, Kopi Lain">+ Warkop <strong>{IDR(kasSummary.totalPenjualanWarkop)}</strong></span>
+                    <span className="kas-hero-chip in" title="Voucher, Paket, PS4">+ WiFi <strong>{IDR(kasSummary.totalPenjualanWifi)}</strong></span>
+                    <span className="kas-hero-chip out">− Gaji <strong>{IDR(kasSummary.totalGaji)}</strong></span>
+                    <span className="kas-hero-chip exp">− Pengeluaran <strong>{IDR(kasSummary.totalPengeluaran)}</strong></span>
                   </div>
                 </div>
 
