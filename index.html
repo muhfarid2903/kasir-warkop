@@ -824,23 +824,23 @@
     }
 
     const PRODUCTS = [
-      { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500, emoji: '☕' },
-      { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000, emoji: '🍵' },
-      { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300, emoji: '🫖' },
-      { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  komisi_toko: 500, emoji: '📶' },
-      { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500, emoji: '🎟️' },
-      { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000, emoji: '📆' },
-      { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000, emoji: '🎮' },
+      { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500 },
+      { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000 },
+      { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300 },
+      { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  komisi_toko: 500 },
+      { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500 },
+      { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000 },
+      { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000 },
     ];
 
     // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
     // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
     const TOKO = [
-      { id: 'dadi',   name: 'Dadi',    emoji: '🏪' },
-      { id: 'dio',    name: 'Dio',     emoji: '🏬' },
-      { id: 'hrahim', name: 'H Rahim', emoji: '🏢' },
-      { id: 'anci',   name: 'Anci',   emoji: '🏠' },
-      { id: 'nahrul', name: 'Nahrul', emoji: '🏘️' },
+      { id: 'dadi',   name: 'Dadi'    },
+      { id: 'dio',    name: 'Dio'     },
+      { id: 'hrahim', name: 'H Rahim' },
+      { id: 'anci',   name: 'Anci'    },
+      { id: 'nahrul', name: 'Nahrul'  },
     ];
     const VOUCHER_TOKO_CUTOFF = '2026-05-01';
     const V2K = PRODUCTS.find(p => p.id === 'v2k');
@@ -951,6 +951,73 @@
         lock:<><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
         'user-plus':<><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>,
       };
+      return <svg viewBox="0 0 24 24" style={s}>{P[type]}</svg>;
+    };
+
+    // Product illustrations — silhouette stroke icons, dirancang per item agar
+    // identitasnya tetap kebaca di 12px (inline) maupun 24px (tile besar).
+    const ProductIcon = ({type, size=20}) => {
+      const s = {width:size,height:size,fill:"none",stroke:"currentColor",strokeWidth:1.7,strokeLinecap:"round",strokeLinejoin:"round",flexShrink:0,verticalAlign:"middle"};
+      const P = {
+        // Kopi Vietnam Drip — phin filter di atas gelas
+        vietnam: <>
+          <rect x="7" y="3" width="10" height="4.5" rx="0.6"/>
+          <line x1="8" y1="5.3" x2="16" y2="5.3"/>
+          <line x1="12" y1="7.5" x2="12" y2="9.5"/>
+          <path d="M5.5 11h13v5.5a4 4 0 01-4 4H9.5a4 4 0 01-4-4z"/>
+          <path d="M18.5 13h1.5a1.8 1.8 0 010 3.6h-1.5"/>
+        </>,
+        // Teh — cup dengan benang + tag tea bag menggantung
+        teh: <>
+          <path d="M4 9.5h12v5.5a4 4 0 01-4 4H8a4 4 0 01-4-4z"/>
+          <path d="M16 11h1.8a1.8 1.8 0 010 3.6H16"/>
+          <line x1="10" y1="3" x2="10" y2="9.5"/>
+          <rect x="8" y="2" width="4" height="2.4" rx="0.4"/>
+        </>,
+        // Kopi Lain — mug standar + 2 uap (beda silhouette dari vietnam)
+        kopilain: <>
+          <path d="M5 8.5h11v8.5a3.5 3.5 0 01-3.5 3.5H8.5A3.5 3.5 0 015 17z"/>
+          <path d="M16 10.5h1.7a2 2 0 010 4H16"/>
+          <path d="M8 3.5c0 1.2 1 1.2 1 2.4s-1 1.2-1 2.4"/>
+          <path d="M12 3c0 1.2 1 1.2 1 2.4s-1 1.2-1 2.4"/>
+        </>,
+        // Voucher 2000 — bentuk tiket bernotch + WiFi arc kecil di tengah
+        v2k: <>
+          <path d="M3 7.5v1.7a1.5 1.5 0 010 3v1.6a1.5 1.5 0 010 3v0a2 2 0 002 2h14a2 2 0 002-2v0a1.5 1.5 0 010-3v-1.6a1.5 1.5 0 010-3V7.5a2 2 0 00-2-2H5a2 2 0 00-2 2z"/>
+          <path d="M9 14.5a3 3 0 016 0"/>
+          <path d="M11 16.6a1 1 0 012 0"/>
+        </>,
+        // Paket Mingguan Lite — kalender + simbol "1 minggu" (bar 7-day)
+        v10k: <>
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="3" x2="8" y2="7"/>
+          <line x1="16" y1="3" x2="16" y2="7"/>
+          <rect x="6" y="13" width="12" height="4" rx="0.6"/>
+        </>,
+        // Paket Bulanan — kalender + grid bulan penuh
+        v1bln: <>
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="3" x2="8" y2="7"/>
+          <line x1="16" y1="3" x2="16" y2="7"/>
+          <line x1="3" y1="14.5" x2="21" y2="14.5"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+          <line x1="9" y1="10" x2="9" y2="21"/>
+          <line x1="15" y1="10" x2="15" y2="21"/>
+        </>,
+        // PS4 (1 Jam) — gamepad dengan d-pad kiri + tombol kanan
+        ps4: <>
+          <path d="M6 9c-2.2 0-4 1.6-4 4.2v2.8a2 2 0 002 2h1.6a1.6 1.6 0 001.5-1.1l.4-1.2A1.6 1.6 0 019 14.7h6a1.6 1.6 0 011.5 1l.4 1.2a1.6 1.6 0 001.5 1.1H20a2 2 0 002-2v-2.8C22 10.6 20.2 9 18 9z"/>
+          <line x1="6.5" y1="12.3" x2="9" y2="12.3"/>
+          <line x1="7.75" y1="11" x2="7.75" y2="13.6"/>
+          <circle cx="16" cy="11.5" r="0.7"/>
+          <circle cx="17.8" cy="12.8" r="0.7"/>
+          <circle cx="14.2" cy="12.8" r="0.7"/>
+          <circle cx="16" cy="14.1" r="0.7"/>
+        </>,
+      };
+      if (!P[type]) return null;
       return <svg viewBox="0 0 24 24" style={s}>{P[type]}</svg>;
     };
 
@@ -1162,7 +1229,7 @@
       return (
         <div className="app">
           <div className="header">
-            <div className="header-logo">☕</div>
+            <div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
             <div className="header-right">
               <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
@@ -1559,7 +1626,7 @@
 
       if(syncStatus==="not_configured") return (
         <div className="app">
-          <div className="header"><div className="header-logo">☕</div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
+          <div className="header"><div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"70vh",padding:40,textAlign:"center"}}>
             <div style={{marginBottom:24,color:"var(--text3)"}}><Icon type="settings" size={56}/></div>
             <h2 style={{marginBottom:12,fontSize:22}}>Konfigurasi Supabase</h2>
@@ -1570,7 +1637,7 @@
 
       if (!authChecked) return (
         <div className="app">
-          <div className="header"><div className="header-logo">☕</div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
+          <div className="header"><div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div><div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div></div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
             <div style={{width:40,height:40,border:"3px solid var(--border)",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin .8s linear infinite"}}></div>
           </div>
@@ -1582,7 +1649,7 @@
       if(loading) return (
         <div className="app">
           <div className="header">
-            <div className="header-logo">☕</div>
+            <div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
             <div className="header-right">
               <span className="sk" style={{width:120,height:30,borderRadius:99}}/>
@@ -1608,7 +1675,7 @@
       return (
         <div className="app">
           <div className="header">
-            <div className="header-logo">☕</div>
+            <div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div>
             <div><div className="header-title">Warkopsaja</div><div className="header-sub">{today.getDate()} {ML[today.getMonth()]} {today.getFullYear()} · {DAYS[today.getDay()]}</div></div>
             <div className="header-right">
               {page!=="input" && <div className="kas-badge" title={"Awal Bulan "+IDR(kasSummary.saldoAwalBulan)+" + Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" + WiFi "+IDR(kasSummary.totalPenjualanWifi)+" − Gaji "+IDR(kasSummary.totalGaji)+" − Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
@@ -1697,7 +1764,7 @@
                   <div className="card-title"><Icon type="coffee" size={16}/> Jumlah Laku</div>
                   {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
                     <div key={p.id} className="product-row">
-                      <div className="product-emoji">{p.emoji}</div>
+                      <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
                       <div className="product-info">
                         <div className="product-name">{p.name}</div>
                         <div className="product-meta">{IDR(p.price)} · Gaji: {IDR(p.gaji)}</div>
@@ -1793,7 +1860,7 @@
                         const overLaku = dLaku > (stokAwal + dDrop);
                         return (
                           <div key={t.id} className="card">
-                            <div className="card-title">{t.emoji} {t.name}</div>
+                            <div className="card-title"><Icon type="store" size={16}/> {t.name}</div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
                               <div className="gajian-stat"><div className="gajian-stat-label">Stok Awal</div><div className="gajian-stat-value" style={{color: stokAwal<0?"var(--red)":"var(--text)"}}>{stokAwal}</div></div>
                               <div className="gajian-stat" style={{background:"var(--blue-bg)"}}><div className="gajian-stat-label">+ Drop</div><div className="gajian-stat-value" style={{color:"var(--blue)"}}>{dDrop}</div></div>
@@ -1853,7 +1920,7 @@
                                   const s = stokEnd[t.id]; const sisa = (s.drop||0) - (s.laku||0);
                                   return (
                                     <div key={t.id} className="gajian-stat">
-                                      <div className="gajian-stat-label">{t.emoji} {t.name}</div>
+                                      <div className="gajian-stat-label" style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon type="store" size={10}/> {t.name}</div>
                                       <div className="gajian-stat-value" style={{color:sisa<0?"var(--red)":"var(--text)"}}>{sisa}</div>
                                     </div>
                                   );
@@ -1974,7 +2041,7 @@
                                     <div className="gajian-day-left">
                                       <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
                                       <div className="gajian-day-chips">
-                                        {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
+                                        {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip" style={{gap:5}}><ProductIcon type={pr.id} size={11}/>{pr.name} ×{entry.quantities[pr.id]}</span>)}
                                         {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
                                         {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
                                         {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
@@ -2003,7 +2070,7 @@
                                   <div className="gajian-day-left">
                                     <div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div>
                                     <div className="gajian-day-chips">
-                                      {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip">{pr.emoji} {pr.name} ×{entry.quantities[pr.id]}</span>)}
+                                      {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip" style={{gap:5}}><ProductIcon type={pr.id} size={11}/>{pr.name} ×{entry.quantities[pr.id]}</span>)}
                                       {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
                                       {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
                                       {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
@@ -2070,7 +2137,7 @@
                   const hasVoucher = v.laku>0 || v.drop>0;
                   const tokoBreakdown = hasVoucher ? TOKO.map(t => {
                     const r = (voucherToko[e.date]||{})[t.id]; if (!r || (!r.drop && !r.laku)) return null;
-                    return { id:t.id, name:t.name, emoji:t.emoji, drop:r.drop||0, laku:r.laku||0 };
+                    return { id:t.id, name:t.name, drop:r.drop||0, laku:r.laku||0 };
                   }).filter(Boolean) : [];
                   const isOpen = openDetail===i;
                   const kasClass = sisaKas>0?'profit':sisaKas<0?'loss':'';
@@ -2086,7 +2153,7 @@
                         </div>
                       </div>
                       <div className="history-pills">
-                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill">{p.emoji} {p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
+                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
                         {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
                         {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
                         {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
@@ -2106,7 +2173,7 @@
                           </div>
                           {(sold.length>0 || tokoBreakdown.length>0) && <>
                             <div className="detail-section-label">Rincian Gaji</div>
-                            {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name">{p.emoji} {p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
+                            {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name" style={{display:"inline-flex",alignItems:"center",gap:6}}><ProductIcon type={p.id} size={13}/>{p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
                             {tokoBreakdown.map(t => {
                               const hasLaku = t.laku>0, hasDrop = t.drop>0;
                               let dropNote = '';
@@ -2118,8 +2185,8 @@
                               return (
                                 <div key={t.id} className="detail-row toko-detail-row">
                                   <div className="toko-info">
-                                    <div className="toko-main">
-                                      {t.emoji} {t.name}
+                                    <div className="toko-main" style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                                      <Icon type="store" size={12}/> <span>{t.name}</span>
                                       {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(V2K.gaji)}</>}
                                       {!hasLaku && hasDrop && <span style={{color:"var(--text3)"}}> · drop saja, belum laku</span>}
                                     </div>
