@@ -405,13 +405,42 @@
     .gajian-period-label{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
     .gajian-period-dates{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px}
     .gajian-total-box{text-align:right}
-    .gajian-total-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
-    .gajian-total-value{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--accent)}
+    .gajian-total-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;font-weight:700}
+    .gajian-total-value{font-family:'DM Mono',monospace;font-size:34px;font-weight:500;color:var(--accent);line-height:1.05;margin-top:2px;letter-spacing:-.5px}
     .gajian-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
     .gajian-stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
     .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
     .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
     .gajian-stat-value{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;margin-top:4px}
+    /* Jobs treatment: stats jadi 1 baris inline, kas akhir highlight */
+    .gajian-stats-line{
+      display:flex;flex-wrap:wrap;gap:4px 20px;
+      font-size:12.5px;color:var(--text3);font-family:'DM Mono',monospace;
+      padding:14px 0 12px;border-top:1px dashed var(--border2);
+    }
+    .gajian-stats-line .seg{display:inline-flex;align-items:baseline;gap:6px}
+    .gajian-stats-line .seg strong{color:var(--text);font-weight:600}
+    .gajian-stats-line .seg.exp strong{color:var(--red)}
+    .gajian-kas-akhir{
+      display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;
+      padding:14px 18px;margin:2px 0 18px;
+      background:var(--green-bg);border:1px solid var(--green-border);border-radius:12px;
+      font-size:13px;color:var(--text2);cursor:default;
+    }
+    .gajian-kas-akhir.neg{background:var(--red-bg);border-color:var(--red-border)}
+    .gajian-kas-akhir-label{font-weight:600;letter-spacing:.01em}
+    .gajian-kas-akhir-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--green)}
+    .gajian-kas-akhir.neg .gajian-kas-akhir-value{color:var(--red)}
+    /* Saldo Awal: card besar → inline bar di top */
+    .saldo-awal-bar{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      margin:-8px 0 22px;padding:11px 16px;
+      background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+      font-size:12.5px;color:var(--text2);
+    }
+    .saldo-awal-bar > .lbl{font-weight:600;color:var(--text2);display:inline-flex;align-items:center;gap:6px}
+    .saldo-awal-bar > .val{color:var(--accent);font-family:'DM Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.2px}
+    .saldo-awal-bar > .info{color:var(--text3);font-size:11.5px;flex:1;min-width:0}
     .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
     .gajian-day-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
@@ -439,7 +468,15 @@
     .gajian-day-chip.voucher{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
     .gajian-day-chip.drop{background:var(--blue-bg);color:var(--blue);border-color:rgba(148,187,207,.32)}
     .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
-    .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:6px}
+    .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:10px}
+    @media(max-width:600px){
+      .gajian-total-value{font-size:28px}
+      .gajian-stats-line{font-size:11.5px;gap:3px 14px;padding:12px 0 10px}
+      .gajian-kas-akhir{padding:12px 14px;font-size:12px}
+      .gajian-kas-akhir-value{font-size:18px}
+      .saldo-awal-bar{padding:10px 13px;font-size:11.5px}
+      .saldo-awal-bar > .val{font-size:14px}
+    }
     .gajian-status-badge.paid{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
     .gajian-status-badge.pending{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
     .gajian-status-badge.future{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
@@ -585,6 +622,56 @@
     }
     [data-theme="light"] .kas-hero-chip{background:rgba(237,223,192,.7)}
 
+    /* === Hari Ini: redesign ringkas — date inline, summary footer, catatan merged === */
+    .date-inline{
+      display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;
+    }
+    .date-inline .date-input{
+      padding:9px 14px;font-size:13px;min-width:170px;flex:0 0 auto;border-radius:11px;
+    }
+    .date-hint{
+      font-size:12.5px;color:var(--text3);display:inline-flex;align-items:center;gap:7px;
+      flex:1;min-width:0;line-height:1.45;
+    }
+    .date-hint strong{color:var(--text2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .inline-summary{
+      display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;
+      margin-top:18px;padding-top:16px;border-top:1px dashed var(--border2);
+      font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;
+    }
+    .inline-summary .seg{display:inline-flex;align-items:baseline;gap:6px}
+    .inline-summary .seg strong{color:var(--text);font-weight:600}
+    .inline-summary .spacer{flex:1;min-width:8px}
+    .inline-summary .seg.profit{margin-left:auto}
+    .inline-summary .seg.profit strong{color:var(--green);font-size:16px;font-weight:700}
+    .inline-summary .seg.profit.neg strong{color:var(--red)}
+    .add-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .add-pill{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:9px 16px;border-radius:99px;font-family:inherit;font-size:13px;
+      font-weight:600;cursor:pointer;background:transparent;
+      border:1px dashed var(--border2);color:var(--text2);
+      transition:all .15s cubic-bezier(.4,0,.2,1);
+    }
+    .add-pill:hover{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+    .add-pill.green:hover{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+    .catatan-empty{
+      font-size:12.5px;color:var(--text3);font-style:italic;text-align:center;
+      padding:18px 0 6px;line-height:1.6;
+    }
+    .catatan-section{margin-top:18px}
+    .catatan-section-label{
+      font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--text3);margin-bottom:10px;display:inline-flex;align-items:center;gap:6px;
+    }
+    @media(max-width:600px){
+      .date-inline{gap:10px;margin-bottom:14px}
+      .date-inline .date-input{padding:8px 12px;font-size:12.5px;min-width:0;width:100%}
+      .date-hint{font-size:11.5px;flex-basis:100%}
+      .inline-summary{font-size:11.5px;gap:4px 12px;margin-top:14px;padding-top:14px}
+      .inline-summary .seg.profit strong{font-size:14px}
+      .add-pill{padding:8px 13px;font-size:12px}
+    }
 
     /* === Warkop Kertas (light): aged kraft + kayu jati === */
     [data-theme="light"]{
@@ -1176,15 +1263,14 @@
             <span className="sk sk-line" style={{width:90,height:11,margin:"0 auto 18px",display:"block"}}/>
             <span className="sk sk-line xl" style={{width:"min(320px,80%)",height:64,margin:"0 auto",display:"block"}}/>
             <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:26,flexWrap:"wrap"}}>
-              {[0,1,2,3,4].map(i => <span key={i} className="sk sk-line" style={{width:96,height:22,borderRadius:14}}/>)}
+              {[0,1,2].map(i => <span key={i} className="sk sk-line" style={{width:120,height:22,borderRadius:14}}/>)}
             </div>
           </div>
-          <div className="card">
-            <span className="sk sk-line" style={{width:90,marginBottom:14}}/>
-            <span className="sk sk-block" style={{height:46}}/>
+          <div style={{display:"flex",gap:14,marginBottom:18,alignItems:"center"}}>
+            <span className="sk" style={{width:170,height:38,borderRadius:11}}/>
+            <span className="sk sk-line" style={{width:160,height:11}}/>
           </div>
           <div className="card">
-            <span className="sk sk-line" style={{width:120,marginBottom:14}}/>
             {[0,1,2,3,4].map(i => (
               <div key={i} className="sk-row">
                 <span className="sk sk-circle"/>
@@ -1691,7 +1777,7 @@
           <div className="main-area">
             <div className="sidebar">
               <div className="sidebar-label">Menu</div>
-              <button className={"nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={18}/> Input Harian</button>
+              <button className={"nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={18}/> Hari Ini</button>
               <button className={"nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><Icon type="signal" size={18}/> Voucher Toko</button>
               <button className={"nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={18}/> Gajian</button>
               <button className={"nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={18}/> Riwayat</button>
@@ -1699,7 +1785,7 @@
 
             <div className="content">
               {page==="input" && <>
-                <div className="kas-hero">
+                <div className="kas-hero" title={"Awal "+ML[today.getMonth()]+" "+IDR(kasSummary.saldoAwalBulan)+" · Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" · WiFi "+IDR(kasSummary.totalPenjualanWifi)+" · Gaji "+IDR(kasSummary.totalGaji)+" · Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
                   <div className="kas-hero-label">Kas Saat Ini</div>
                   <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
                   <div className="kas-hero-delta">
@@ -1713,10 +1799,8 @@
                   </div>
                   <div className="kas-hero-breakdown">
                     <span className="kas-hero-chip">Awal {ML[today.getMonth()]} <strong>{IDR(kasSummary.saldoAwalBulan)}</strong></span>
-                    <span className="kas-hero-chip in" title="Kopi Vietnam, Teh, Kopi Lain">+ Warkop <strong>{IDR(kasSummary.totalPenjualanWarkop)}</strong></span>
-                    <span className="kas-hero-chip in" title="Voucher, Paket, PS4">+ WiFi <strong>{IDR(kasSummary.totalPenjualanWifi)}</strong></span>
-                    <span className="kas-hero-chip out">− Gaji <strong>{IDR(kasSummary.totalGaji)}</strong></span>
-                    <span className="kas-hero-chip exp">− Pengeluaran <strong>{IDR(kasSummary.totalPengeluaran)}</strong></span>
+                    <span className="kas-hero-chip in" title="Warkop + WiFi (semua penjualan bulan ini)">+ Masuk <strong>{IDR(kasSummary.totalPenjualan)}</strong></span>
+                    <span className="kas-hero-chip out" title="Gaji + Pengeluaran bulan ini">− Keluar <strong>{IDR(kasSummary.totalGaji + kasSummary.totalPengeluaran)}</strong></span>
                   </div>
                 </div>
 
@@ -1729,12 +1813,8 @@
                   </div>
                 )}
 
-                <div className="card">
-                  <div className="card-title"><Icon type="calendar" size={16}/> Tanggal</div>
-                  <div className="date-row">
-                    <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
-                    <button className="btn btn-ghost" onClick={()=>{ if(existingEntry) showToast('Data '+fmtDate(selectedDate)+' ditemukan'); else showToast('Belum ada data untuk tanggal ini'); }}>Cek data</button>
-                  </div>
+                <div className="date-inline">
+                  <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                   {(() => {
                     const v = voucherForDate(selectedDate, voucherToko);
                     const hasVoucher = v.laku>0 || v.drop>0;
@@ -1746,20 +1826,22 @@
                     const items = existingEntry ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
                     const totalPenj = (existingEntry?.totalPenjualan||0) + v.penjualan;
                     const totalGaji = (existingEntry?.gaji||0) + v.gaji;
+                    const titleParts = [];
+                    if (items) titleParts.push(items);
+                    if (hasVoucher) titleParts.push('Voucher: laku ×'+v.laku+(v.drop>0?', drop '+v.drop:''));
+                    titleParts.push('Penjualan '+IDR(totalPenj)+' · Gaji '+IDR(totalGaji));
+                    if (exGross>0) titleParts.push('Pengeluaran '+IDR(exGross));
+                    if (cashGross>0) titleParts.push('Hutang dibayar '+IDR(cashGross));
+                    const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
                     return (
-                      <div className="day-total">
-                        <Icon type="package" size={13}/> Sudah tercatat: <strong>{items || (hasVoucher ? '(hanya voucher)' : '–')}</strong><br/>
-                        {hasVoucher && <><Icon type="signal" size={13}/> Voucher: <strong>laku ×{v.laku}{v.drop>0&&', drop '+v.drop}</strong> <span style={{fontSize:11,color:"var(--text3)"}}>(dari menu Voucher Toko)</span><br/></>}
-                        <Icon type="coins" size={13}/> Penjualan: <strong>{IDR(totalPenj)}</strong> · Gaji: <strong>{IDR(totalGaji)}</strong><br/>
-                        {existingEntry && <><Icon type="trending-down" size={13}/> Pengeluaran: <strong>{IDR(exGross)}</strong> ({exItems.length} item){cashGross>0 && <> · <Icon type="banknote" size={13}/> Hutang Dibayar: <strong style={{color:"var(--green)"}}>{IDR(cashGross)}</strong> ({cashItems.length} item)</>}<br/></>}
-                        <span style={{fontSize:11,color:"var(--text3)"}}>Input baru akan ditambahkan ke data di atas</span>
-                      </div>
+                      <span className="date-hint" title={titleParts.join(' · ')+'\nInput baru akan ditambahkan ke data ini'}>
+                        <Icon type="package" size={13}/> Sudah tercatat <strong>{summary}</strong>
+                      </span>
                     );
                   })()}
                 </div>
 
                 <div className="card">
-                  <div className="card-title"><Icon type="coffee" size={16}/> Jumlah Laku</div>
                   {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
                     <div key={p.id} className="product-row">
                       <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
@@ -1774,46 +1856,52 @@
                       </div>
                     </div>
                   ))}
+                  {(inputTotals.totalQty>0 || inputTotals.totalExpense>0 || inputTotals.totalCashIn>0) && (
+                    <div className="inline-summary">
+                      <span className="seg">Penjualan <strong>{IDR(inputTotals.totalSales)}</strong></span>
+                      <span className="seg">Gaji <strong>{IDR(inputTotals.totalGaji)}</strong></span>
+                      {inputTotals.totalExpense>0 && <span className="seg">Pengeluaran <strong>{IDR(inputTotals.totalExpense)}</strong></span>}
+                      {inputTotals.totalCashIn>0 && <span className="seg">Hutang dibayar <strong style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</strong></span>}
+                      <span className={"seg profit"+(inputTotals.sisaKas<0?" neg":"")}>{inputTotals.sisaKas>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.sisaKas)}</strong></span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card">
-                  <div className="card-title"><Icon type="chart" size={16}/> Ringkasan</div>
-                  <div className="summary-grid">
-                    <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value">{inputTotals.totalQty} item</div></div>
-                    <div className="summary-item"><div className="summary-label">Penjualan</div><div className="summary-value">{IDR(inputTotals.totalSales)}</div></div>
-                    <div className="summary-item gaji-box"><div className="summary-label">Gaji Kamu Hari Ini</div><div className="summary-value">{IDR(inputTotals.totalGaji)}</div></div>
-                    <div className="summary-item outbox"><div className="summary-label">Pengeluaran</div><div className="summary-value">{IDR(inputTotals.totalExpense)}</div></div>
-                    {inputTotals.totalCashIn>0 && <div className="summary-item" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="summary-label">Hutang Dibayar</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</div></div>}
-                    <div className="summary-item kas-box"><div className="summary-label">{inputTotals.sisaKas>0?'Untung Hari Ini':inputTotals.sisaKas<0?'Rugi Hari Ini':'Impas'}</div><div className="summary-value" style={{color:inputTotals.sisaKas<0?"var(--red)":"var(--green)"}}>{IDR(inputTotals.sisaKas)}</div></div>
+                  <div className="add-pill-row">
+                    <button className="add-pill" onClick={addExpense}><Icon type="trending-down" size={14}/> Pengeluaran</button>
+                    <button className="add-pill green" onClick={addCashIn}><Icon type="banknote" size={14}/> Hutang Dibayar</button>
                   </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-title"><Icon type="trending-down" size={16}/> Pengeluaran</div>
-                  {expenses.map((exp, i) => (
-                    <div key={i} className="expense-row">
-                      <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
-                      <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
-                      <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
+                  {expenses.length===0 && cashIns.length===0 && (
+                    <div className="catatan-empty">Belum ada catatan. Tambah pengeluaran atau hutang yang dibayar pelanggan.</div>
+                  )}
+                  {expenses.length>0 && (
+                    <div className="catatan-section">
+                      <div className="catatan-section-label"><Icon type="trending-down" size={11}/> Pengeluaran</div>
+                      {expenses.map((exp, i) => (
+                        <div key={i} className="expense-row">
+                          <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
+                          <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
+                          <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <button className="add-expense-btn" onClick={addExpense}>+ Tambah Pengeluaran</button>
-                </div>
-
-                <div className="card">
-                  <div className="card-title"><Icon type="banknote" size={16}/> Hutang Dibayar</div>
-                  <div style={{fontSize:12,color:"var(--text3)",marginTop:-6,marginBottom:12}}>Catat pelanggan yang bayar hutangnya. Akan menambah kas tanpa menambah gaji.</div>
-                  {cashIns.map((exp, i) => (
-                    <div key={i} className="expense-row">
-                      <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
-                      <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
-                      <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
+                  )}
+                  {cashIns.length>0 && (
+                    <div className="catatan-section">
+                      <div className="catatan-section-label"><Icon type="banknote" size={11}/> Hutang Dibayar</div>
+                      {cashIns.map((exp, i) => (
+                        <div key={i} className="expense-row">
+                          <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
+                          <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
+                          <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <button className="add-expense-btn" onClick={addCashIn}>+ Tambah Hutang Dibayar</button>
+                  )}
                 </div>
 
-                <button className="btn-save" disabled={saving} onClick={saveEntry}><Icon type="coffee" size={16}/> Tambah & Simpan</button>
+                <button className="btn-save" disabled={saving} onClick={saveEntry}><Icon type="coffee" size={16}/> Simpan</button>
               </>}
 
               {page==="voucher" && <>
@@ -1940,21 +2028,21 @@
                 </div>
                 <div style={{marginBottom:28}}></div>
 
-                {/* Saldo Awal Setting */}
-                <div className="card" style={{marginBottom:20}}>
-                  <div className="card-title"><Icon type="coins" size={16}/> Saldo Awal</div>
+                {/* Saldo Awal: inline bar, bukan card besar */}
+                <div className="saldo-awal-bar">
+                  <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
                   {editingSaldo ? (
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <input className="expense-amount" style={{flex:1,width:"auto",textAlign:"left"}} type="number" autoFocus placeholder="Masukkan saldo awal..." value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
-                      <button className="btn btn-primary" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
-                      <button className="btn btn-ghost" onClick={()=>setEditingSaldo(false)}>Batal</button>
-                    </div>
+                    <>
+                      <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
+                      <button className="btn btn-primary btn-sm" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>setEditingSaldo(false)}>Batal</button>
+                    </>
                   ) : (
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:20,fontWeight:700,color:"var(--accent)"}}>{IDR(initialSaldo)}</div>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={13}/> Ubah</button>
-                      <div style={{fontSize:11,color:"var(--text3)",marginLeft:4}}>Saldo ini akan terakumulasi ke setiap periode berikutnya</div>
-                    </div>
+                    <>
+                      <span className="val">{IDR(initialSaldo)}</span>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
+                      <span className="info">Terakumulasi ke setiap periode berikutnya</span>
+                    </>
                   )}
                 </div>
 
@@ -2007,19 +2095,19 @@
                               <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · Gajian tgl {p.payday} · {totalDays} hari kerja</div>
                             </div>
                             <div className="gajian-total-box">
-                              <div className="gajian-total-label">Total Gaji</div>
+                              <div className="gajian-total-label">Yang Harus Dibayar</div>
                               <div className="gajian-total-value"><AnimatedIDR value={totalGaji}/></div>
                               <span className={"gajian-status-badge "+statusClass}>{statusText}</span>
                             </div>
                           </div>
-                          <div className="gajian-stats">
-                            <div className="gajian-stat"><div className="gajian-stat-label">Pemasukan</div><div className="gajian-stat-value" style={{color:"var(--text)"}}>{IDR(totalPenjualan)}</div></div>
-                            <div className="gajian-stat" style={{background:"var(--red-bg)",borderColor:"var(--red-border)"}}><div className="gajian-stat-label">Pengeluaran</div><div className="gajian-stat-value" style={{color:"var(--red)"}}>{IDR(totalPengeluaran)}</div></div>
-                            <div className="gajian-stat" style={{background:"var(--accent-bg)",borderColor:"var(--accent-border)"}}><div className="gajian-stat-label">Awal Periode</div><div className="gajian-stat-value" style={{color:"var(--accent)"}}>{IDR(saldoAwal)}</div></div>
+                          <div className="gajian-stats-line">
+                            <span className="seg">+ Pemasukan <strong>{IDR(totalPenjualan)}</strong></span>
+                            <span className="seg exp">− Pengeluaran <strong>{IDR(totalPengeluaran)}</strong></span>
+                            <span className="seg">Awal periode <strong>{IDR(saldoAwal)}</strong></span>
                           </div>
-                          <div className="gajian-stats2">
-                            <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">Kas di Akhir</div><div className="gajian-stat-value" style={{color:sisaKasDenganSaldo<0?"var(--red)":"var(--green)",fontSize:16}}><AnimatedIDR value={sisaKasDenganSaldo}/></div></div>
-                            <div className="gajian-stat"><div className="gajian-stat-label">Bersih Periode</div><div className="gajian-stat-value" style={{color:totalSisaKas<0?"var(--red)":"var(--text)"}}><AnimatedIDR value={totalSisaKas}/></div></div>
+                          <div className={"gajian-kas-akhir"+(sisaKasDenganSaldo<0?" neg":"")} title={"Bersih periode (tanpa saldo awal): "+IDR(totalSisaKas)}>
+                            <span className="gajian-kas-akhir-label">Kas di akhir periode</span>
+                            <span className="gajian-kas-akhir-value"><AnimatedIDR value={sisaKasDenganSaldo}/></span>
                           </div>
 
                           {overflowEntries.length>0 && (
@@ -2214,7 +2302,7 @@
           </div>
 
           <div className="mobile-nav"><div className="mobile-nav-inner">
-            <button className={"mobile-nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={20}/> Input</button>
+            <button className={"mobile-nav-btn "+(page==="input"?"active":"")} onClick={()=>setPage("input")}><Icon type="coffee" size={20}/> Hari Ini</button>
             <button className={"mobile-nav-btn "+(page==="voucher"?"active":"")} onClick={()=>setPage("voucher")}><Icon type="signal" size={20}/> Voucher</button>
             <button className={"mobile-nav-btn "+(page==="gajian"?"active":"")} onClick={()=>setPage("gajian")}><Icon type="dollar" size={20}/> Gajian</button>
             <button className={"mobile-nav-btn "+(page==="riwayat"?"active":"")} onClick={()=>setPage("riwayat")}><Icon type="clock" size={20}/> Riwayat</button>
