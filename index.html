@@ -469,6 +469,92 @@
     .gajian-day-chip.drop{background:var(--blue-bg);color:var(--blue);border-color:rgba(148,187,207,.32)}
     .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
     .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:10px}
+
+    /* === Voucher Toko: Jobs treatment === */
+    .voucher-info{
+      font-size:12px;color:var(--text3);line-height:1.65;
+      margin:-8px 0 18px;padding:10px 14px;
+      background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+    }
+    .voucher-info strong{color:var(--text2);font-weight:600}
+    .toko-card{
+      background:linear-gradient(180deg,var(--bg2),rgba(20,20,20,.5));
+      border:1px solid var(--border);border-radius:var(--radius-lg);
+      padding:18px 20px;margin-bottom:14px;
+      animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .toko-card.has-action{border-color:var(--accent-border);box-shadow:0 4px 16px rgba(184,92,44,.08)}
+    .toko-card.over{border-color:var(--red-border)}
+    .toko-head{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      margin-bottom:14px;flex-wrap:wrap;
+    }
+    .toko-head-name{
+      font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.1px;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .toko-stok-pill{
+      font-family:'DM Mono',monospace;font-size:12.5px;
+      padding:5px 13px;border-radius:99px;
+      background:var(--bg3);color:var(--text2);border:1px solid var(--border);
+      display:inline-flex;align-items:center;gap:4px;
+    }
+    .toko-stok-pill .arrow{color:var(--text3);margin:0 2px}
+    .toko-stok-pill .end{color:var(--text);font-weight:700}
+    .toko-stok-pill.up{background:var(--blue-bg);border-color:rgba(148,187,207,.32)}
+    .toko-stok-pill.up .end{color:var(--blue)}
+    .toko-stok-pill.down{background:var(--green-bg);border-color:var(--green-border)}
+    .toko-stok-pill.down .end{color:var(--green)}
+    .toko-stok-pill.over{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+    .toko-stok-pill.over .end{color:var(--red)}
+    .toko-inputs{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    }
+    .toko-input-group{
+      display:flex;flex-direction:column;gap:4px;
+      padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
+      border-radius:11px;transition:all .15s cubic-bezier(.4,0,.2,1);
+    }
+    .toko-input-group:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+    .toko-input-group label{
+      font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+      color:var(--text3);cursor:pointer;
+    }
+    .toko-input-group.drop label{color:var(--blue)}
+    .toko-input-group.laku label{color:var(--green)}
+    .toko-input-group input{
+      background:transparent;border:none;outline:none;padding:0;
+      font-family:'DM Mono',monospace;font-size:22px;font-weight:600;color:var(--text);
+      width:100%;letter-spacing:-.5px;
+    }
+    .toko-input-group input::placeholder{color:var(--text3);opacity:.4}
+    .toko-footer{
+      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 14px;
+      margin-top:14px;padding-top:13px;border-top:1px dashed var(--border2);
+      font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;
+    }
+    .toko-footer .seg{display:inline-flex;align-items:baseline;gap:5px}
+    .toko-footer .seg strong{color:var(--text);font-weight:600}
+    .toko-footer .seg.gaji strong{color:var(--accent)}
+    .toko-footer .seg.setoran strong{color:var(--green)}
+    .toko-footer .error{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px;font-family:'Plus Jakarta Sans',sans-serif}
+    .voucher-day-summary{
+      display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;
+      margin:0 4px 14px;font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;
+    }
+    .voucher-day-summary .seg{display:inline-flex;align-items:baseline;gap:5px}
+    .voucher-day-summary .seg strong{color:var(--text);font-weight:600}
+    .voucher-day-summary .seg.gaji strong{color:var(--accent)}
+    .voucher-day-summary .seg.setoran strong{color:var(--green)}
+    @media(max-width:600px){
+      .voucher-info{font-size:11.5px;padding:9px 12px;margin-bottom:14px}
+      .toko-card{padding:16px}
+      .toko-input-group input{font-size:18px}
+      .toko-input-group{padding:10px 12px}
+      .toko-footer{font-size:11.5px}
+      .voucher-day-summary{font-size:12px;gap:3px 14px}
+    }
     @media(max-width:600px){
       .gajian-total-value{font-size:28px}
       .gajian-stats-line{font-size:11.5px;gap:3px 14px;padding:12px 0 10px}
@@ -1905,18 +1991,17 @@
               </>}
 
               {page==="voucher" && <>
-                <div><h1 className="page-title">Voucher Toko</h1><p className="page-sub" style={{marginBottom:0}}>Drop = stok dititipkan ke toko · Laku = laporan setoran toko. Harga jual {IDR(V2K.price)}/voucher — toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}. Gaji Jaya = laku × {IDR(V2K.gaji)}.</p></div>
-                <div style={{marginBottom:28}}></div>
+                <div><h1 className="page-title">Voucher Toko</h1><p className="page-sub" style={{marginBottom:14}}>Pencatatan voucher 2000 yang dititipkan ke toko-toko.</p></div>
+                <div className="voucher-info">
+                  <strong>Drop</strong> = titip stok ke toko · <strong>Laku</strong> = laporan setoran toko. Harga jual {IDR(V2K.price)} (toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}) · Gaji Jaya {IDR(V2K.gaji)}/voucher laku.
+                </div>
 
-                <div className="card">
-                  <div className="card-title"><Icon type="calendar" size={16}/> Tanggal</div>
-                  <div className="date-row">
-                    <input type="date" className="date-input" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
-                  </div>
+                <div className="date-inline">
+                  <input type="date" className="date-input" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                   {selectedDate < VOUCHER_TOKO_CUTOFF && (
-                    <div className="day-total" style={{background:"var(--orange-bg)",borderColor:"var(--orange-border)",color:"var(--orange)",display:"flex",alignItems:"center",gap:8}}>
-                      <Icon type="alert" size={16}/> Voucher Toko hanya berlaku mulai 1 Mei 2026. Pilih tanggal 1 Mei 2026 atau setelahnya.
-                    </div>
+                    <span className="date-hint" style={{color:"var(--red)"}}>
+                      <Icon type="alert" size={13}/> Voucher Toko mulai 1 Mei 2026
+                    </span>
                   )}
                 </div>
 
@@ -1926,15 +2011,14 @@
                   TOKO.forEach(t => { const d = voucherDraft[t.id]||{drop:'0',laku:'0'}; dayDrop += parseInt(d.drop)||0; dayLaku += parseInt(d.laku)||0; });
                   return (
                     <>
-                      <div className="card">
-                        <div className="card-title"><Icon type="chart" size={16}/> Ringkasan Hari Ini</div>
-                        <div className="summary-grid">
-                          <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{dayDrop}</div></div>
-                          <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{dayLaku}</div></div>
-                          <div className="summary-item gaji-box"><div className="summary-label">Gaji Jaya Hari Ini</div><div className="summary-value">{IDR(dayLaku*V2K.gaji)}</div></div>
-                          <div className="summary-item kas-box"><div className="summary-label">Setoran ke Kas</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(dayLaku*V2K_SETORAN)}</div><div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>kotor {IDR(dayLaku*V2K.price)} − komisi toko {IDR(dayLaku*V2K.komisi_toko)}</div></div>
+                      {(dayDrop>0 || dayLaku>0) && (
+                        <div className="voucher-day-summary">
+                          <span className="seg">Total drop <strong>{dayDrop}</strong></span>
+                          <span className="seg">Total laku <strong>{dayLaku}</strong></span>
+                          <span className="seg gaji">Gaji Jaya <strong>{IDR(dayLaku*V2K.gaji)}</strong></span>
+                          <span className="seg setoran" title={"Kotor "+IDR(dayLaku*V2K.price)+" − komisi toko "+IDR(dayLaku*V2K.komisi_toko)}>Setoran kas <strong>{IDR(dayLaku*V2K_SETORAN)}</strong></span>
                         </div>
-                      </div>
+                      )}
 
                       {TOKO.map(t => {
                         const sBefore = stockBefore[t.id];
@@ -1944,31 +2028,32 @@
                         const dLaku = parseInt(draft.laku)||0;
                         const stokAkhir = stokAwal + dDrop - dLaku;
                         const overLaku = dLaku > (stokAwal + dDrop);
+                        const hasAction = dDrop>0 || dLaku>0;
+                        const pillClass = overLaku ? 'over' : (stokAkhir > stokAwal ? 'up' : (stokAkhir < stokAwal ? 'down' : ''));
                         return (
-                          <div key={t.id} className="card">
-                            <div className="card-title"><Icon type="store" size={16}/> {t.name}</div>
-                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-                              <div className="gajian-stat"><div className="gajian-stat-label">Stok Awal</div><div className="gajian-stat-value" style={{color: stokAwal<0?"var(--red)":"var(--text)"}}>{stokAwal}</div></div>
-                              <div className="gajian-stat" style={{background:"var(--blue-bg)"}}><div className="gajian-stat-label">+ Drop</div><div className="gajian-stat-value" style={{color:"var(--blue)"}}>{dDrop}</div></div>
-                              <div className="gajian-stat" style={{background:"var(--green-bg)",borderColor:"var(--green-border)"}}><div className="gajian-stat-label">− Laku</div><div className="gajian-stat-value" style={{color:"var(--green)"}}>{dLaku}</div></div>
-                            </div>
-                            <div className="expense-row" style={{marginBottom:8}}>
-                              <input className="expense-input" type="text" value="Drop hari ini (titip ke toko)" readOnly style={{cursor:"default",background:"var(--bg3)"}}/>
-                              <input className="expense-amount" type="number" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
-                            </div>
-                            <div className="expense-row">
-                              <input className="expense-input" type="text" value="Laku hari ini (setoran toko)" readOnly style={{cursor:"default",background:"var(--bg3)"}}/>
-                              <input className="expense-amount" type="number" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
-                            </div>
-                            <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,padding:"10px 12px",background: overLaku?"var(--red-bg)":"var(--bg3)",borderRadius:10,border:"1px solid "+(overLaku?"var(--red-border)":"var(--border)")}}>
-                              <span style={{color:overLaku?"var(--red)":"var(--text2)",display:"inline-flex",alignItems:"center",gap:6}}>
-                                {overLaku ? <><Icon type="alert" size={13}/> Laku melebihi stok!</> : 'Stok akhir hari ini'}
+                          <div key={t.id} className={"toko-card"+(overLaku?" over":(hasAction?" has-action":""))}>
+                            <div className="toko-head">
+                              <span className="toko-head-name"><Icon type="store" size={16}/> {t.name}</span>
+                              <span className={"toko-stok-pill "+pillClass}>
+                                Stok {stokAwal} <span className="arrow">→</span> <span className="end">{stokAkhir}</span>
                               </span>
-                              <strong style={{fontFamily:"'DM Mono',monospace",color:stokAkhir<0?"var(--red)":"var(--text)"}}>{stokAkhir}</strong>
                             </div>
-                            <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text3)",flexWrap:"wrap",gap:6}}>
-                              <span>Setoran toko: <strong style={{color:"var(--green)"}}>{IDR(dLaku*V2K_SETORAN)}</strong> <span style={{color:"var(--text3)"}}>(komisi {IDR(dLaku*V2K.komisi_toko)})</span></span>
-                              <span>Gaji Jaya: <strong style={{color:"var(--accent)"}}>{IDR(dLaku*V2K.gaji)}</strong></span>
+                            <div className="toko-inputs">
+                              <div className="toko-input-group drop">
+                                <label>+ Drop hari ini</label>
+                                <input type="number" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
+                              </div>
+                              <div className="toko-input-group laku">
+                                <label>− Laku hari ini</label>
+                                <input type="number" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
+                              </div>
+                            </div>
+                            <div className="toko-footer">
+                              {overLaku
+                                ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
+                                : <span className="seg setoran" title={"komisi toko "+IDR(dLaku*V2K.komisi_toko)}>Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
+                              }
+                              <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
                             </div>
                           </div>
                         );
@@ -1980,8 +2065,6 @@
 
                       {/* Rekap periode berjalan */}
                       {(() => {
-                        const today = new Date(); const y = today.getFullYear(); const m = today.getMonth();
-                        const periods = getPayPeriods(y, m);
                         const sd = new Date(selectedDate+'T00:00:00');
                         const sy = sd.getFullYear(), sm = sd.getMonth(), sday = sd.getDate();
                         const periodsForSelected = getPayPeriods(sy, sm);
@@ -1990,16 +2073,16 @@
                         return (
                           <div className="card" style={{marginTop:24}}>
                             <div className="card-title"><Icon type="calendar" size={16}/> Rekap Periode {ML[sm]} · {p.label} (tgl {p.startDay}–{p.endDay})</div>
-                            <div className="summary-grid">
-                              <div className="summary-item"><div className="summary-label">Total Drop</div><div className="summary-value" style={{color:"var(--blue)"}}>{range.drop}</div></div>
-                              <div className="summary-item"><div className="summary-label">Total Laku</div><div className="summary-value" style={{color:"var(--green)"}}>{range.laku}</div></div>
-                              <div className="summary-item gaji-box"><div className="summary-label">Gaji Jaya Periode</div><div className="summary-value">{IDR(range.gaji)}</div></div>
-                              <div className="summary-item kas-box"><div className="summary-label">Penjualan Periode</div><div className="summary-value" style={{color:"var(--green)"}}>{IDR(range.penjualan)}</div></div>
+                            <div className="voucher-day-summary" style={{margin:"0 0 16px"}}>
+                              <span className="seg">Total drop <strong>{range.drop}</strong></span>
+                              <span className="seg">Total laku <strong>{range.laku}</strong></span>
+                              <span className="seg gaji">Gaji periode <strong>{IDR(range.gaji)}</strong></span>
+                              <span className="seg setoran">Penjualan <strong>{IDR(range.penjualan)}</strong></span>
                             </div>
-                            <div style={{marginTop:14,fontSize:11,color:"var(--text3)"}}>
-                              Sisa stok di toko (drop − laku, kumulatif sampai {fmtDate(p.end)}):
+                            <div style={{fontSize:11,color:"var(--text3)",marginBottom:8}}>
+                              Sisa stok per toko (kumulatif sampai {fmtDate(p.end)}):
                             </div>
-                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginTop:8}}>
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
                               {(() => {
                                 const stokEnd = voucherStockPerToko(p.end, voucherToko);
                                 return TOKO.map(t => {
@@ -2181,7 +2264,20 @@
 
               {page==="riwayat" && <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div><h1 className="page-title">Riwayat</h1><p className="page-sub" style={{marginBottom:0}}>Data penjualan yang sudah tersimpan</p></div>
+                  <div>
+                    <h1 className="page-title">Riwayat</h1>
+                    <p className="page-sub" style={{marginBottom:0}}>
+                      {sortedEntries.length===0
+                        ? 'Data penjualan yang sudah tersimpan'
+                        : (() => {
+                            const dates = sortedEntries.map(e=>e.date);
+                            const first = dates[dates.length-1], last = dates[0];
+                            const fmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]; };
+                            return sortedEntries.length+' hari tersimpan · '+fmt(first)+(first!==last?' – '+fmt(last):'');
+                          })()
+                      }
+                    </p>
+                  </div>
                   {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>}
                 </div>
                 <div style={{marginBottom:20}}></div>
@@ -2193,7 +2289,7 @@
                     <input
                       className="search-input"
                       type="text"
-                      placeholder="Cari tanggal, hari, produk, atau pengeluaran…"
+                      placeholder="Cari tanggal, hari, produk, toko, atau pengeluaran…"
                       value={searchQuery}
                       onChange={e=>setSearchQuery(e.target.value)}
                     />
@@ -2206,7 +2302,7 @@
                   </div>
                 )}
                 {sortedEntries.length===0 ? (
-                  <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="inbox" size={48}/></div>Belum ada data tersimpan.<br/>Mulai input di tab "Input Harian".</div>
+                  <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="inbox" size={48}/></div>Belum ada data tersimpan.<br/>Mulai input di tab "Hari Ini".</div>
                 ) : filteredEntries.length===0 ? (
                   <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
                 ) : filteredEntries.map((e, i) => {
