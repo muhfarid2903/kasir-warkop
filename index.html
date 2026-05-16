@@ -308,15 +308,26 @@
     }
     .day-total strong{color:var(--accent);font-weight:700}
 
-    .payday-banner{padding:20px 22px;border-radius:var(--radius-lg);margin-bottom:18px;position:relative;overflow:hidden;backdrop-filter:blur(6px)}
+    .payday-banner{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+      padding:13px 18px;border-radius:var(--radius-lg);margin-bottom:18px;
+      position:relative;overflow:hidden;backdrop-filter:blur(6px);
+    }
     .payday-banner::before{content:'';position:absolute;inset:0;opacity:.03;background:repeating-linear-gradient(45deg,transparent,transparent 10px,currentColor 10px,currentColor 11px)}
     .payday-banner.today{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
     .payday-banner.upcoming{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent)}
-    .payday-title{font-size:15px;font-weight:700;margin-bottom:4px;position:relative}
-    .payday-detail{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;position:relative}
-    .payday-amount{font-size:24px;font-weight:500;font-family:'DM Mono',monospace;margin-top:8px;position:relative}
-    .payday-banner.today .payday-title,.payday-banner.today .payday-amount{color:var(--green)}
-    .payday-banner.upcoming .payday-title,.payday-banner.upcoming .payday-amount{color:var(--accent)}
+    .payday-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative}
+    .payday-main .label{font-size:14px;font-weight:700}
+    .payday-main .sub{font-size:12px;font-weight:500;color:var(--text2);font-family:'DM Mono',monospace;letter-spacing:.01em}
+    .payday-amount{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;white-space:nowrap;position:relative}
+    .payday-banner.today .payday-amount{color:var(--green)}
+    .payday-banner.upcoming .payday-amount{color:var(--accent)}
+    @media(max-width:600px){
+      .payday-banner{padding:11px 14px;gap:8px}
+      .payday-main .label{font-size:13px}
+      .payday-main .sub{font-size:11px}
+      .payday-amount{font-size:17px}
+    }
 
     .sync-status{text-align:center;font-size:12px;font-family:'DM Mono',monospace;padding:10px;margin-top:10px;border-radius:10px}
     .sync-status.syncing{color:var(--accent);background:var(--accent-bg)}
@@ -539,6 +550,38 @@
     .toko-footer .seg.gaji strong{color:var(--accent)}
     .toko-footer .seg.setoran strong{color:var(--green)}
     .toko-footer .error{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px;font-family:'Plus Jakarta Sans',sans-serif}
+    /* === Login screen: warkop hero === */
+    .login-hero{text-align:center;margin-bottom:24px;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both}
+    .login-hero-logo{
+      width:68px;height:68px;margin:0 auto 16px;
+      background:var(--grad-warm);border-radius:20px;
+      display:flex;align-items:center;justify-content:center;
+      color:#1a0e05;position:relative;
+      box-shadow:0 10px 32px rgba(184,92,44,.4),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);
+    }
+    .login-hero-logo::after{
+      content:'';position:absolute;inset:-3px;border-radius:23px;padding:3px;
+      background:linear-gradient(135deg,rgba(229,143,89,.5),transparent 50%,rgba(229,176,95,.4));
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+    }
+    .login-hero-title{
+      font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.1;
+      background:linear-gradient(180deg,var(--text),var(--accent));
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+    }
+    .login-hero-tag{
+      margin-top:8px;font-size:12.5px;color:var(--text3);
+      font-family:'DM Mono',monospace;letter-spacing:.02em;
+    }
+    [data-theme="light"] .login-hero-title{
+      background:linear-gradient(180deg,var(--text),var(--accent-deep));
+      -webkit-background-clip:text;background-clip:text;
+      -webkit-text-fill-color:transparent;color:transparent;
+    }
+
     /* === User menu popover (consolidate theme + logout) === */
     .user-menu-wrap{position:relative;display:inline-flex}
     .user-menu{
@@ -1427,35 +1470,36 @@
 
       return (
         <div className="app">
-          <div className="header">
-            <div className="header-logo" style={{color:"#1a0e05"}}><Icon type="coffee" size={24}/></div>
-            <div><div className="header-title">Warkopsaja</div><div className="header-sub">Pencatatan Harian</div></div>
-            <div className="header-right">
-              <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'}>
-                <Icon type={theme==='dark'?'sun':'moon'} size={16}/>
-              </button>
-            </div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 73px)",padding:20}}>
-            <form onSubmit={submit} className="card" style={{width:380,maxWidth:"100%",margin:0}}>
-              <div className="card-title">{mode==='signin' ? <><Icon type="lock" size={16}/> Masuk</> : <><Icon type="user-plus" size={16}/> Daftar Akun</>}</div>
-              <div className="form-group">
-                <label className="form-label">Email</label>
-                <input className="form-input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@contoh.com"/>
+          <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'} style={{position:"fixed",top:18,right:18,zIndex:10}}>
+            <Icon type={theme==='dark'?'sun':'moon'} size={16}/>
+          </button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"40px 20px"}}>
+            <form onSubmit={submit} style={{width:380,maxWidth:"100%"}}>
+              <div className="login-hero">
+                <div className="login-hero-logo"><Icon type="coffee" size={32}/></div>
+                <h1 className="login-hero-title">Warkopsaja</h1>
+                <p className="login-hero-tag">Buku kas warkop · sederhana, harian</p>
               </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input className="form-input" type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimal 6 karakter"/>
-              </div>
-              {err && <div style={{padding:"10px 12px",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-border)",borderRadius:10,fontSize:12,marginBottom:12}}>{err}</div>}
-              <button type="submit" className="btn-save" disabled={busy} style={{marginTop:4}}>
-                {busy ? 'Memproses…' : (mode==='signin' ? 'Masuk' : 'Daftar')}
-              </button>
-              <div style={{textAlign:"center",marginTop:14,fontSize:12,color:"var(--text2)"}}>
-                {mode==='signin' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-                <a href="#" onClick={(e)=>{e.preventDefault();setErr('');setMode(mode==='signin'?'signup':'signin');}} style={{color:"var(--accent)",fontWeight:600,textDecoration:"none"}}>
-                  {mode==='signin' ? 'Daftar' : 'Masuk'}
-                </a>
+              <div className="card" style={{margin:0}}>
+                <div className="card-title">{mode==='signin' ? <><Icon type="lock" size={16}/> Masuk</> : <><Icon type="user-plus" size={16}/> Daftar Akun</>}</div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input className="form-input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@contoh.com"/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Password</label>
+                  <input className="form-input" type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimal 6 karakter"/>
+                </div>
+                {err && <div style={{padding:"10px 12px",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-border)",borderRadius:10,fontSize:12,marginBottom:12}}>{err}</div>}
+                <button type="submit" className="btn-save" disabled={busy} style={{marginTop:4}}>
+                  {busy ? 'Memproses…' : (mode==='signin' ? 'Masuk' : 'Daftar')}
+                </button>
+                <div style={{textAlign:"center",marginTop:14,fontSize:12,color:"var(--text2)"}}>
+                  {mode==='signin' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
+                  <a href="#" onClick={(e)=>{e.preventDefault();setErr('');setMode(mode==='signin'?'signup':'signin');}} style={{color:"var(--accent)",fontWeight:600,textDecoration:"none"}}>
+                    {mode==='signin' ? 'Daftar' : 'Masuk'}
+                  </a>
+                </div>
               </div>
             </form>
           </div>
@@ -1938,11 +1982,15 @@
                 </div>
 
                 {paydayInfo && (
-                  <div className={"payday-banner "+paydayInfo.show}>
-                    <div className="payday-title">{paydayInfo.show==='today'?<><Icon type="gift" size={16}/> Hari Ini Gajian!</>:<><Icon type="calendar" size={15}/> Gajian {paydayInfo.daysLeft} hari lagi (tgl {paydayInfo.period.payday})</>}</div>
-                    <div className="payday-detail">{paydayInfo.period.label}: Tgl {paydayInfo.period.startDay}–{paydayInfo.period.endDay} {MO[paydayInfo.month]}</div>
+                  <div className={"payday-banner "+paydayInfo.show} title={paydayInfo.period.label+': Tgl '+paydayInfo.period.startDay+'–'+paydayInfo.period.endDay+' '+MO[paydayInfo.month]+(paydayInfo.show==='upcoming'?' · sementara terkumpul':'')}>
+                    <div className="payday-main">
+                      {paydayInfo.show==='today'
+                        ? <><Icon type="gift" size={16}/><span className="label">Hari Ini Gajian!</span></>
+                        : <><Icon type="calendar" size={15}/><span className="label">Gajian H−{paydayInfo.daysLeft}</span></>
+                      }
+                      <span className="sub">{paydayInfo.period.label} {ML[paydayInfo.month]}{paydayInfo.show==='upcoming' && ' · sementara'}</span>
+                    </div>
                     <div className="payday-amount">{IDR(paydayInfo.totalGaji)}</div>
-                    {paydayInfo.show==='upcoming' && <div className="payday-detail" style={{marginTop:4}}>Sementara terkumpul</div>}
                   </div>
                 )}
 
@@ -1984,7 +2032,7 @@
                       </div>
                       <div className="qty-control">
                         <button className="qty-btn" onClick={()=>changeQty(p.id,-1)}>−</button>
-                        <input className="qty-display" type="number" min="0" value={quantities[p.id]} onChange={e=>setQty(p.id,e.target.value)}/>
+                        <input className="qty-display" type="number" inputMode="numeric" min="0" value={quantities[p.id]} onChange={e=>setQty(p.id,e.target.value)}/>
                         <button className="qty-btn" onClick={()=>changeQty(p.id,1)}>+</button>
                       </div>
                     </div>
@@ -2014,7 +2062,7 @@
                       {expenses.map((exp, i) => (
                         <div key={i} className="expense-row">
                           <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
-                          <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
+                          <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
                           <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
                         </div>
                       ))}
@@ -2026,7 +2074,7 @@
                       {cashIns.map((exp, i) => (
                         <div key={i} className="expense-row">
                           <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
-                          <input className="expense-amount" type="number" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
+                          <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
                           <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
                         </div>
                       ))}
@@ -2088,11 +2136,11 @@
                             <div className="toko-inputs">
                               <div className="toko-input-group drop">
                                 <label>+ Drop hari ini</label>
-                                <input type="number" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
+                                <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
                               </div>
                               <div className="toko-input-group laku">
                                 <label>− Laku hari ini</label>
-                                <input type="number" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
+                                <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
                               </div>
                             </div>
                             <div className="toko-footer">
@@ -2163,7 +2211,7 @@
                   <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
                   {editingSaldo ? (
                     <>
-                      <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
+                      <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" inputMode="numeric" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
                       <button className="btn btn-primary btn-sm" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
                       <button className="btn btn-ghost btn-sm" onClick={()=>setEditingSaldo(false)}>Batal</button>
                     </>
@@ -2379,7 +2427,7 @@
                         <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
                       </div>
                       <div className="history-pills">
-                        {sold.length>0 ? sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>) : (!hasVoucher && <span className="pill" style={{color:"var(--text3)"}}>–</span>)}
+                        {sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>)}
                         {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
                         {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
                         {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
