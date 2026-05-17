@@ -442,15 +442,20 @@
     .history-item:hover{border-color:var(--accent-border);transform:translateY(-1px);box-shadow:var(--shadow-glow)}
     .history-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
     .history-date{font-size:13px;font-weight:600;padding-top:2px}
-    .history-amount{display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.1}
-    .history-amount-label{
-      font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-      color:var(--text3);font-family:'DM Mono',monospace;
-    }
-    .history-gaji{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--text2)}
+    .history-gaji{font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:var(--text2);letter-spacing:-.2px}
     .history-gaji.pos{color:var(--green)}
     .history-gaji.neg{color:var(--red)}
     .history-pills{display:flex;gap:6px;flex-wrap:wrap}
+    .history-money{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .riwayat-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin:0 0 12px;padding-left:4px;letter-spacing:.02em}
+    .riwayat-search-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+    .btn-export-icon{
+      flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+      width:40px;height:40px;border-radius:10px;cursor:pointer;
+      background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);
+      transition:all .2s;
+    }
+    .btn-export-icon:hover{background:rgba(138,165,119,.18);transform:translateY(-1px)}
     .pill{
       font-size:11px;padding:4px 12px;border-radius:20px;
       background:var(--bg3);color:var(--text2);font-family:'DM Mono',monospace;
@@ -776,14 +781,6 @@
     .modal{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:28px;width:480px;max-width:95vw;box-shadow:var(--shadow);max-height:90vh;overflow-y:auto}
     .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
 
-    .btn-export{
-      display:inline-flex;align-items:center;gap:7px;padding:9px 18px;
-      background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);
-      border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;
-      cursor:pointer;transition:all .2s;
-    }
-    .btn-export:hover{background:rgba(138,165,119,.18);transform:translateY(-1px)}
-
     input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8) sepia(.5) hue-rotate(350deg) saturate(2);opacity:.6;cursor:pointer}
     input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 
@@ -1083,7 +1080,8 @@
       /* Riwayat history pills */
       .history-item{padding:14px 16px}
       .history-date{font-size:12px}
-      .history-gaji{font-size:13px}
+      .history-gaji{font-size:15px}
+      .btn-export-icon{width:36px;height:36px}
 
       /* Toast: padding bawah lebih kecil tanpa mobile-nav */
       .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px));font-size:12px;padding:11px 22px}
@@ -2368,28 +2366,11 @@
               </>}
 
               {page==="riwayat" && <>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div>
-                    <h1 className="page-title">Riwayat</h1>
-                    <p className="page-sub" style={{marginBottom:0}}>
-                      {sortedEntries.length===0
-                        ? 'Data penjualan yang sudah tersimpan'
-                        : (() => {
-                            const dates = sortedEntries.map(e=>e.date);
-                            const first = dates[dates.length-1], last = dates[0];
-                            const fmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]; };
-                            return sortedEntries.length+' hari tersimpan · '+fmt(first)+(first!==last?' – '+fmt(last):'');
-                          })()
-                      }
-                    </p>
-                  </div>
-                  {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>}
-                </div>
-                <div style={{marginBottom:20}}></div>
+                <div style={{marginBottom:8}}></div>
 
                 {/* Saldo Awal: titik nol kas warkop, anchor di atas timeline */}
                 {!searchQuery && (
-                  <div className="saldo-awal-bar" style={{margin:"0 0 16px"}}>
+                  <div className="saldo-awal-bar" style={{margin:"0 0 10px"}}>
                     <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
                     {editingSaldo ? (
                       <>
@@ -2401,25 +2382,38 @@
                       <>
                         <span className="val">{IDR(initialSaldo)}</span>
                         <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
-                        <span className="info">Titik nol kas warkop — terakumulasi ke setiap periode</span>
                       </>
                     )}
                   </div>
                 )}
 
+                {!searchQuery && sortedEntries.length>0 && (
+                  <div className="riwayat-meta">
+                    {(() => {
+                      const dates = sortedEntries.map(e=>e.date);
+                      const first = dates[dates.length-1], last = dates[0];
+                      const fmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]; };
+                      return sortedEntries.length+' hari tersimpan · '+fmt(first)+(first!==last?' – '+fmt(last):'');
+                    })()}
+                  </div>
+                )}
+
                 {sortedEntries.length>0 && (
-                  <div className="search-wrap">
-                    <span className="search-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    </span>
-                    <input
-                      className="search-input"
-                      type="text"
-                      placeholder="Cari tanggal, hari, produk, toko, atau pengeluaran…"
-                      value={searchQuery}
-                      onChange={e=>setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && <button className="search-clear" onClick={()=>setSearchQuery('')} title="Hapus">×</button>}
+                  <div className="riwayat-search-row">
+                    <div className="search-wrap" style={{flex:1,marginBottom:0}}>
+                      <span className="search-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                      </span>
+                      <input
+                        className="search-input"
+                        type="text"
+                        placeholder="Cari tanggal, hari, produk, toko, atau pengeluaran…"
+                        value={searchQuery}
+                        onChange={e=>setSearchQuery(e.target.value)}
+                      />
+                      {searchQuery && <button className="search-clear" onClick={()=>setSearchQuery('')} title="Hapus">×</button>}
+                    </div>
+                    <button className="btn-export-icon" onClick={()=>exportRiwayatCSV(entries, voucherToko)} title="Export CSV"><Icon type="download" size={16}/></button>
                   </div>
                 )}
                 {searchQuery && (
@@ -2454,16 +2448,22 @@
                   return (
                     <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)} title={sisaLabel+' hari itu'}>
                       <div className="history-item-header">
-                        <span className="history-date">{fmtDate(e.date)}</span>
+                        <span className="history-date">{(() => { const dt = new Date(e.date+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' · '+DAYS[dt.getDay()]; })()}</span>
                         <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
                       </div>
-                      <div className="history-pills">
-                        {sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>)}
-                        {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
-                        {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
-                        {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>-{IDR(expGross)}</span>}
-                        {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
-                      </div>
+                      {(sold.length>0 || v.laku>0 || v.drop>0) && (
+                        <div className="history-pills">
+                          {sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>)}
+                          {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
+                          {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
+                        </div>
+                      )}
+                      {(expGross>0 || cashGross>0) && (
+                        <div className="history-money">
+                          {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>−{IDR(expGross)} keluar</span>}
+                          {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
+                        </div>
+                      )}
                       {isOpen && (
                         <div className="history-detail">
                           <div className="history-summary">
