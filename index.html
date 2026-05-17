@@ -572,6 +572,55 @@
     .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
     .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:10px}
 
+    /* === Gajian Hero: motivational, khusus periode berjalan === */
+    .gajian-hero-active{
+      position:relative;margin:-6px -6px 18px;padding:20px 22px 18px;
+      background:linear-gradient(135deg,rgba(212,130,58,.18),rgba(229,176,95,.06) 55%,rgba(212,130,58,.04));
+      border:1px solid var(--accent-border);border-radius:14px;overflow:hidden;
+    }
+    .gajian-hero-active::before{
+      content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;
+      background:radial-gradient(circle,rgba(229,176,95,.22),transparent 70%);pointer-events:none;
+    }
+    .gajian-hero-meta{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;position:relative}
+    .gajian-countdown-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 12px;border-radius:20px;white-space:nowrap;
+      background:rgba(229,176,95,.16);color:var(--orange);
+      border:1px solid var(--orange-border);
+      font-size:11.5px;font-weight:700;letter-spacing:.02em;
+    }
+    .gajian-countdown-pill.urgent{
+      background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);
+      animation:gajianPulse 2s ease-in-out infinite;
+    }
+    @keyframes gajianPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+    .gajian-hero-amount{text-align:center;padding:6px 0 14px;position:relative}
+    .gajian-hero-amount-label{
+      font-size:10.5px;font-weight:700;letter-spacing:.18em;
+      color:var(--accent);text-transform:uppercase;margin-bottom:2px;
+    }
+    .gajian-hero-amount-value{
+      font-family:'DM Mono',monospace;font-size:48px;font-weight:500;
+      color:var(--accent);line-height:1.05;letter-spacing:-1px;
+    }
+    .gajian-hero-progress{position:relative}
+    .gajian-hero-progress-bar{
+      height:8px;background:rgba(255,255,255,.06);
+      border-radius:999px;overflow:hidden;border:1px solid var(--border);
+    }
+    .gajian-hero-progress-fill{
+      height:100%;background:linear-gradient(90deg,var(--accent),var(--orange));
+      border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1);
+    }
+    .gajian-hero-progress-meta{
+      display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;
+      margin-top:8px;font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;
+    }
+    .gajian-hero-progress-meta strong{color:var(--text);font-weight:600}
+    .gajian-hero-progress-meta .proj{color:var(--accent)}
+    .gajian-hero-progress-meta .proj strong{color:var(--accent)}
+
     /* === Voucher Toko: Jobs treatment === */
     .voucher-info{
       font-size:12px;color:var(--text3);line-height:1.65;
@@ -932,6 +981,13 @@
     [data-theme="light"] .sidebar-brand-title{background:linear-gradient(180deg,var(--text),var(--accent-deep));-webkit-background-clip:text;background-clip:text}
     [data-theme="light"] .card-title{text-shadow:none}
     [data-theme="light"] .gajian-total-value{color:var(--accent-deep)}
+    [data-theme="light"] .gajian-hero-active{background:linear-gradient(135deg,rgba(184,92,44,.12),rgba(168,117,40,.04) 55%,rgba(184,92,44,.02))}
+    [data-theme="light"] .gajian-hero-active::before{background:radial-gradient(circle,rgba(168,117,40,.18),transparent 70%)}
+    [data-theme="light"] .gajian-hero-amount-label,
+    [data-theme="light"] .gajian-hero-amount-value{color:var(--accent-deep)}
+    [data-theme="light"] .gajian-hero-progress-bar{background:rgba(0,0,0,.05)}
+    [data-theme="light"] .gajian-hero-progress-meta .proj,
+    [data-theme="light"] .gajian-hero-progress-meta .proj strong{color:var(--accent-deep)}
     [data-theme="light"] .history-gaji.pos,
     [data-theme="light"] .summary-row.total .summary-value.pos{color:var(--green)}
     [data-theme="light"] .history-gaji.neg,
@@ -1066,6 +1122,10 @@
       .gajian-header{flex-direction:column;gap:10px}
       .gajian-total-box{text-align:left;align-self:flex-start}
       .gajian-total-value{font-size:22px}
+      .gajian-hero-active{margin:-4px -4px 14px;padding:16px 16px 14px}
+      .gajian-hero-meta{flex-direction:column;gap:8px}
+      .gajian-hero-amount-value{font-size:36px}
+      .gajian-hero-progress-meta{font-size:11px}
       .gajian-day-row{padding:9px 0;font-size:12px}
       .gajian-day-date{font-size:12px}
       .gajian-day-amount{font-size:13px}
@@ -2405,20 +2465,54 @@
                       else if (isCurrent) { statusClass='pending'; statusText='Berjalan'; }
                       else { statusClass='future'; statusText='Belum'; }
                       const overflowLabel = overflowEntries.length>0 ? ' (+tgl '+p.overflowDays[0]+'–'+p.overflowDays[p.overflowDays.length-1]+' '+MO[p.prevMonth]+')' : '';
+                      // Hero: hitung countdown, progress & proyeksi (khusus periode berjalan)
+                      const periodLength = p.endDay - p.startDay + 1;
+                      const daysToPayday = isCurrent ? Math.max(0, p.payday - currentDay) : 0;
+                      const daysElapsed = isCurrent ? Math.max(1, Math.min(periodLength, currentDay - p.startDay + 1)) : periodLength;
+                      const progressPct = isCurrent ? Math.min(100, Math.round((daysElapsed / periodLength) * 100)) : 100;
+                      const proyeksiGaji = (isCurrent && totalGaji > 0 && daysElapsed < periodLength)
+                        ? Math.round(totalGaji / daysElapsed * periodLength) : totalGaji;
+                      const countdownText = daysToPayday === 0 ? 'Hari ini gajian!' : daysToPayday === 1 ? 'Besok gajian!' : daysToPayday + ' hari lagi gajian';
+                      const countdownUrgent = daysToPayday <= 2;
 
                       return (
                         <div key={year+'-'+month+'-'+pi} className={"gajian-card"+(isCurrent?" active-period":"")}>
-                          <div className="gajian-header">
-                            <div>
-                              <div className="gajian-period-label">{monthLabel} · {p.label}</div>
-                              <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · Gajian tgl {p.payday} · {totalDays} hari kerja</div>
+                          {isCurrent ? (
+                            <div className="gajian-hero-active">
+                              <div className="gajian-hero-meta">
+                                <div>
+                                  <div className="gajian-period-label">{monthLabel} · {p.label}</div>
+                                  <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · gajian tgl {p.payday}</div>
+                                </div>
+                                <span className={"gajian-countdown-pill"+(countdownUrgent?" urgent":"")}>
+                                  <Icon type={daysToPayday<=1?"gift":"clock"} size={13}/> {countdownText}
+                                </span>
+                              </div>
+                              <div className="gajian-hero-amount">
+                                <div className="gajian-hero-amount-label">Gajiku</div>
+                                <div className="gajian-hero-amount-value"><AnimatedIDR value={totalGaji}/></div>
+                              </div>
+                              <div className="gajian-hero-progress">
+                                <div className="gajian-hero-progress-bar"><div className="gajian-hero-progress-fill" style={{width:progressPct+'%'}}/></div>
+                                <div className="gajian-hero-progress-meta">
+                                  <span>{totalDays>0 ? totalDays+' hari kerja · '+progressPct+'% periode' : 'Belum ada catatan'}</span>
+                                  {proyeksiGaji > totalGaji && <span className="proj">Estimasi akhir <strong>{IDR(proyeksiGaji)}</strong></span>}
+                                </div>
+                              </div>
                             </div>
-                            <div className="gajian-total-box">
-                              <div className="gajian-total-label">Gajiku</div>
-                              <div className="gajian-total-value"><AnimatedIDR value={totalGaji}/></div>
-                              <span className={"gajian-status-badge "+statusClass}>{statusText}</span>
+                          ) : (
+                            <div className="gajian-header">
+                              <div>
+                                <div className="gajian-period-label">{monthLabel} · {p.label}</div>
+                                <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · Gajian tgl {p.payday} · {totalDays} hari kerja</div>
+                              </div>
+                              <div className="gajian-total-box">
+                                <div className="gajian-total-label">Gajiku</div>
+                                <div className="gajian-total-value"><AnimatedIDR value={totalGaji}/></div>
+                                <span className={"gajian-status-badge "+statusClass}>{statusText}</span>
+                              </div>
                             </div>
-                          </div>
+                          )}
                           <div className="gajian-stats-line">
                             <span className="seg">+ Pemasukan <strong>{IDR(totalPenjualan)}</strong></span>
                             <span className="seg exp">− Pengeluaran <strong>{IDR(totalPengeluaran)}</strong></span>
