@@ -2392,24 +2392,6 @@
                 </div>
                 <div style={{marginBottom:28}}></div>
 
-                {/* Saldo Awal: inline bar, bukan card besar */}
-                <div className="saldo-awal-bar">
-                  <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
-                  {editingSaldo ? (
-                    <>
-                      <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" inputMode="numeric" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
-                      <button className="btn btn-primary btn-sm" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>setEditingSaldo(false)}>Batal</button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="val">{IDR(initialSaldo)}</span>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
-                      <span className="info">Terakumulasi ke setiap periode berikutnya</span>
-                    </>
-                  )}
-                </div>
-
                 {(()=>{
                   const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); const currentDay = today.getDate();
                   const monthsToShow = [{ year:currentYear, month:currentMonth }, currentMonth===0?{year:currentYear-1,month:11}:{year:currentYear,month:currentMonth-1}];
@@ -2593,6 +2575,27 @@
                   {sortedEntries.length>0 && <button className="btn-export" onClick={()=>exportRiwayatCSV(entries, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>}
                 </div>
                 <div style={{marginBottom:20}}></div>
+
+                {/* Saldo Awal: titik nol kas warkop, anchor di atas timeline */}
+                {!searchQuery && (
+                  <div className="saldo-awal-bar" style={{margin:"0 0 16px"}}>
+                    <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
+                    {editingSaldo ? (
+                      <>
+                        <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" inputMode="numeric" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
+                        <button className="btn btn-primary btn-sm" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>setEditingSaldo(false)}>Batal</button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="val">{IDR(initialSaldo)}</span>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
+                        <span className="info">Titik nol kas warkop — terakumulasi ke setiap periode</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {sortedEntries.length>0 && (
                   <div className="search-wrap">
                     <span className="search-icon">
