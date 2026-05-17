@@ -594,8 +594,28 @@
       font-size:12px;color:var(--text3);line-height:1.65;
       margin:-8px 0 18px;padding:10px 14px;
       background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+      animation:fadeUp .25s ease;
     }
     .voucher-info strong{color:var(--text2);font-weight:600}
+    .voucher-date-row{display:flex;align-items:center;gap:8px}
+    .date-display-btn{
+      flex:1;display:inline-flex;align-items:center;gap:10px;
+      padding:12px 16px;border-radius:11px;
+      background:var(--bg2);border:1px solid var(--border);
+      color:var(--text);font-size:14px;font-family:inherit;cursor:pointer;
+      text-align:left;transition:border-color .15s,background .15s;
+    }
+    .date-display-btn:hover{border-color:var(--accent-border);background:var(--bg3)}
+    .date-display-btn .chev{margin-left:auto;color:var(--text3);font-size:12px}
+    .date-input-hidden{position:absolute;opacity:0;pointer-events:none;width:0;height:0;padding:0;border:0}
+    .info-toggle{
+      flex-shrink:0;width:40px;height:40px;border-radius:11px;
+      background:var(--bg2);border:1px solid var(--border);color:var(--text3);
+      cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+      transition:all .15s;
+    }
+    .info-toggle:hover{border-color:var(--accent-border);color:var(--text2)}
+    .info-toggle.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
     .toko-card{
       background:linear-gradient(180deg,var(--bg2),rgba(20,20,20,.5));
       border:1px solid var(--border);border-radius:var(--radius-lg);
@@ -645,9 +665,11 @@
     .toko-input-group input{
       background:transparent;border:none;outline:none;padding:0;
       font-family:'DM Mono',monospace;font-size:22px;font-weight:600;color:var(--text);
-      width:100%;letter-spacing:-.5px;
+      width:100%;letter-spacing:-.5px;transition:color .15s;
     }
     .toko-input-group input::placeholder{color:var(--text3);opacity:.4}
+    .toko-input-group.empty input{color:var(--text3);opacity:.45}
+    .toko-input-group.empty:focus-within input{color:var(--text);opacity:1}
     .toko-footer{
       display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 14px;
       margin-top:14px;padding-top:13px;border-top:1px dashed var(--border2);
@@ -1561,6 +1583,8 @@
       });
       const [voucherDraft, setVoucherDraft] = useState({});
       const [voucherSaving, setVoucherSaving] = useState(false);
+      const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
+      const voucherDateRef = useRef(null);
       const [menuOpen, setMenuOpen] = useState(false);
       const [sidebarOpen, setSidebarOpen] = useState(() => {
         if (typeof window === 'undefined') return true;
@@ -2124,19 +2148,30 @@
               </>}
 
               {page==="voucher" && <>
-                <div><h1 className="page-title">Voucher Toko</h1><p className="page-sub" style={{marginBottom:14}}>Pencatatan voucher 2000 yang dititipkan ke toko-toko.</p></div>
-                <div className="voucher-info">
-                  <strong>Drop</strong> = titip stok ke toko · <strong>Laku</strong> = laporan setoran toko. Harga jual {IDR(V2K.price)} (toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}) · Gaji Jaya {IDR(V2K.gaji)}/voucher laku.
-                </div>
+                <div style={{marginBottom:8}}></div>
 
-                <div className="date-inline">
-                  <input type="date" className="date-input" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
-                  {selectedDate < VOUCHER_TOKO_CUTOFF && (
-                    <span className="date-hint" style={{color:"var(--red)"}}>
-                      <Icon type="alert" size={13}/> Voucher Toko mulai 1 Mei 2026
-                    </span>
-                  )}
+                <div className="voucher-date-row">
+                  <button type="button" className="date-display-btn" onClick={() => { const i = voucherDateRef.current; if (!i) return; if (typeof i.showPicker === 'function') i.showPicker(); else i.focus(); }}>
+                    <Icon type="calendar" size={15}/>
+                    <span>{(() => { const dt = new Date(selectedDate+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' '+dt.getFullYear(); })()}</span>
+                    <span className="chev">▾</span>
+                  </button>
+                  <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+                  <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
+                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
+                  </button>
                 </div>
+                {selectedDate < VOUCHER_TOKO_CUTOFF && (
+                  <div className="date-hint" style={{color:"var(--red)",margin:"8px 0 0"}}>
+                    <Icon type="alert" size={13}/> Voucher Toko mulai 1 Mei 2026
+                  </div>
+                )}
+                {voucherInfoOpen && (
+                  <div className="voucher-info" style={{margin:"10px 0 0"}}>
+                    <strong>Drop</strong> = titip stok ke toko · <strong>Laku</strong> = laporan setoran toko. Harga jual {IDR(V2K.price)} (toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}) · Gaji Jaya {IDR(V2K.gaji)}/voucher laku.
+                  </div>
+                )}
+                <div style={{marginBottom:18}}></div>
 
                 {selectedDate >= VOUCHER_TOKO_CUTOFF && (() => {
                   const stockBefore = voucherStockBefore(selectedDate, voucherToko);
@@ -2168,26 +2203,32 @@
                             <div className="toko-head">
                               <span className="toko-head-name"><Icon type="store" size={16}/> {t.name}</span>
                               <span className={"toko-stok-pill "+pillClass}>
-                                Stok {stokAwal} <span className="arrow">→</span> <span className="end">{stokAkhir}</span>
+                                {stokAkhir === stokAwal
+                                  ? <>Stok <span className="end">{stokAwal}</span></>
+                                  : <>Stok {stokAwal} <span className="arrow">→</span> <span className="end">{stokAkhir}</span></>}
                               </span>
                             </div>
                             <div className="toko-inputs">
-                              <div className="toko-input-group drop">
-                                <label>+ Drop hari ini</label>
+                              <div className={"toko-input-group drop"+(dDrop===0?" empty":"")}>
+                                <label>+ Drop</label>
                                 <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
                               </div>
-                              <div className="toko-input-group laku">
-                                <label>− Laku hari ini</label>
+                              <div className={"toko-input-group laku"+(dLaku===0?" empty":"")}>
+                                <label>− Laku</label>
                                 <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
                               </div>
                             </div>
-                            <div className="toko-footer">
-                              {overLaku
-                                ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
-                                : <span className="seg setoran" title={"komisi toko "+IDR(dLaku*V2K.komisi_toko)}>Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
-                              }
-                              <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
-                            </div>
+                            {(overLaku || dLaku > 0) && (
+                              <div className="toko-footer">
+                                {overLaku
+                                  ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
+                                  : <>
+                                      <span className="seg setoran" title={"komisi toko "+IDR(dLaku*V2K.komisi_toko)}>Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
+                                      <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
+                                    </>
+                                }
+                              </div>
+                            )}
                           </div>
                         );
                       })}
