@@ -1388,7 +1388,7 @@
       if(sortedDates.length===0){ showToast('Belum ada data untuk di-export'); return; }
       const prodHeaders = PRODUCTS.map(p=>p.name);
       const tokoHeaders = TOKO.flatMap(t => [t.name+' Drop', t.name+' Laku']);
-      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Hutang Dibayar','Sisa Kas']];
+      let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Bayar Hutang','Sisa Kas']];
       const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
       sortedDates.forEach(d => {
         const e = entries[d] || { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0 };
@@ -1405,7 +1405,7 @@
         const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
         const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
         const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
-        const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[HUTANG DIBAYAR] ':'')+(x.desc||(x.type==='cashin'?'Hutang Dibayar':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
+        const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[BAYAR HUTANG] ':'')+(x.desc||(x.type==='cashin'?'Bayar Hutang':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
         const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
         const totalPenjualan = (e.totalPenjualan||0) + v.penjualan;
         const totalGaji = (e.gaji||0) + v.gaji;
@@ -2061,7 +2061,7 @@
                     if (hasVoucher) titleParts.push('Voucher: laku ×'+v.laku+(v.drop>0?', drop '+v.drop:''));
                     titleParts.push('Penjualan '+IDR(totalPenj)+' · Gaji '+IDR(totalGaji));
                     if (exGross>0) titleParts.push('Pengeluaran '+IDR(exGross));
-                    if (cashGross>0) titleParts.push('Hutang dibayar '+IDR(cashGross));
+                    if (cashGross>0) titleParts.push('Bayar hutang '+IDR(cashGross));
                     const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
                     return (
                       <span className="date-hint" title={titleParts.join(' · ')+'\nInput baru akan ditambahkan ke data ini'}>
@@ -2098,7 +2098,7 @@
                 <div className="card">
                   <div className="add-pill-row">
                     <button className="add-pill" onClick={addExpense}><Icon type="trending-down" size={14}/> Pengeluaran</button>
-                    <button className="add-pill green" onClick={addCashIn}><Icon type="banknote" size={14}/> Hutang Dibayar</button>
+                    <button className="add-pill green" onClick={addCashIn}><Icon type="banknote" size={14}/> Bayar Hutang</button>
                   </div>
                   {expenses.length===0 && cashIns.length===0 && (
                     <div className="catatan-empty">Belum ada catatan.</div>
@@ -2117,7 +2117,7 @@
                   )}
                   {cashIns.length>0 && (
                     <div className="catatan-section">
-                      <div className="catatan-section-label"><Icon type="banknote" size={11}/> Hutang Dibayar</div>
+                      <div className="catatan-section-label"><Icon type="banknote" size={11}/> Bayar Hutang</div>
                       {cashIns.map((exp, i) => (
                         <div key={i} className="expense-row">
                           <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
@@ -2487,7 +2487,7 @@
                       {(expGross>0 || cashGross>0) && (
                         <div className="history-money">
                           {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>−{IDR(expGross)} keluar</span>}
-                          {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
+                          {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} hutang</span>}
                         </div>
                       )}
                       {isOpen && (
@@ -2496,7 +2496,7 @@
                             <div className="summary-row add"><span className="summary-label">Pemasukan</span><span className="summary-value">{IDR(totalPenjualanRow)}</span></div>
                             <div className="summary-row sub"><span className="summary-label">Gaji</span><span className="summary-value">−{IDR(totalGajiRow)}</span></div>
                             {expGross>0 && <div className="summary-row sub"><span className="summary-label">Pengeluaran</span><span className="summary-value">−{IDR(expGross)}</span></div>}
-                            {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Hutang Dibayar</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
+                            {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Bayar Hutang</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
                             <div className="summary-row total">
                               <span className="summary-label">{sisaLabel} Hari Ini</span>
                               <span className={"summary-value "+sisaSign}>{IDR(sisaKas)}</span>
@@ -2533,8 +2533,8 @@
                             {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)",fontWeight:600}}>−{IDR(x.amount)}</span></div>))}
                           </>}
                           {cashItems.length>0 && <>
-                            <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Hutang Dibayar</div>
-                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Hutang Dibayar'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
+                            <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Bayar Hutang</div>
+                            {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Bayar Hutang'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                           </>}
                           <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
                         </div>
