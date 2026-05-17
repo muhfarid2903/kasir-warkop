@@ -2450,13 +2450,11 @@
                       else if (isCurrent) { statusClass='pending'; statusText='Berjalan'; }
                       else { statusClass='future'; statusText='Belum'; }
                       const overflowLabel = overflowEntries.length>0 ? ' (+tgl '+p.overflowDays[0]+'–'+p.overflowDays[p.overflowDays.length-1]+' '+MO[p.prevMonth]+')' : '';
-                      // Hero: hitung countdown, progress & proyeksi (khusus periode berjalan)
+                      // Hero: hitung countdown & progress (khusus periode berjalan)
                       const periodLength = p.endDay - p.startDay + 1;
                       const daysToPayday = isCurrent ? Math.max(0, p.payday - currentDay) : 0;
                       const daysElapsed = isCurrent ? Math.max(1, Math.min(periodLength, currentDay - p.startDay + 1)) : periodLength;
                       const progressPct = isCurrent ? Math.min(100, Math.round((daysElapsed / periodLength) * 100)) : 100;
-                      const proyeksiGaji = (isCurrent && totalGaji > 0 && daysElapsed < periodLength)
-                        ? Math.round(totalGaji / daysElapsed * periodLength) : totalGaji;
                       const countdownText = daysToPayday === 0 ? 'Hari ini gajian!' : daysToPayday === 1 ? 'Besok gajian!' : daysToPayday + ' hari lagi gajian';
                       const countdownUrgent = daysToPayday <= 2;
 
@@ -2481,7 +2479,6 @@
                                 <div className="gajian-hero-progress-bar"><div className="gajian-hero-progress-fill" style={{width:progressPct+'%'}}/></div>
                                 <div className="gajian-hero-progress-meta">
                                   <span>{totalDays>0 ? totalDays+' hari kerja · '+progressPct+'% periode' : 'Belum ada catatan'}</span>
-                                  {proyeksiGaji > totalGaji && <span className="proj">Estimasi akhir <strong>{IDR(proyeksiGaji)}</strong></span>}
                                 </div>
                               </div>
                             </div>
