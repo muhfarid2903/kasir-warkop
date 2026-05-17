@@ -817,7 +817,7 @@
     .theme-toggle:active{transform:rotate(-12deg) scale(.95)}
 
     .kas-hero{
-      text-align:center;padding:56px 20px 32px;margin:0 0 28px;position:relative;
+      text-align:center;padding:32px 20px 22px;margin:0 0 22px;position:relative;
       animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both;
     }
     .kas-hero::before{
@@ -849,26 +849,11 @@
     .kas-hero-delta .pos{color:var(--green);font-weight:700}
     .kas-hero-delta .neg{color:var(--red);font-weight:700}
     .kas-hero-delta .delim{margin:0 12px;opacity:.4}
-    .kas-hero-breakdown{
-      display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:26px;
-    }
-    .kas-hero-chip{
-      font-size:11px;padding:4px 12px;border-radius:14px;
-      background:var(--bg3);color:var(--text3);
-      font-family:'DM Mono',monospace;font-weight:400;
-      border:1px solid var(--border);
-      display:inline-flex;align-items:center;gap:6px;
-    }
-    .kas-hero-chip strong{color:var(--text);font-weight:700}
-    .kas-hero-chip.in strong{color:var(--green)}
-    .kas-hero-chip.out strong{color:var(--accent)}
-    .kas-hero-chip.exp strong{color:var(--red)}
     @media(max-width:600px){
-      .kas-hero{padding:36px 12px 24px;margin-bottom:20px}
+      .kas-hero{padding:24px 12px 18px;margin-bottom:16px}
       .kas-hero-value{font-size:clamp(40px,11vw,60px);letter-spacing:-1.5px}
-      .kas-hero-label{font-size:10px;letter-spacing:.18em;margin-bottom:14px}
-      .kas-hero-delta{font-size:12px;margin-top:14px}
-      .kas-hero-chip{font-size:10px;padding:3px 10px}
+      .kas-hero-label{font-size:10px;letter-spacing:.18em;margin-bottom:10px}
+      .kas-hero-delta{font-size:12px;margin-top:12px}
     }
 
     [data-theme="light"] .kas-hero-value{
@@ -876,7 +861,6 @@
       -webkit-background-clip:text;background-clip:text;
       -webkit-text-fill-color:transparent;color:transparent;
     }
-    [data-theme="light"] .kas-hero-chip{background:rgba(237,223,192,.7)}
 
     /* === Hari Ini: redesign ringkas — date inline, summary footer, catatan merged === */
     .date-inline{
@@ -885,6 +869,7 @@
     .date-inline .date-input{
       padding:9px 14px;font-size:13px;min-width:170px;flex:0 0 auto;border-radius:11px;
     }
+    .date-inline .date-display-btn{flex:0 0 auto;min-width:170px;padding:9px 14px;font-size:13px;border-radius:11px}
     .date-hint{
       font-size:12.5px;color:var(--text3);display:inline-flex;align-items:center;gap:7px;
       flex:1;min-width:0;line-height:1.45;
@@ -923,6 +908,7 @@
     @media(max-width:600px){
       .date-inline{gap:10px;margin-bottom:14px}
       .date-inline .date-input{padding:8px 12px;font-size:12.5px;min-width:0;width:100%}
+      .date-inline .date-display-btn{padding:10px 12px;font-size:13px;min-width:0;width:100%}
       .date-hint{font-size:11.5px;flex-basis:100%}
       .inline-summary{font-size:11.5px;gap:4px 12px;margin-top:14px;padding-top:14px}
       .inline-summary .seg.profit strong{font-size:14px}
@@ -1585,6 +1571,7 @@
       const [voucherSaving, setVoucherSaving] = useState(false);
       const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
       const voucherDateRef = useRef(null);
+      const hariIniDateRef = useRef(null);
       const [menuOpen, setMenuOpen] = useState(false);
       const [sidebarOpen, setSidebarOpen] = useState(() => {
         if (typeof window === 'undefined') return true;
@@ -2036,11 +2023,6 @@
                       ? <>Hari ini <span className={kasSummary.todayKas>=0?'pos':'neg'}>{kasSummary.todayKas>=0?'+':''}{IDR(kasSummary.todayKas)}</span></>
                       : <span style={{color:"var(--text3)",fontStyle:"italic"}}>Hari ini belum input</span>}
                   </div>
-                  <div className="kas-hero-breakdown">
-                    <span className="kas-hero-chip">Awal {ML[today.getMonth()]} <strong>{IDR(kasSummary.saldoAwalBulan)}</strong></span>
-                    <span className="kas-hero-chip in" title="Warkop + WiFi (semua penjualan bulan ini)">+ Masuk <strong>{IDR(kasSummary.totalPenjualan)}</strong></span>
-                    <span className="kas-hero-chip out" title="Gaji + Pengeluaran bulan ini">− Keluar <strong>{IDR(kasSummary.totalGaji + kasSummary.totalPengeluaran)}</strong></span>
-                  </div>
                 </div>
 
                 {paydayInfo && (
@@ -2057,7 +2039,12 @@
                 )}
 
                 <div className="date-inline">
-                  <input type="date" className="date-input" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+                  <button type="button" className="date-display-btn" onClick={() => { const i = hariIniDateRef.current; if (!i) return; if (typeof i.showPicker === 'function') i.showPicker(); else i.focus(); }}>
+                    <Icon type="calendar" size={15}/>
+                    <span>{(() => { const dt = new Date(selectedDate+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' '+dt.getFullYear(); })()}</span>
+                    <span className="chev">▾</span>
+                  </button>
+                  <input ref={hariIniDateRef} type="date" className="date-input-hidden" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                   {(() => {
                     const v = voucherForDate(selectedDate, voucherToko);
                     const hasVoucher = v.laku>0 || v.drop>0;
@@ -2103,8 +2090,6 @@
                     <div className="inline-summary">
                       <span className="seg">Penjualan <strong>{IDR(inputTotals.totalSales)}</strong></span>
                       <span className="seg">Gaji <strong>{IDR(inputTotals.totalGaji)}</strong></span>
-                      {inputTotals.totalExpense>0 && <span className="seg">Pengeluaran <strong>{IDR(inputTotals.totalExpense)}</strong></span>}
-                      {inputTotals.totalCashIn>0 && <span className="seg">Hutang dibayar <strong style={{color:"var(--green)"}}>{IDR(inputTotals.totalCashIn)}</strong></span>}
                       <span className={"seg profit"+(inputTotals.sisaKas<0?" neg":"")}>{inputTotals.sisaKas>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.sisaKas)}</strong></span>
                     </div>
                   )}
@@ -2116,7 +2101,7 @@
                     <button className="add-pill green" onClick={addCashIn}><Icon type="banknote" size={14}/> Hutang Dibayar</button>
                   </div>
                   {expenses.length===0 && cashIns.length===0 && (
-                    <div className="catatan-empty">Belum ada catatan. Tambah pengeluaran atau hutang yang dibayar pelanggan.</div>
+                    <div className="catatan-empty">Belum ada catatan.</div>
                   )}
                   {expenses.length>0 && (
                     <div className="catatan-section">
