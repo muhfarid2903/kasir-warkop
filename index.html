@@ -514,26 +514,7 @@
     .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
     .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
     .gajian-stat-value{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;margin-top:4px}
-    /* Jobs treatment: stats jadi 1 baris inline, kas akhir highlight */
-    .gajian-stats-line{
-      display:flex;flex-wrap:wrap;gap:4px 20px;
-      font-size:12.5px;color:var(--text3);font-family:'DM Mono',monospace;
-      padding:14px 0 12px;border-top:1px dashed var(--border2);
-    }
-    .gajian-stats-line .seg{display:inline-flex;align-items:baseline;gap:6px}
-    .gajian-stats-line .seg strong{color:var(--text);font-weight:600}
-    .gajian-stats-line .seg.exp strong{color:var(--red)}
-    .gajian-kas-akhir{
-      display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;
-      padding:14px 18px;margin:2px 0 18px;
-      background:var(--green-bg);border:1px solid var(--green-border);border-radius:12px;
-      font-size:13px;color:var(--text2);cursor:default;
-    }
-    .gajian-kas-akhir.neg{background:var(--red-bg);border-color:var(--red-border)}
-    .gajian-kas-akhir-label{font-weight:600;letter-spacing:.01em}
-    .gajian-kas-akhir-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--green)}
-    .gajian-kas-akhir.neg .gajian-kas-akhir-value{color:var(--red)}
-    /* Saldo Awal: card besar → inline bar di top */
+    /* Saldo Awal: inline bar di Riwayat */
     .saldo-awal-bar{
       display:flex;align-items:center;gap:10px;flex-wrap:wrap;
       margin:-8px 0 22px;padding:11px 16px;
@@ -543,33 +524,15 @@
     .saldo-awal-bar > .lbl{font-weight:600;color:var(--text2);display:inline-flex;align-items:center;gap:6px}
     .saldo-awal-bar > .val{color:var(--accent);font-family:'DM Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.2px}
     .saldo-awal-bar > .info{color:var(--text3);font-size:11.5px;flex:1;min-width:0}
-    .gajian-day-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .gajian-day-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
-    .gajian-day-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
     .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
     .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:6px;letter-spacing:.02em}
-    .gajian-day-amount{font-family:'DM Mono',monospace;font-weight:500;color:var(--text);font-size:14px;white-space:nowrap;padding-top:1px}
+    .gajian-day-amount{font-family:'DM Mono',monospace;font-weight:500;color:var(--text);font-size:14px;white-space:nowrap}
     .gajian-empty-state{
       text-align:center;padding:28px 12px;
       color:var(--text3);font-size:13px;font-style:italic;
     }
-    .gajian-period-note{
-      text-align:center;padding:14px 0 2px;margin-top:2px;
-      font-size:11px;color:var(--text3);
-      font-family:'DM Mono',monospace;
-      letter-spacing:.04em;
-    }
-    .gajian-day-chips{display:flex;gap:4px;flex-wrap:wrap}
-    .gajian-day-chip{
-      display:inline-flex;align-items:center;
-      font-size:10.5px;padding:2px 9px;border-radius:14px;
-      background:var(--bg3);color:var(--text2);
-      font-family:'DM Mono',monospace;font-weight:400;
-      border:1px solid var(--border);line-height:1.6;white-space:nowrap;
-    }
-    .gajian-day-chip.voucher{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
-    .gajian-day-chip.drop{background:var(--blue-bg);color:var(--blue);border-color:rgba(148,187,207,.32)}
-    .gajian-day-chip.exp{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
     .gajian-status-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.03em;margin-top:10px}
 
     /* === Gajian Hero: motivational, khusus periode berjalan === */
@@ -763,9 +726,6 @@
     }
     @media(max-width:600px){
       .gajian-total-value{font-size:28px}
-      .gajian-stats-line{font-size:11.5px;gap:3px 14px;padding:12px 0 10px}
-      .gajian-kas-akhir{padding:12px 14px;font-size:12px}
-      .gajian-kas-akhir-value{font-size:18px}
       .saldo-awal-bar{padding:10px 13px;font-size:11.5px}
       .saldo-awal-bar > .val{font-size:14px}
     }
@@ -1010,7 +970,6 @@
     [data-theme="light"] .form-input,
     [data-theme="light"] .date-input{background:rgba(237,223,192,.8)}
     [data-theme="light"] .pill{background:rgba(237,223,192,.85)}
-    [data-theme="light"] .gajian-day-chip{background:rgba(237,223,192,.85)}
     [data-theme="light"] td{border-bottom-color:var(--border)}
     [data-theme="light"] tr:hover td{background:rgba(61,40,23,.04)}
     [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:hue-rotate(15deg) saturate(.7) brightness(.6);opacity:.6}
@@ -1119,7 +1078,6 @@
       .gajian-day-row{padding:9px 0;font-size:12px}
       .gajian-day-date{font-size:12px}
       .gajian-day-amount{font-size:13px}
-      .gajian-day-chip{font-size:10px;padding:2px 8px}
       .gajian-card{padding:18px}
 
       /* Riwayat history pills */
@@ -1414,74 +1372,6 @@
       const a = document.createElement('a');
       a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
-    }
-
-    function exportGajianCSV(entries, periodSaldoMap, initialSaldo, voucherToko) {
-      const today = new Date();
-      const currentMonth = today.getMonth(), currentYear = today.getFullYear();
-      const monthsToShow = [
-        currentMonth===0 ? {year:currentYear-1,month:11} : {year:currentYear,month:currentMonth-1},
-        {year:currentYear, month:currentMonth}
-      ];
-      let rows = [['Periode','Tanggal','Hari Kerja','Penjualan','Gaji','Pengeluaran','Saldo Awal','Kas Periode','Sisa Kas (+Saldo)','Status']];
-      monthsToShow.forEach(({year,month}) => {
-        const periods = getPayPeriods(year, month);
-        const isCurrentMonth = (year===currentYear && month===currentMonth);
-        const currentDay = today.getDate();
-        periods.forEach((p,pi) => {
-          const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
-          const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
-          const periodEntries = [...overflowEntries,...mainEntries];
-          const eGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
-          const ePenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-          const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-          const vMain = voucherInRange(p.start, p.end, voucherToko);
-          const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0 };
-          const totalGaji = eGaji + vMain.gaji + vOver.gaji;
-          const totalPenjualan = ePenjualan + vMain.penjualan + vOver.penjualan;
-          const periodKey = year+'-'+month+'-'+pi;
-          const saldoAwal = periodSaldoMap[periodKey] || 0;
-          const kasPeriode = totalPenjualan - totalGaji - totalPengeluaran;
-          const sisaKas = kasPeriode + saldoAwal;
-          const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
-          const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
-          const status = (isPast && !isCurrent) ? 'Selesai' : isCurrent ? 'Berjalan' : 'Belum';
-          // Hari kerja: gabungkan tanggal yang punya entry atau voucher activity
-          const dateSet = new Set(periodEntries.map(e=>e.date));
-          Object.keys(voucherToko||{}).forEach(d => {
-            if ((d>=p.start && d<=p.end) || (p.overflowStart && d>=p.overflowStart && d<=p.overflowEnd)) {
-              const v = voucherForDate(d, voucherToko); if (v.laku>0||v.drop>0) dateSet.add(d);
-            }
-          });
-          rows.push([ML[month]+' '+year+' - '+p.label, 'Tgl '+p.startDay+'-'+p.endDay, dateSet.size, totalPenjualan, totalGaji, totalPengeluaran, saldoAwal, kasPeriode, sisaKas, status]);
-          // Detail per hari
-          const renderDay = (d, monLabel, prevYearArg, prevMonthArg, isOverflow) => {
-            const dd = String(d).padStart(2,'0');
-            const yArg = isOverflow ? prevYearArg : year;
-            const mArg = isOverflow ? prevMonthArg : month;
-            const dateStr = yArg+'-'+String(mArg+1).padStart(2,'0')+'-'+dd;
-            const entry = entries[dateStr]; const v = voucherForDate(dateStr, voucherToko); const dt = new Date(dateStr+'T00:00:00');
-            if (!entry && !(v.laku>0||v.drop>0)) return;
-            const itemArr = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0).map(pr=>pr.name+' x'+entry.quantities[pr.id]) : [];
-            if (v.laku>0) itemArr.push('Voucher x'+v.laku+' (laku)');
-            if (v.drop>0) itemArr.push('Drop '+v.drop);
-            const items = itemArr.join('; ');
-            const dPenjualan = (entry?.totalPenjualan||0) + v.penjualan;
-            const dGaji = (entry?.gaji||0) + v.gaji;
-            const dPengeluaran = entry?.totalPengeluaran||0;
-            const tag = isOverflow ? ' [limpahan]' : '';
-            rows.push(['  '+d+' '+monLabel+' ('+DAYS[dt.getDay()]+')'+tag, items, '', dPenjualan, dGaji, dPengeluaran, '','','','']);
-          };
-          if (p.overflowDays.length>0) {
-            p.overflowDays.forEach(d => renderDay(d, MO[p.prevMonth], p.prevYear, p.prevMonth, true));
-          }
-          Array.from({length:p.endDay-p.startDay+1},(_,i)=>p.startDay+i).forEach(d => renderDay(d, MO[month], null, null, false));
-          rows.push([]); // empty row separator
-        });
-      });
-      const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
-      downloadCSV('Rekap_Gajian_Warkopsaja_'+todayISO()+'.csv', csv);
-      showToast('Rekap Gajian berhasil di-export!');
     }
 
     function exportRiwayatCSV(entries, voucherToko) {
@@ -1817,42 +1707,6 @@
           showToast('Saldo awal disimpan: '+IDR(v));
         } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
       }
-
-      // Compute saldo awal for each period by chaining from initialSaldo
-      const periodSaldoMap = useMemo(() => {
-        // Generate all periods from earliest entry to current month
-        const entryDates = Object.keys(entries);
-        const voucherDates = Object.keys(voucherToko);
-        const allDates = [...entryDates, ...voucherDates].sort();
-        if (allDates.length === 0) return {};
-        const earliest = new Date(allDates[0]+'T00:00:00');
-        const latest = new Date();
-        const periods = [];
-        let y = earliest.getFullYear(), m = earliest.getMonth();
-        while (y < latest.getFullYear() || (y === latest.getFullYear() && m <= latest.getMonth())) {
-          const pp = getPayPeriods(y, m);
-          pp.forEach((p,pi) => periods.push({ ...p, year:y, month:m, key:y+'-'+m+'-'+pi }));
-          m++; if(m>11){m=0;y++;}
-        }
-        // Chain saldo
-        const map = {};
-        let runSaldo = initialSaldo;
-        periods.forEach(p => {
-          map[p.key] = runSaldo;
-          const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
-          const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
-          const all = [...overflowEntries, ...mainEntries];
-          const penjualanE = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-          const gajiE = all.reduce((s,e)=>s+(e.gaji||0),0);
-          const pengeluaran = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-          const vMain = voucherInRange(p.start, p.end, voucherToko);
-          const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0 };
-          const penjualan = penjualanE + vMain.penjualan + vOver.penjualan;
-          const gaji = gajiE + vMain.gaji + vOver.gaji;
-          runSaldo = runSaldo + penjualan - gaji - pengeluaran;
-        });
-        return map;
-      }, [entries, voucherToko, initialSaldo]);
 
       const existingEntry = entries[selectedDate] || null;
       const inputTotals = useMemo(() => {
@@ -2386,11 +2240,7 @@
               </>}
 
               {page==="gajian" && <>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div><h1 className="page-title">Rekap Gajian</h1><p className="page-sub" style={{marginBottom:0}}>Gaji per periode — tanggal 1–14 dan 15–28 tiap bulan</p></div>
-                  <button className="btn-export" onClick={()=>exportGajianCSV(entries, periodSaldoMap, initialSaldo, voucherToko)}><Icon type="download" size={15}/> Export CSV</button>
-                </div>
-                <div style={{marginBottom:28}}></div>
+                <div style={{marginBottom:8}}></div>
 
                 {(()=>{
                   const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); const currentDay = today.getDate();
@@ -2407,16 +2257,9 @@
                       const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
                       const periodEntries = [...overflowEntries, ...mainEntries];
                       const eGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
-                      const ePenjualan = periodEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-                      const totalPengeluaran = periodEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
                       const vMain = voucherInRange(p.start, p.end, voucherToko);
                       const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0, laku:0, drop:0 };
                       const totalGaji = eGaji + vMain.gaji + vOver.gaji;
-                      const totalPenjualan = ePenjualan + vMain.penjualan + vOver.penjualan;
-                      const periodKey = year+'-'+month+'-'+pi;
-                      const saldoAwal = periodSaldoMap[periodKey] || 0;
-                      const totalSisaKas = totalPenjualan - totalGaji - totalPengeluaran;
-                      const sisaKasDenganSaldo = totalSisaKas + saldoAwal;
                       // Hitung hari kerja: gabungan tanggal dari entries + voucher_toko (yang punya laku/drop)
                       const periodDateSet = new Set(periodEntries.map(e=>e.date));
                       Object.keys(voucherToko||{}).forEach(d => {
@@ -2477,15 +2320,6 @@
                               </div>
                             </div>
                           )}
-                          <div className="gajian-stats-line">
-                            <span className="seg">+ Pemasukan <strong>{IDR(totalPenjualan)}</strong></span>
-                            <span className="seg exp">− Pengeluaran <strong>{IDR(totalPengeluaran)}</strong></span>
-                            <span className="seg">Awal periode <strong>{IDR(saldoAwal)}</strong></span>
-                          </div>
-                          <div className={"gajian-kas-akhir"+(sisaKasDenganSaldo<0?" neg":"")} title={"Bersih periode (tanpa saldo awal): "+IDR(totalSisaKas)}>
-                            <span className="gajian-kas-akhir-label">Kas di akhir periode</span>
-                            <span className="gajian-kas-akhir-value"><AnimatedIDR value={sisaKasDenganSaldo}/></span>
-                          </div>
 
                           {overflowEntries.length>0 && (
                             <div style={{borderBottom:"1px dashed var(--border)",marginBottom:4,paddingBottom:4}}>
@@ -2496,20 +2330,10 @@
                                 const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
                                 const v = voucherForDate(dateStr, voucherToko);
                                 if (!(entry || v.laku>0 || v.drop>0)) return null;
-                                const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
-                                const dayExp = entry?.totalPengeluaran||0;
                                 const totalDayGaji = (entry?.gaji||0) + v.gaji;
                                 return (
                                   <div key={dateStr} className="gajian-day-row" style={{background:"rgba(251,146,60,.04)"}}>
-                                    <div className="gajian-day-left">
-                                      <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
-                                      <div className="gajian-day-chips">
-                                        {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip" style={{gap:5}}><ProductIcon type={pr.id} size={11}/>{pr.name} ×{entry.quantities[pr.id]}</span>)}
-                                        {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
-                                        {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
-                                        {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
-                                      </div>
-                                    </div>
+                                    <div className="gajian-day-date">{d} {MO[p.prevMonth]} <span className="day-name">{dayName}</span></div>
                                     <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
                                   </div>
                                 );
@@ -2525,29 +2349,16 @@
                               const entry = entries[dateStr]; const dt = new Date(dateStr+'T00:00:00'); const dayName = DAYS[dt.getDay()];
                               const v = voucherForDate(dateStr, voucherToko);
                               if (!(entry || v.laku>0 || v.drop>0)) return null;
-                              const soldProducts = entry ? PRODUCTS.filter(pr=>(entry.quantities?.[pr.id]||0)>0) : [];
-                              const dayExp = entry?.totalPengeluaran||0;
                               const totalDayGaji = (entry?.gaji||0) + v.gaji;
                               return (
                                 <div key={dateStr} className="gajian-day-row">
-                                  <div className="gajian-day-left">
-                                    <div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div>
-                                    <div className="gajian-day-chips">
-                                      {soldProducts.map(pr => <span key={pr.id} className="gajian-day-chip" style={{gap:5}}><ProductIcon type={pr.id} size={11}/>{pr.name} ×{entry.quantities[pr.id]}</span>)}
-                                      {v.laku>0 && <span className="gajian-day-chip voucher"><Icon type="store" size={11}/> Voucher Toko ×{v.laku}</span>}
-                                      {v.drop>0 && <span className="gajian-day-chip drop"><Icon type="package" size={11}/> Drop {v.drop}</span>}
-                                      {dayExp>0 && <span className="gajian-day-chip exp">−{IDR(dayExp)}</span>}
-                                    </div>
-                                  </div>
+                                  <div className="gajian-day-date">{d} {MO[month]} <span className="day-name">{dayName}</span></div>
                                   <div className="gajian-day-amount">{IDR(totalDayGaji)}</div>
                                 </div>
                               );
                             }).filter(Boolean);
                             if (rows.length === 0) return <div className="gajian-empty-state">Belum ada input di periode ini</div>;
-                            return <>
-                              {rows}
-                              {rows.length < days.length && <div className="gajian-period-note">{rows.length} dari {days.length} hari tercatat</div>}
-                            </>;
+                            return rows;
                           })()}
                         </div>
                       );
