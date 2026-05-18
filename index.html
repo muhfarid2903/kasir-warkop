@@ -6,7 +6,9 @@
   <title>Warkopsaja — Input Harian</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f4d4a8'/><stop offset='1' stop-color='%23c9975f'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='%231a0e05' font-size='16' font-weight='bold'>☕</text></svg>"/>
   <meta name="description" content="Input & rekap kas harian warung kopi"/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -42,7 +44,7 @@
     }
     body{
       background:var(--bg);color:var(--text);
-      font-family:'Plus Jakarta Sans',-apple-system,sans-serif;
+      font-family:'Inter',-apple-system,sans-serif;
       font-variant-numeric:tabular-nums;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
       background-image:
@@ -73,7 +75,7 @@
       font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     }
-    .header-page-sub{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.02em;margin-top:1px}
+    .header-page-sub{font-size:11.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.02em;margin-top:1px}
     .header::after{
       content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
       background:linear-gradient(90deg,transparent,var(--accent-border) 25%,var(--accent-border) 75%,transparent);
@@ -97,7 +99,7 @@
       background:linear-gradient(180deg,var(--text),var(--accent3));
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
-    .header-sub{font-size:12px;color:var(--text3);margin-top:1px;font-family:'DM Mono',monospace;letter-spacing:.02em}
+    .header-sub{font-size:12px;color:var(--text3);margin-top:1px;font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
     .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 
     .sync-badge{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid transparent}
@@ -148,7 +150,7 @@
       background:linear-gradient(180deg,var(--text),var(--accent3));
       -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     }
-    .sidebar-brand-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.02em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sidebar-brand-sub{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.02em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sidebar-close{
       width:32px;height:32px;border-radius:9px;
       border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--text2);
@@ -198,7 +200,7 @@
     }
     .sidebar-user-email{
       flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text3);letter-spacing:.01em;
+      font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text3);letter-spacing:.01em;
     }
 
     /* Backdrop for mobile overlay */
@@ -241,7 +243,7 @@
     .stat-card.kas{border-color:var(--green-border)}
     .stat-card.kas::before{background:linear-gradient(90deg,transparent,var(--green) 50%,transparent);height:1.5px}
     .stat-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-    .stat-value{font-size:26px;font-weight:500;font-family:'DM Mono',monospace}
+    .stat-value{font-size:26px;font-weight:500;font-family:'JetBrains Mono',monospace}
     .stat-value.green{color:var(--accent)}.stat-value.blue{color:var(--blue)}
     .stat-value.orange{color:var(--orange)}.stat-value.red{color:var(--red)}
 
@@ -291,7 +293,7 @@
     }
     .product-info{flex:1;min-width:0}
     .product-name{font-size:14px;font-weight:600;letter-spacing:-.2px}
-    .product-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px}
+    .product-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px}
     .qty-control{
       display:flex;align-items:center;
       border:1px solid var(--border);border-radius:13px;overflow:hidden;
@@ -310,7 +312,7 @@
     .qty-btn:active{color:var(--accent);transform:scale(.88)}
     .qty-display{
       width:50px;height:42px;text-align:center;
-      font-family:'DM Mono',monospace;font-size:15px;font-weight:500;
+      font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
       color:var(--accent);border:none;background:var(--bg2);
       border-left:1px solid var(--border);border-right:1px solid var(--border);
       -moz-appearance:textfield;appearance:textfield;outline:none;
@@ -327,7 +329,7 @@
     .expense-input::placeholder{color:var(--text3)}
     .expense-amount{
       width:130px;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
-      border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;
+      border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;
       text-align:right;outline:none;transition:all .2s;flex-shrink:0;
     }
     .expense-amount:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
@@ -371,7 +373,7 @@
 
     .date-row{display:flex;align-items:center;gap:10px}
     .date-input{
-      font-family:'DM Mono',monospace;font-size:14px;
+      font-family:'JetBrains Mono',monospace;font-size:14px;
       border:1px solid var(--border);background:var(--bg3);color:var(--text);
       padding:11px 14px;border-radius:10px;flex:1;cursor:pointer;outline:none;transition:all .2s;
     }
@@ -390,12 +392,12 @@
     .summary-item.outbox{background:var(--red-bg);border:1px solid var(--red-border)}
     .summary-item.outbox .summary-value{color:var(--red)}
     .summary-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-    .summary-value{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--text)}
+    .summary-value{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:var(--text)}
 
     .day-total{
       margin-top:14px;padding:14px 16px;background:var(--bg3);
       border-radius:10px;border:1px solid var(--border);
-      font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);line-height:1.9;
+      font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);line-height:1.9;
     }
     .day-total strong{color:var(--accent);font-weight:700}
 
@@ -409,8 +411,8 @@
     .payday-banner.upcoming{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent)}
     .payday-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative}
     .payday-main .label{font-size:14px;font-weight:700}
-    .payday-main .sub{font-size:12px;font-weight:500;color:var(--text2);font-family:'DM Mono',monospace;letter-spacing:.01em}
-    .payday-amount{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;white-space:nowrap;position:relative}
+    .payday-main .sub{font-size:12px;font-weight:500;color:var(--text2);font-family:'JetBrains Mono',monospace;letter-spacing:.01em}
+    .payday-amount{font-size:20px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;position:relative}
     .payday-banner.today .payday-amount{color:var(--green)}
     .payday-banner.upcoming .payday-amount{color:var(--accent)}
     @media(max-width:600px){
@@ -420,7 +422,7 @@
       .payday-amount{font-size:17px}
     }
 
-    .sync-status{text-align:center;font-size:12px;font-family:'DM Mono',monospace;padding:10px;margin-top:10px;border-radius:10px}
+    .sync-status{text-align:center;font-size:12px;font-family:'JetBrains Mono',monospace;padding:10px;margin-top:10px;border-radius:10px}
     .sync-status.syncing{color:var(--accent);background:var(--accent-bg)}
     .sync-status.success{color:var(--green);background:var(--green-bg)}
     .sync-status.error{color:var(--red);background:var(--red-bg)}
@@ -442,12 +444,12 @@
     .history-item:hover{border-color:var(--accent-border);transform:translateY(-1px);box-shadow:var(--shadow-glow)}
     .history-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
     .history-date{font-size:13px;font-weight:600;padding-top:2px}
-    .history-gaji{font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:var(--text2);letter-spacing:-.2px}
+    .history-gaji{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:var(--text2);letter-spacing:-.2px}
     .history-gaji.pos{color:var(--green)}
     .history-gaji.neg{color:var(--red)}
     .history-pills{display:flex;gap:6px;flex-wrap:wrap}
     .history-money{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-    .riwayat-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin:0 0 12px;padding-left:4px;letter-spacing:.02em}
+    .riwayat-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin:0 0 12px;padding-left:4px;letter-spacing:.02em}
     .riwayat-search-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
     .btn-export-icon{
       flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
@@ -458,7 +460,7 @@
     .btn-export-icon:hover{background:rgba(138,165,119,.18);transform:translateY(-1px)}
     .pill{
       font-size:11px;padding:4px 12px;border-radius:20px;
-      background:var(--bg3);color:var(--text2);font-family:'DM Mono',monospace;
+      background:var(--bg3);color:var(--text2);font-family:'JetBrains Mono',monospace;
       font-weight:400;border:1px solid var(--border);
     }
     .history-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);animation:fadeUp .25s ease}
@@ -468,7 +470,7 @@
     }
     .summary-row{
       display:flex;justify-content:space-between;align-items:center;gap:10px;
-      padding:5px 0;font-size:13px;font-family:'DM Mono',monospace;color:var(--text2);
+      padding:5px 0;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text2);
     }
     .summary-row .summary-value{font-weight:600;white-space:nowrap}
     .summary-row.add .summary-value{color:var(--text)}
@@ -488,7 +490,7 @@
     }
     .detail-section-label.red{color:var(--red)}
     .detail-section-label.green{color:var(--green)}
-    .detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:'DM Mono',monospace}
+    .detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:'JetBrains Mono',monospace}
     .detail-row.total{font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
     .detail-row .detail-item-name{color:var(--text2)}
     .detail-row .detail-item-value{color:var(--text);font-weight:600}
@@ -510,15 +512,15 @@
     .gajian-card.active-period::before{background:linear-gradient(90deg,transparent,var(--accent),transparent)}
     .gajian-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
     .gajian-period-label{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
-    .gajian-period-dates{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px}
+    .gajian-period-dates{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px}
     .gajian-total-box{text-align:right}
     .gajian-total-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;font-weight:700}
-    .gajian-total-value{font-family:'DM Mono',monospace;font-size:34px;font-weight:500;color:var(--accent);line-height:1.05;margin-top:2px;letter-spacing:-.5px}
+    .gajian-total-value{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:var(--accent);line-height:1.05;margin-top:2px;letter-spacing:-.5px}
     .gajian-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
     .gajian-stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
     .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
     .gajian-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
-    .gajian-stat-value{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;margin-top:4px}
+    .gajian-stat-value{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;margin-top:4px}
     /* Saldo Awal: inline bar di Riwayat */
     .saldo-awal-bar{
       display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -527,13 +529,13 @@
       font-size:12.5px;color:var(--text2);
     }
     .saldo-awal-bar > .lbl{font-weight:600;color:var(--text2);display:inline-flex;align-items:center;gap:6px}
-    .saldo-awal-bar > .val{color:var(--accent);font-family:'DM Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.2px}
+    .saldo-awal-bar > .val{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.2px}
     .saldo-awal-bar > .info{color:var(--text3);font-size:11.5px;flex:1;min-width:0}
     .gajian-day-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
     .gajian-day-row:last-child{border-bottom:none}
     .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
-    .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:6px;letter-spacing:.02em}
-    .gajian-day-amount{font-family:'DM Mono',monospace;font-weight:500;color:var(--text);font-size:14px;white-space:nowrap}
+    .gajian-day-date .day-name{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:6px;letter-spacing:.02em}
+    .gajian-day-amount{font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);font-size:14px;white-space:nowrap}
     .gajian-empty-state{
       text-align:center;padding:28px 12px;
       color:var(--text3);font-size:13px;font-style:italic;
@@ -569,7 +571,7 @@
       color:var(--accent);text-transform:uppercase;margin-bottom:2px;
     }
     .gajian-hero-amount-value{
-      font-family:'DM Mono',monospace;font-size:48px;font-weight:500;
+      font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:500;
       color:var(--accent);line-height:1.05;letter-spacing:-1px;
     }
     .gajian-hero-progress{position:relative}
@@ -583,7 +585,7 @@
     }
     .gajian-hero-progress-meta{
       display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;
-      margin-top:8px;font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;
+      margin-top:8px;font-size:11.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;
     }
     .gajian-hero-progress-meta strong{color:var(--text);font-weight:600}
     .gajian-hero-progress-meta .proj{color:var(--accent)}
@@ -634,7 +636,7 @@
       display:inline-flex;align-items:center;gap:8px;
     }
     .toko-stok-pill{
-      font-family:'DM Mono',monospace;font-size:12.5px;
+      font-family:'JetBrains Mono',monospace;font-size:12.5px;
       padding:5px 13px;border-radius:99px;
       background:var(--bg3);color:var(--text2);border:1px solid var(--border);
       display:inline-flex;align-items:center;gap:4px;
@@ -664,7 +666,7 @@
     .toko-input-group.laku label{color:var(--green)}
     .toko-input-group input{
       background:transparent;border:none;outline:none;padding:0;
-      font-family:'DM Mono',monospace;font-size:22px;font-weight:600;color:var(--text);
+      font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:var(--text);
       width:100%;letter-spacing:-.5px;transition:color .15s;
     }
     .toko-input-group input::placeholder{color:var(--text3);opacity:.4}
@@ -673,13 +675,13 @@
     .toko-footer{
       display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 14px;
       margin-top:14px;padding-top:13px;border-top:1px dashed var(--border2);
-      font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;
+      font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;
     }
     .toko-footer .seg{display:inline-flex;align-items:baseline;gap:5px}
     .toko-footer .seg strong{color:var(--text);font-weight:600}
     .toko-footer .seg.gaji strong{color:var(--accent)}
     .toko-footer .seg.setoran strong{color:var(--green)}
-    .toko-footer .error{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px;font-family:'Plus Jakarta Sans',sans-serif}
+    .toko-footer .error{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif}
     /* === Login screen: warkop hero === */
     .login-hero{text-align:center;margin-bottom:24px;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both}
     .login-hero-logo{
@@ -704,7 +706,7 @@
     }
     .login-hero-tag{
       margin-top:8px;font-size:12.5px;color:var(--text3);
-      font-family:'DM Mono',monospace;letter-spacing:.02em;
+      font-family:'JetBrains Mono',monospace;letter-spacing:.02em;
     }
     [data-theme="light"] .login-hero-title{
       background:linear-gradient(180deg,var(--text),var(--accent-deep));
@@ -731,13 +733,13 @@
     .user-menu-divider{height:1px;background:var(--border);margin:4px 8px}
     .user-menu-email{
       font-size:10.5px;color:var(--text3);padding:8px 12px 4px;
-      font-family:'DM Mono',monospace;letter-spacing:.01em;
+      font-family:'JetBrains Mono',monospace;letter-spacing:.01em;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
     }
 
     .voucher-day-summary{
       display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;
-      margin:0 4px 14px;font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;
+      margin:0 4px 14px;font-size:13px;color:var(--text3);font-family:'JetBrains Mono',monospace;
     }
     .voucher-day-summary .seg{display:inline-flex;align-items:baseline;gap:5px}
     .voucher-day-summary .seg strong{color:var(--text);font-weight:600}
@@ -827,10 +829,10 @@
     .kas-hero-label{
       font-size:11px;font-weight:700;color:var(--text3);
       letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px;
-      font-family:'Plus Jakarta Sans',sans-serif;
+      font-family:'Inter',sans-serif;
     }
     .kas-hero-value{
-      font-family:'DM Mono',monospace;
+      font-family:'JetBrains Mono',monospace;
       font-size:clamp(48px,8.5vw,84px);
       font-weight:500;letter-spacing:-2px;line-height:.95;
       background:linear-gradient(180deg,var(--text) 35%,var(--accent) 100%);
@@ -844,7 +846,7 @@
     }
     .kas-hero-delta{
       margin-top:20px;font-size:13px;color:var(--text3);
-      font-family:'DM Mono',monospace;
+      font-family:'JetBrains Mono',monospace;
     }
     .kas-hero-delta .pos{color:var(--green);font-weight:700}
     .kas-hero-delta .neg{color:var(--red);font-weight:700}
@@ -878,7 +880,7 @@
     .inline-summary{
       display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;
       margin-top:18px;padding-top:16px;border-top:1px dashed var(--border2);
-      font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;
+      font-size:13px;color:var(--text3);font-family:'JetBrains Mono',monospace;
     }
     .inline-summary .seg{display:inline-flex;align-items:baseline;gap:6px}
     .inline-summary .seg strong{color:var(--text);font-weight:600}
@@ -1011,7 +1013,7 @@
       cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
     }
     .search-clear:hover{background:var(--bg4);color:var(--text)}
-    .search-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:14px;padding-left:4px}
+    .search-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:14px;padding-left:4px}
 
     /* === Animated number === */
     .num-anim{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
@@ -2143,7 +2145,7 @@
                   </button>
                   <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
                   <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
+                    <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
                   </button>
                 </div>
                 {selectedDate < VOUCHER_TOKO_CUTOFF && (
