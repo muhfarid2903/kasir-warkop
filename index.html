@@ -1258,11 +1258,11 @@
       const overflowDays = [];
       for (let d = 29; d <= lastDayPrev; d++) overflowDays.push(d);
       return [
-        { label:'Periode 1', start:year+'-'+mm+'-01', end:year+'-'+mm+'-14', payday:14, startDay:1, endDay:14,
+        { label:'Awal Bulan', start:year+'-'+mm+'-01', end:year+'-'+mm+'-14', payday:14, startDay:1, endDay:14,
           overflowStart: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(overflowDays[0]).padStart(2,'0') : null,
           overflowEnd: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(lastDayPrev).padStart(2,'0') : null,
           overflowDays, prevYear, prevMonth },
-        { label:'Periode 2', start:year+'-'+mm+'-15', end:year+'-'+mm+'-28', payday:28, startDay:15, endDay:28,
+        { label:'Akhir Bulan', start:year+'-'+mm+'-15', end:year+'-'+mm+'-28', payday:28, startDay:15, endDay:28,
           overflowStart:null, overflowEnd:null, overflowDays:[], prevYear, prevMonth },
       ];
     }
@@ -2295,16 +2295,16 @@
                       const isPast = !isCurrentMonth || (isCurrentMonth && currentDay > p.payday);
                       const isCurrent = isCurrentMonth && ((p.payday===14 && currentDay>=1 && currentDay<=14) || (p.payday===28 && currentDay>=15 && currentDay<=28));
                       let statusClass, statusText;
-                      if (isPast && !isCurrent) { statusClass='paid'; statusText='Selesai'; }
-                      else if (isCurrent) { statusClass='pending'; statusText='Berjalan'; }
-                      else { statusClass='future'; statusText='Belum'; }
+                      if (isPast && !isCurrent) { statusClass='paid'; statusText='Sudah gajian'; }
+                      else if (isCurrent) { statusClass='pending'; statusText='Lagi jalan'; }
+                      else { statusClass='future'; statusText='Nanti'; }
                       const overflowLabel = overflowEntries.length>0 ? ' (+tgl '+p.overflowDays[0]+'–'+p.overflowDays[p.overflowDays.length-1]+' '+MO[p.prevMonth]+')' : '';
                       // Hero: hitung countdown & progress (khusus periode berjalan)
                       const periodLength = p.endDay - p.startDay + 1;
                       const daysToPayday = isCurrent ? Math.max(0, p.payday - currentDay) : 0;
                       const daysElapsed = isCurrent ? Math.max(1, Math.min(periodLength, currentDay - p.startDay + 1)) : periodLength;
                       const progressPct = isCurrent ? Math.min(100, Math.round((daysElapsed / periodLength) * 100)) : 100;
-                      const countdownText = daysToPayday === 0 ? 'Hari ini gajian!' : daysToPayday === 1 ? 'Besok gajian!' : daysToPayday + ' hari lagi gajian';
+                      const countdownText = daysToPayday === 0 ? 'Hari ini gajian!' : daysToPayday === 1 ? 'Besok gajian!' : 'Tinggal '+daysToPayday+' hari lagi';
                       const countdownUrgent = daysToPayday <= 2;
 
                       return (
@@ -2314,7 +2314,7 @@
                               <div className="gajian-hero-meta">
                                 <div>
                                   <div className="gajian-period-label">{monthLabel} · {p.label}</div>
-                                  <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · gajian tgl {p.payday}</div>
+                                  <div className="gajian-period-dates">{p.startDay}–{p.endDay} {MO[month]}{overflowLabel} · gajian tgl {p.payday}</div>
                                 </div>
                                 <span className={"gajian-countdown-pill"+(countdownUrgent?" urgent":"")}>
                                   <Icon type={daysToPayday<=1?"gift":"clock"} size={13}/> {countdownText}
@@ -2327,7 +2327,7 @@
                               <div className="gajian-hero-progress">
                                 <div className="gajian-hero-progress-bar"><div className="gajian-hero-progress-fill" style={{width:progressPct+'%'}}/></div>
                                 <div className="gajian-hero-progress-meta">
-                                  <span>{totalDays>0 ? totalDays+' hari kerja · '+progressPct+'% periode' : 'Belum ada catatan'}</span>
+                                  <span>{totalDays>0 ? 'Sudah '+totalDays+' hari kerja · '+progressPct+'% jalan' : 'Belum mulai catat'}</span>
                                 </div>
                               </div>
                             </div>
@@ -2335,7 +2335,7 @@
                             <div className="gajian-header">
                               <div>
                                 <div className="gajian-period-label">{monthLabel} · {p.label}</div>
-                                <div className="gajian-period-dates">Tgl {p.startDay}–{p.endDay}{overflowLabel} · Gajian tgl {p.payday} · {totalDays} hari kerja</div>
+                                <div className="gajian-period-dates">{p.startDay}–{p.endDay} {MO[month]}{overflowLabel} · gajian tgl {p.payday} · {totalDays} hari kerja</div>
                               </div>
                               <div className="gajian-total-box">
                                 <div className="gajian-total-label">Gajiku</div>
@@ -2347,7 +2347,7 @@
 
                           {overflowEntries.length>0 && (
                             <div style={{borderBottom:"1px dashed var(--border)",marginBottom:4,paddingBottom:4}}>
-                              <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px",display:"flex",alignItems:"center",gap:6}}><Icon type="arrow-up" size={11}/> Limpahan bulan {ML[p.prevMonth]}</div>
+                              <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px",display:"flex",alignItems:"center",gap:6}}><Icon type="arrow-up" size={11}/> Sisa dari {ML[p.prevMonth]}</div>
                               {p.overflowDays.map(d => {
                                 const dd = String(d).padStart(2,'0');
                                 const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
@@ -2381,7 +2381,7 @@
                                 </div>
                               );
                             }).filter(Boolean);
-                            if (rows.length === 0) return <div className="gajian-empty-state">Belum ada input di periode ini</div>;
+                            if (rows.length === 0) return <div className="gajian-empty-state">Periode ini masih kosong</div>;
                             return rows;
                           })()}
                         </div>
