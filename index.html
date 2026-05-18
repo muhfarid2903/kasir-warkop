@@ -682,7 +682,7 @@
     .toko-footer .seg.setoran strong{color:var(--green)}
     .toko-footer .error{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif}
     /* === Login screen: warkop hero === */
-    .login-hero{text-align:center;margin-bottom:24px;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both}
+    .login-hero{text-align:center;margin-bottom:32px;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both}
     .login-hero-logo{
       width:68px;height:68px;margin:0 auto 16px;
       background:var(--grad-warm);border-radius:20px;
@@ -704,8 +704,8 @@
       -webkit-text-fill-color:transparent;color:transparent;
     }
     .login-hero-tag{
-      margin-top:8px;font-size:12.5px;color:var(--text3);
-      font-family:'JetBrains Mono',monospace;letter-spacing:.02em;
+      margin-top:10px;font-size:14px;color:var(--text2);
+      font-weight:400;letter-spacing:-.1px;
     }
     [data-theme="light"] .login-hero-title{
       background:linear-gradient(180deg,var(--text),var(--accent-deep));
@@ -1484,7 +1484,7 @@
       );
     }
 
-    function LoginScreen({ onSession, theme, setTheme }) {
+    function LoginScreen({ onSession }) {
       const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
@@ -1510,18 +1510,14 @@
 
       return (
         <div className="app">
-          <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} title={theme==='dark'?'Mode terang':'Mode gelap'} style={{position:"fixed",top:18,right:18,zIndex:10}}>
-            <Icon type={theme==='dark'?'sun':'moon'} size={16}/>
-          </button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"40px 20px"}}>
-            <form onSubmit={submit} style={{width:380,maxWidth:"100%"}}>
+            <form onSubmit={submit} style={{width:400,maxWidth:"100%"}}>
               <div className="login-hero">
                 <div className="login-hero-logo"><Icon type="coffee" size={32}/></div>
                 <h1 className="login-hero-title">Warkopsaja</h1>
-                <p className="login-hero-tag">Buku kas warkop · sederhana, harian</p>
+                <p className="login-hero-tag">Catat hari, lihat hasilnya.</p>
               </div>
-              <div className="card" style={{margin:0}}>
-                <div className="card-title">{mode==='signin' ? <><Icon type="lock" size={16}/> Masuk</> : <><Icon type="user-plus" size={16}/> Daftar Akun</>}</div>
+              <div className="card" style={{margin:0,padding:"28px 26px"}}>
                 <div className="form-group">
                   <label className="form-label">Email</label>
                   <input className="form-input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@contoh.com"/>
@@ -1932,7 +1928,7 @@
         </div>
       );
 
-      if (!session) return <LoginScreen onSession={s => setSession(s)} theme={theme} setTheme={setTheme}/>;
+      if (!session) return <LoginScreen onSession={s => setSession(s)}/>;
 
       if(loading) return (
         <div className="app">
