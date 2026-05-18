@@ -2016,7 +2016,7 @@
 
             <div className="content">
               {page==="input" && <>
-                <div className="kas-hero" title={"Awal "+ML[today.getMonth()]+" "+IDR(kasSummary.saldoAwalBulan)+" · Warkop "+IDR(kasSummary.totalPenjualanWarkop)+" · WiFi "+IDR(kasSummary.totalPenjualanWifi)+" · Gaji "+IDR(kasSummary.totalGaji)+" · Pengeluaran "+IDR(kasSummary.totalPengeluaran)}>
+                <div className="kas-hero">
                   <div className="kas-hero-label">Kas Saat Ini</div>
                   <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>
                   <div className="kas-hero-delta">
