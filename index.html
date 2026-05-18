@@ -2027,7 +2027,7 @@
                 </div>
 
                 {paydayInfo && (
-                  <div className={"payday-banner "+paydayInfo.show} title={paydayInfo.period.label+': Tgl '+paydayInfo.period.startDay+'–'+paydayInfo.period.endDay+' '+MO[paydayInfo.month]+(paydayInfo.show==='upcoming'?' · sementara terkumpul':'')}>
+                  <div className={"payday-banner "+paydayInfo.show}>
                     <div className="payday-main">
                       {paydayInfo.show==='today'
                         ? <><Icon type="gift" size={16}/><span className="label">Hari Ini Gajian!</span></>
@@ -2050,22 +2050,10 @@
                     const v = voucherForDate(selectedDate, voucherToko);
                     const hasVoucher = v.laku>0 || v.drop>0;
                     if (!existingEntry && !hasVoucher) return null;
-                    const exItems = (existingEntry?.expenses||[]).filter(x=>x.type!=='cashin');
-                    const cashItems = (existingEntry?.expenses||[]).filter(x=>x.type==='cashin');
-                    const exGross = exItems.reduce((s,x)=>s+(x.amount||0),0);
-                    const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
                     const items = existingEntry ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
-                    const totalPenj = (existingEntry?.totalPenjualan||0) + v.penjualan;
-                    const totalGaji = (existingEntry?.gaji||0) + v.gaji;
-                    const titleParts = [];
-                    if (items) titleParts.push(items);
-                    if (hasVoucher) titleParts.push('Voucher: laku ×'+v.laku+(v.drop>0?', drop '+v.drop:''));
-                    titleParts.push('Penjualan '+IDR(totalPenj)+' · Gaji '+IDR(totalGaji));
-                    if (exGross>0) titleParts.push('Pengeluaran '+IDR(exGross));
-                    if (cashGross>0) titleParts.push('Cash masuk '+IDR(cashGross));
                     const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
                     return (
-                      <span className="date-hint" title={titleParts.join(' · ')+'\nInput baru akan ditambahkan ke data ini'}>
+                      <span className="date-hint">
                         <Icon type="package" size={13}/> Sudah tercatat <strong>{summary}</strong>
                       </span>
                     );
@@ -2074,7 +2062,7 @@
 
                 <div className="card">
                   {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
-                    <div key={p.id} className="product-row" title={"Gaji Jaya "+IDR(p.gaji)+" per item"}>
+                    <div key={p.id} className="product-row">
                       <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
                       <div className="product-info">
                         <div className="product-name">{p.name}</div>
@@ -2170,7 +2158,7 @@
                           <span className="seg">Total drop <strong>{dayDrop}</strong></span>
                           <span className="seg">Total laku <strong>{dayLaku}</strong></span>
                           <span className="seg gaji">Gaji Jaya <strong>{IDR(dayLaku*V2K.gaji)}</strong></span>
-                          <span className="seg setoran" title={"Kotor "+IDR(dayLaku*V2K.price)+" − komisi toko "+IDR(dayLaku*V2K.komisi_toko)}>Setoran kas <strong>{IDR(dayLaku*V2K_SETORAN)}</strong></span>
+                          <span className="seg setoran">Setoran kas <strong>{IDR(dayLaku*V2K_SETORAN)}</strong></span>
                         </div>
                       )}
 
@@ -2209,7 +2197,7 @@
                                 {overLaku
                                   ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
                                   : <>
-                                      <span className="seg setoran" title={"komisi toko "+IDR(dLaku*V2K.komisi_toko)}>Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
+                                      <span className="seg setoran">Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
                                       <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
                                     </>
                                 }
@@ -2471,7 +2459,7 @@
                   const sisaSign = sisaKas>0?'pos':sisaKas<0?'neg':'';
                   const sisaLabel = sisaKas>0?'Untung':sisaKas<0?'Rugi':'Impas';
                   return (
-                    <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)} title={sisaLabel+' hari itu'}>
+                    <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)}>
                       <div className="history-item-header">
                         <span className="history-date">{(() => { const dt = new Date(e.date+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' · '+DAYS[dt.getDay()]; })()}</span>
                         <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
