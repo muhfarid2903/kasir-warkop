@@ -1250,7 +1250,10 @@
     const MO = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const ML = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     function fmtDate(d) { const dt = new Date(d+'T00:00:00'); return DAYS[dt.getDay()]+', '+dt.getDate()+' '+MO[dt.getMonth()]+' '+dt.getFullYear(); }
-    function todayISO() { return new Date().toISOString().split('T')[0]; }
+    // Tanggal lokal (bukan UTC) — penting: toISOString() memakai UTC, sehingga
+    // antara 00:00–06:59 WIB tanggalnya mundur sehari. Pakai komponen lokal.
+    function dateToISO(dt) { return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+    function todayISO() { return dateToISO(new Date()); }
 
     let toastTimer;
     function showToast(msg) {
@@ -1431,7 +1434,15 @@
       const totQty = totals.prod.reduce((s,q)=>s+q,0);
       const totSisa = totals.sales - totals.gaji - (totals.exp - totals.cash);
       rows.push(['TOTAL','', ...totals.prod, totQty, ...totals.toko, totals.vLaku, totals.vDrop, totals.sales, totals.gaji, '', totals.exp, totals.cash, totSisa]);
-      const csv = rows.map(r => r.map(c => '"'+(String(c).replace(/"/g,'""'))+'"').join(',')).join('\n');
+      // Escape sel + cegah formula injection (=,+,-,@) pada sel teks. Angka murni
+      // (mis. Sisa Kas negatif) dibiarkan agar tetap dihitung sebagai angka di Excel.
+      const csvCell = (c) => {
+        let s = String(c);
+        const isNumber = typeof c === 'number' || (s.trim() !== '' && !isNaN(Number(s)));
+        if (!isNumber && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+        return '"' + s.replace(/"/g,'""') + '"';
+      };
+      const csv = rows.map(r => r.map(csvCell).join(',')).join('\n');
       downloadCSV('Riwayat_Warkopsaja_'+todayISO()+'.csv', csv);
       showToast('Riwayat berhasil di-export!');
     }
@@ -1567,6 +1578,12 @@
       const [cashIns, setCashIns] = useState([]);
       const [saving, setSaving] = useState(false);
       const [openDetail, setOpenDetail] = useState(null);
+      // Mode edit entri (dari tab Riwayat) — mengganti nilai, bukan menambah
+      const [editingDate, setEditingDate] = useState(null);
+      const [editQty, setEditQty] = useState({});
+      const [editExpenses, setEditExpenses] = useState([]);
+      const [editCashIns, setEditCashIns] = useState([]);
+      const [editSaving, setEditSaving] = useState(false);
       const [searchQuery, setSearchQuery] = useState('');
       const [initialSaldo, setInitialSaldo] = useState(0);
       const [editingSaldo, setEditingSaldo] = useState(false);
@@ -1802,9 +1819,13 @@
             const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' });
             if (error) throw error;
           }
+          // Optimistic local update (realtime menyusul) — Kas & "sudah tercatat" langsung kebaca
+          setEntries(prev => ({ ...prev, [selectedDate]: entry }));
           showToast((existing?'Ditambahkan':'Tersimpan')+' · '+fmtDate(selectedDate));
+          // Reset form HANYA bila simpan berhasil — supaya input tidak hilang saat gagal
+          const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]);
         } catch(e) { showToast('Gagal menyimpan: '+e.message); }
-        const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]); setSaving(false);
+        setSaving(false);
       }
 
       async function deleteEntry(date) {
@@ -1816,6 +1837,48 @@
           }
           showToast('Entri dihapus');
         } catch(e) { showToast('Gagal: '+e.message); }
+      }
+
+      // === Edit entri dari tab Riwayat (mengganti nilai, bukan menambah) ===
+      function startEdit(e) {
+        const q = {}; PRODUCTS.forEach(p => q[p.id] = e.quantities?.[p.id] || 0);
+        const exp  = (e.expenses||[]).filter(x=>x.type!=='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
+        const cash = (e.expenses||[]).filter(x=>x.type==='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
+        setEditQty(q); setEditExpenses(exp); setEditCashIns(cash); setEditingDate(e.date);
+      }
+      function cancelEdit() { setEditingDate(null); }
+      function changeEditQty(id, d) { setEditQty(prev => ({...prev, [id]: Math.max(0,(prev[id]||0)+d)})); }
+      function setEditQtyVal(id, val) { setEditQty(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
+      function addEditExpense(){ setEditExpenses(prev=>[...prev,{desc:'',amount:0}]); }
+      function removeEditExpense(i){ setEditExpenses(prev=>prev.filter((_,idx)=>idx!==i)); }
+      function updateEditExpense(i,field,val){ setEditExpenses(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?(parseInt(val)||0):val}:e)); }
+      function addEditCashIn(){ setEditCashIns(prev=>[...prev,{desc:'',amount:0}]); }
+      function removeEditCashIn(i){ setEditCashIns(prev=>prev.filter((_,idx)=>idx!==i)); }
+      function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?(parseInt(val)||0):val}:e)); }
+
+      async function saveEdit() {
+        const date = editingDate; if (!date) return;
+        const accQty = {}; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
+        const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
+        const cashIns  = editCashIns.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'cashin'}));
+        const accExpenses = [...expenses, ...cashIns];
+        let totalSales=0, totalGaji=0;
+        PRODUCTS.forEach(p => { const q=accQty[p.id]||0; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+        const grossExp = expenses.reduce((s,e)=>s+(e.amount||0),0);
+        const totalCash = cashIns.reduce((s,e)=>s+(e.amount||0),0);
+        const totalExpense = grossExp - totalCash;
+        const entry = { date, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
+        setEditSaving(true);
+        try {
+          if (sb && session) {
+            const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' });
+            if (error) throw error;
+          }
+          setEntries(prev => ({ ...prev, [date]: entry }));
+          showToast('Perubahan disimpan · '+fmtDate(date));
+          setEditingDate(null);
+        } catch(e) { showToast('Gagal menyimpan: '+e.message); }
+        setEditSaving(false);
       }
 
       const kasSummary = useMemo(() => {
@@ -1851,7 +1914,7 @@
 
         const todayStr = todayISO();
         const y = new Date(); y.setDate(y.getDate()-1);
-        const yestStr = y.toISOString().split('T')[0];
+        const yestStr = dateToISO(y);
         const tE = entries[todayStr], yE = entries[yestStr];
         const tV = voucherForDate(todayStr, voucherToko); const yV = voucherForDate(yestStr, voucherToko);
         const hasToday = !!tE || tV.drop>0 || tV.laku>0;
@@ -2444,7 +2507,7 @@
                   <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="inbox" size={48}/></div>Belum ada data tersimpan.<br/>Mulai input di tab "Hari Ini".</div>
                 ) : filteredEntries.length===0 ? (
                   <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
-                ) : filteredEntries.map((e, i) => {
+                ) : filteredEntries.map((e) => {
                   const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
                   const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
                   const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
@@ -2460,12 +2523,13 @@
                     const r = (voucherToko[e.date]||{})[t.id]; if (!r || (!r.drop && !r.laku)) return null;
                     return { id:t.id, name:t.name, drop:r.drop||0, laku:r.laku||0 };
                   }).filter(Boolean) : [];
-                  const isOpen = openDetail===i;
+                  const isOpen = openDetail===e.date;
+                  const isEditing = editingDate===e.date;
                   const kasClass = sisaKas>0?'profit':sisaKas<0?'loss':'';
                   const sisaSign = sisaKas>0?'pos':sisaKas<0?'neg':'';
                   const sisaLabel = sisaKas>0?'Untung':sisaKas<0?'Rugi':'Impas';
                   return (
-                    <div key={e.date} className={"history-item "+kasClass} onClick={()=>setOpenDetail(isOpen?null:i)}>
+                    <div key={e.date} className={"history-item "+kasClass} onClick={()=>{ if(isEditing) return; setOpenDetail(isOpen?null:e.date); }}>
                       <div className="history-item-header">
                         <span className="history-date">{(() => { const dt = new Date(e.date+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' · '+DAYS[dt.getDay()]; })()}</span>
                         <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
@@ -2483,7 +2547,67 @@
                           {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
                         </div>
                       )}
-                      {isOpen && (
+                      {isOpen && isEditing && (
+                        <div className="history-detail" onClick={ev=>ev.stopPropagation()}>
+                          {(() => {
+                            const editProducts = PRODUCTS.filter(p => !(p.id==='v2k' && e.date >= VOUCHER_TOKO_CUTOFF));
+                            let eSales=0, eGaji=0; editProducts.forEach(p=>{const q=editQty[p.id]||0; eSales+=q*p.price; eGaji+=q*p.gaji;});
+                            const eExp = editExpenses.reduce((s,x)=>s+(x.amount||0),0);
+                            const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
+                            const eSisa = eSales - eGaji - (eExp - eCash);
+                            return <>
+                              <div className="detail-section-label">Edit Penjualan</div>
+                              {editProducts.map(p=>(
+                                <div key={p.id} className="product-row">
+                                  <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
+                                  <div className="product-info">
+                                    <div className="product-name">{p.name}</div>
+                                    <div className="product-meta">{IDR(p.price)}</div>
+                                  </div>
+                                  <div className="qty-control">
+                                    <button className="qty-btn" onClick={()=>changeEditQty(p.id,-1)}>−</button>
+                                    <input className="qty-display" type="number" inputMode="numeric" min="0" value={editQty[p.id]} onChange={ev=>setEditQtyVal(p.id,ev.target.value)}/>
+                                    <button className="qty-btn" onClick={()=>changeEditQty(p.id,1)}>+</button>
+                                  </div>
+                                </div>
+                              ))}
+                              {e.date >= VOUCHER_TOKO_CUTOFF && (
+                                <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:"var(--text3)",margin:"8px 2px 0"}}>
+                                  <Icon type="signal" size={12}/> Voucher 2000 diedit di tab Voucher Toko.
+                                </div>
+                              )}
+                              <div className="detail-section-label red" style={{marginTop:12}}>Pengeluaran</div>
+                              {editExpenses.map((x,i)=>(
+                                <div key={i} className="expense-row">
+                                  <input className="expense-input" type="text" placeholder="Keterangan…" value={x.desc} onChange={ev=>updateEditExpense(i,'desc',ev.target.value)}/>
+                                  <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditExpense(i,'amount',ev.target.value)}/>
+                                  <button className="del-btn" onClick={()=>removeEditExpense(i)}>×</button>
+                                </div>
+                              ))}
+                              <button className="add-pill" onClick={addEditExpense} style={{marginTop:6}}><Icon type="trending-down" size={14}/> Tambah Pengeluaran</button>
+                              <div className="detail-section-label green" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Cash Masuk</div>
+                              {editCashIns.map((x,i)=>(
+                                <div key={i} className="expense-row">
+                                  <input className="expense-input" type="text" placeholder="Cth: bayar hutang…" value={x.desc} onChange={ev=>updateEditCashIn(i,'desc',ev.target.value)}/>
+                                  <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditCashIn(i,'amount',ev.target.value)}/>
+                                  <button className="del-btn" onClick={()=>removeEditCashIn(i)}>×</button>
+                                </div>
+                              ))}
+                              <button className="add-pill green" onClick={addEditCashIn} style={{marginTop:6}}><Icon type="banknote" size={14}/> Tambah Cash Masuk</button>
+                              <div className="inline-summary" style={{marginTop:14}}>
+                                <span className="seg">Penjualan <strong>{IDR(eSales)}</strong></span>
+                                <span className="seg">Gaji <strong>{IDR(eGaji)}</strong></span>
+                                <span className={"seg profit"+(eSisa<0?" neg":"")}>{eSisa>=0?'Untung':'Rugi'} <strong>{IDR(eSisa)}</strong></span>
+                              </div>
+                              <div style={{display:"flex",gap:8,marginTop:14}}>
+                                <button className="btn btn-primary" style={{flex:1,padding:"10px"}} disabled={editSaving} onClick={saveEdit}>{editSaving?'Menyimpan…':'Simpan Perubahan'}</button>
+                                <button className="btn btn-ghost" style={{padding:"10px 16px"}} disabled={editSaving} onClick={cancelEdit}>Batal</button>
+                              </div>
+                            </>;
+                          })()}
+                        </div>
+                      )}
+                      {isOpen && !isEditing && (
                         <div className="history-detail">
                           <div className="history-summary">
                             <div className="summary-row add"><span className="summary-label">Pemasukan</span><span className="summary-value">{IDR(totalPenjualanRow)}</span></div>
@@ -2529,7 +2653,10 @@
                             <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Cash Masuk</div>
                             {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Cash Masuk'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                           </>}
-                          <button className="btn btn-danger" style={{width:"100%",marginTop:14,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus Data Ini</button>
+                          <div style={{display:"flex",gap:8,marginTop:14}}>
+                            <button className="btn btn-primary" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();startEdit(e);}}><Icon type="pencil" size={14}/> Edit</button>
+                            <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus</button>
+                          </div>
                         </div>
                       )}
                     </div>
