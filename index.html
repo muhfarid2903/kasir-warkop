@@ -1583,6 +1583,7 @@
       const [editQty, setEditQty] = useState({});
       const [editExpenses, setEditExpenses] = useState([]);
       const [editCashIns, setEditCashIns] = useState([]);
+      const [editVoucher, setEditVoucher] = useState({});
       const [editSaving, setEditSaving] = useState(false);
       const [searchQuery, setSearchQuery] = useState('');
       const [initialSaldo, setInitialSaldo] = useState(0);
@@ -1767,11 +1768,15 @@
 
       async function saveVoucherTokoDay() {
         if (selectedDate < VOUCHER_TOKO_CUTOFF) { showToast('Voucher Toko hanya untuk 1 Mei 2026 dan setelahnya'); return; }
-        setVoucherSaving(true);
+        const stockBefore = voucherStockBefore(selectedDate, voucherToko);
         const rows = TOKO.map(t => {
           const d = voucherDraft[t.id] || { drop:'0', laku:'0' };
           return { date: selectedDate, toko_id: t.id, drop_qty: parseInt(d.drop)||0, laku_qty: parseInt(d.laku)||0 };
         });
+        // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
+        const over = rows.find(r => { const sB = stockBefore[r.toko_id]; return r.laku_qty > ((sB.drop||0)-(sB.laku||0)) + r.drop_qty; });
+        if (over) { const t = TOKO.find(x=>x.id===over.toko_id); showToast('Laku '+(t?t.name:over.toko_id)+' melebihi stok — perbaiki dulu'); return; }
+        setVoucherSaving(true);
         try {
           if (sb && session) {
             const { error } = await sb.from('voucher_toko').upsert(rows, { onConflict: 'date,toko_id' });
@@ -1844,7 +1849,9 @@
         const q = {}; PRODUCTS.forEach(p => q[p.id] = e.quantities?.[p.id] || 0);
         const exp  = (e.expenses||[]).filter(x=>x.type!=='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
         const cash = (e.expenses||[]).filter(x=>x.type==='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
-        setEditQty(q); setEditExpenses(exp); setEditCashIns(cash); setEditingDate(e.date);
+        const vday = voucherToko[e.date] || {};
+        const ev = {}; TOKO.forEach(t => { const r = vday[t.id]||{drop:0,laku:0}; ev[t.id] = { drop:String(r.drop||0), laku:String(r.laku||0) }; });
+        setEditQty(q); setEditExpenses(exp); setEditCashIns(cash); setEditVoucher(ev); setEditingDate(e.date);
       }
       function cancelEdit() { setEditingDate(null); }
       function changeEditQty(id, d) { setEditQty(prev => ({...prev, [id]: Math.max(0,(prev[id]||0)+d)})); }
@@ -1855,9 +1862,19 @@
       function addEditCashIn(){ setEditCashIns(prev=>[...prev,{desc:'',amount:0}]); }
       function removeEditCashIn(i){ setEditCashIns(prev=>prev.filter((_,idx)=>idx!==i)); }
       function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?(parseInt(val)||0):val}:e)); }
+      function setEditVoucherVal(tokoId, field, val) { setEditVoucher(prev => ({...prev, [tokoId]: {...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val}})); }
 
       async function saveEdit() {
         const date = editingDate; if (!date) return;
+        const isVoucherDate = date >= VOUCHER_TOKO_CUTOFF;
+        // Voucher: validasi laku > stok sebelum apa pun disimpan
+        let voucherRows = null;
+        if (isVoucherDate) {
+          const stockBefore = voucherStockBefore(date, voucherToko);
+          voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; return { date, toko_id:t.id, drop_qty:parseInt(dr.drop)||0, laku_qty:parseInt(dr.laku)||0 }; });
+          const over = voucherRows.find(r => { const sB = stockBefore[r.toko_id]; return r.laku_qty > ((sB.drop||0)-(sB.laku||0)) + r.drop_qty; });
+          if (over) { const t = TOKO.find(x=>x.id===over.toko_id); showToast('Laku '+(t?t.name:over.toko_id)+' melebihi stok — perbaiki dulu'); return; }
+        }
         const accQty = {}; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
         const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
         const cashIns  = editCashIns.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'cashin'}));
@@ -1868,13 +1885,18 @@
         const totalCash = cashIns.reduce((s,e)=>s+(e.amount||0),0);
         const totalExpense = grossExp - totalCash;
         const entry = { date, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
+        // Hindari membuat baris entri kosong untuk tanggal yang cuma punya data voucher
+        const entryExisted = !!entries[date];
+        const entryHasData = PRODUCTS.some(p=>(accQty[p.id]||0)>0) || accExpenses.length>0;
+        const writeEntry = entryHasData || entryExisted;
         setEditSaving(true);
         try {
           if (sb && session) {
-            const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' });
-            if (error) throw error;
+            if (writeEntry) { const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' }); if (error) throw error; }
+            if (isVoucherDate) { const { error: vErr } = await sb.from('voucher_toko').upsert(voucherRows, { onConflict: 'date,toko_id' }); if (vErr) throw vErr; }
           }
-          setEntries(prev => ({ ...prev, [date]: entry }));
+          if (writeEntry) setEntries(prev => ({ ...prev, [date]: entry }));
+          if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.toko_id]={drop:r.drop_qty,laku:r.laku_qty};}); next[date]=dayMap; return next; });
           showToast('Perubahan disimpan · '+fmtDate(date));
           setEditingDate(null);
         } catch(e) { showToast('Gagal menyimpan: '+e.message); }
@@ -2218,8 +2240,14 @@
 
                 {selectedDate >= VOUCHER_TOKO_CUTOFF && (() => {
                   const stockBefore = voucherStockBefore(selectedDate, voucherToko);
-                  let dayDrop=0, dayLaku=0;
-                  TOKO.forEach(t => { const d = voucherDraft[t.id]||{drop:'0',laku:'0'}; dayDrop += parseInt(d.drop)||0; dayLaku += parseInt(d.laku)||0; });
+                  let dayDrop=0, dayLaku=0, anyOverLaku=false;
+                  TOKO.forEach(t => {
+                    const d = voucherDraft[t.id]||{drop:'0',laku:'0'};
+                    const dDrop = parseInt(d.drop)||0, dLaku = parseInt(d.laku)||0;
+                    dayDrop += dDrop; dayLaku += dLaku;
+                    const sB = stockBefore[t.id]; const stokAwal = (sB.drop||0) - (sB.laku||0);
+                    if (dLaku > stokAwal + dDrop) anyOverLaku = true;
+                  });
                   return (
                     <>
                       {(dayDrop>0 || dayLaku>0) && (
@@ -2276,9 +2304,14 @@
                         );
                       })}
 
-                      <button className="btn-save" disabled={voucherSaving} onClick={saveVoucherTokoDay}>
+                      <button className="btn-save" disabled={voucherSaving || anyOverLaku} onClick={saveVoucherTokoDay}>
                         {voucherSaving ? 'Menyimpan…' : <><Icon type="signal" size={16}/> Simpan Voucher Hari Ini</>}
                       </button>
+                      {anyOverLaku && (
+                        <div className="date-hint" style={{color:"var(--red)",justifyContent:"center",margin:"8px 0 0"}}>
+                          <Icon type="alert" size={13}/> Ada toko dengan laku melebihi stok — perbaiki dulu sebelum simpan
+                        </div>
+                      )}
 
                       {/* Rekap periode berjalan */}
                       {(() => {
@@ -2555,6 +2588,10 @@
                             const eExp = editExpenses.reduce((s,x)=>s+(x.amount||0),0);
                             const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
                             const eSisa = eSales - eGaji - (eExp - eCash);
+                            const isVoucherDate = e.date >= VOUCHER_TOKO_CUTOFF;
+                            const vStockBefore = isVoucherDate ? voucherStockBefore(e.date, voucherToko) : null;
+                            let editVoucherOver = false;
+                            if (isVoucherDate) TOKO.forEach(t => { const sB=vStockBefore[t.id]; const dr=editVoucher[t.id]||{drop:'0',laku:'0'}; const dD=parseInt(dr.drop)||0, dL=parseInt(dr.laku)||0; if (dL > (sB.drop||0)-(sB.laku||0)+dD) editVoucherOver=true; });
                             return <>
                               <div className="detail-section-label">Edit Penjualan</div>
                               {editProducts.map(p=>(
@@ -2571,11 +2608,29 @@
                                   </div>
                                 </div>
                               ))}
-                              {e.date >= VOUCHER_TOKO_CUTOFF && (
-                                <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11.5,color:"var(--text3)",margin:"8px 2px 0"}}>
-                                  <Icon type="signal" size={12}/> Voucher 2000 diedit di tab Voucher Toko.
-                                </div>
-                              )}
+                              {isVoucherDate && <>
+                                <div className="detail-section-label" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="signal" size={12}/> Voucher Toko</div>
+                                {TOKO.map(t => {
+                                  const sB = vStockBefore[t.id]; const stokAwal = (sB.drop||0)-(sB.laku||0);
+                                  const dr = editVoucher[t.id]||{drop:'0',laku:'0'};
+                                  const dD = parseInt(dr.drop)||0, dL = parseInt(dr.laku)||0;
+                                  const over = dL > stokAwal + dD;
+                                  return (
+                                    <div key={t.id} className="expense-row" style={{alignItems:"center"}}>
+                                      <span className="detail-item-name" style={{flex:1,display:"inline-flex",alignItems:"center",gap:6,minWidth:0}}>
+                                        <Icon type="store" size={13}/> {t.name}
+                                        {over && <span style={{color:"var(--red)",fontSize:11,whiteSpace:"nowrap"}}>· &gt; stok</span>}
+                                      </span>
+                                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--text3)"}}>Drop
+                                        <input className="expense-amount" style={{maxWidth:64}} type="number" inputMode="numeric" min="0" placeholder="0" value={dr.drop} onChange={ev=>setEditVoucherVal(t.id,'drop',ev.target.value)}/>
+                                      </label>
+                                      <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--text3)"}}>Laku
+                                        <input className="expense-amount" style={{maxWidth:64,...(over?{borderColor:"var(--red)",color:"var(--red)"}:{})}} type="number" inputMode="numeric" min="0" placeholder="0" value={dr.laku} onChange={ev=>setEditVoucherVal(t.id,'laku',ev.target.value)}/>
+                                      </label>
+                                    </div>
+                                  );
+                                })}
+                              </>}
                               <div className="detail-section-label red" style={{marginTop:12}}>Pengeluaran</div>
                               {editExpenses.map((x,i)=>(
                                 <div key={i} className="expense-row">
@@ -2599,8 +2654,13 @@
                                 <span className="seg">Gaji <strong>{IDR(eGaji)}</strong></span>
                                 <span className={"seg profit"+(eSisa<0?" neg":"")}>{eSisa>=0?'Untung':'Rugi'} <strong>{IDR(eSisa)}</strong></span>
                               </div>
+                              {editVoucherOver && (
+                                <div className="date-hint" style={{color:"var(--red)",margin:"10px 0 0"}}>
+                                  <Icon type="alert" size={13}/> Ada toko dengan laku melebihi stok — perbaiki dulu
+                                </div>
+                              )}
                               <div style={{display:"flex",gap:8,marginTop:14}}>
-                                <button className="btn btn-primary" style={{flex:1,padding:"10px"}} disabled={editSaving} onClick={saveEdit}>{editSaving?'Menyimpan…':'Simpan Perubahan'}</button>
+                                <button className="btn btn-primary" style={{flex:1,padding:"10px"}} disabled={editSaving||editVoucherOver} onClick={saveEdit}>{editSaving?'Menyimpan…':'Simpan Perubahan'}</button>
                                 <button className="btn btn-ghost" style={{padding:"10px 16px"}} disabled={editSaving} onClick={cancelEdit}>Batal</button>
                               </div>
                             </>;
