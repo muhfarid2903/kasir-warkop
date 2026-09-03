@@ -27,6 +27,8 @@ URL: **https://kasir.balanglompo.com**
 | Kopi Vietnam Drip | Rp 8.000 | Rp 1.500 |
 | Teh | Rp 5.000 | Rp 1.000 |
 | Kopi Lain | Rp 6.000 | Rp 1.300 |
+| Es Kopi Gula Aren | Rp 15.000 | Rp 2.000 |
+| Es Kopi Caramel | Rp 15.000 | Rp 2.000 |
 | Voucher 2000 | Rp 2.000 | Rp 500 |
 | Paket Mingguan Lite | Rp 14.000 | Rp 1.500 |
 | Paket Bulanan | Rp 34.000 | Rp 5.000 |
