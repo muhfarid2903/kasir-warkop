@@ -1,46 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-
-// === Konfigurasi Supabase ===
-// Ganti dua nilai di bawah dengan milik project Supabase Anda.
-// Dapatkan di: Supabase Dashboard → Project Settings → API
-const SUPABASE_URL      = "https://rhhothozowdxpxeotlad.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoaG90aG96b3dkeHB4ZW90bGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTk1MTYsImV4cCI6MjA5MjY5NTUxNn0.d9U1vvJNTjbVSvV83scDD_RXyHtNcXFvG40uBKgsNpk";
-
-const supabaseReady =
-  SUPABASE_URL.startsWith("http") &&
-  SUPABASE_ANON_KEY.length > 20 &&
-  !SUPABASE_URL.includes("GANTI_") &&
-  !SUPABASE_ANON_KEY.includes("GANTI_");
-
-const sb = supabaseReady
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
-
-// Mapper baris DB <-> bentuk entry yang dipakai UI
-function rowToEntry(row) {
-  return {
-    date: row.date,
-    quantities: row.quantities || {},
-    expenses: row.expenses || [],
-    totalPenjualan: Number(row.total_penjualan) || 0,
-    gaji: Number(row.gaji) || 0,
-    totalPengeluaran: Number(row.total_pengeluaran) || 0,
-    sisaKas: Number(row.sisa_kas) || 0,
-  };
-}
-function entryToRow(e) {
-  return {
-    date: e.date,
-    quantities: e.quantities || {},
-    expenses: e.expenses || [],
-    total_penjualan: e.totalPenjualan || 0,
-    gaji: e.gaji || 0,
-    total_pengeluaran: e.totalPengeluaran || 0,
-    sisa_kas: e.sisaKas || 0,
-  };
-}
+import {
+  supabaseReady,
+  getSession, onAuthChange, signIn, signUp, signOut,
+  loadSaldoAwal, saveSaldoAwal,
+  loadEntries, saveEntry as dbSaveEntry, deleteEntry as dbDeleteEntry,
+  loadVoucherToko, saveVoucherToko as dbSaveVoucherToko,
+  subscribeRealtime,
+} from './db.js'
 
 const PRODUCTS = [
   { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500 },
@@ -384,13 +350,10 @@ function LoginScreen({ onSession }) {
     e.preventDefault(); setErr(''); setBusy(true);
     try {
       if (mode === 'signin') {
-        const { data, error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        onSession(data.session);
+        onSession(await signIn(email, password));
       } else {
-        const { data, error } = await sb.auth.signUp({ email, password });
-        if (error) throw error;
-        if (data.session) { onSession(data.session); }
+        const session = await signUp(email, password);
+        if (session) { onSession(session); }
         else { showToast('Cek email untuk konfirmasi akun'); setMode('signin'); }
       }
     } catch(ex) { setErr(ex.message || 'Gagal'); }
@@ -524,77 +487,58 @@ function App() {
 
   // Auth: cek session awal + listen perubahan
   useEffect(() => {
-    if (!sb) { setAuthChecked(true); return; }
-    sb.auth.getSession().then(({ data }) => {
-      setSession(data.session || null);
+    if (!supabaseReady) { setAuthChecked(true); return; }
+    getSession().then(s => {
+      setSession(s);
       setAuthChecked(true);
     });
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
-      setSession(s || null);
-    });
-    return () => sub.subscription.unsubscribe();
+    return onAuthChange(s => setSession(s));
   }, []);
 
   // Load data + realtime subscribe — hanya setelah login
   useEffect(() => {
-    if (!sb || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); } setLoading(false); return; }
+    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); } setLoading(false); return; }
     setLoading(true);
     let cancelled = false;
     (async () => {
       // Saldo awal
-      const { data: cfg } = await sb.from('config').select('value').eq('key', 'saldo_awal').maybeSingle();
-      if (!cancelled && cfg?.value != null) setInitialSaldo(Number(cfg.value) || 0);
+      const saldo = await loadSaldoAwal();
+      if (!cancelled && saldo != null) setInitialSaldo(saldo);
       // Entries
-      const { data: rows, error } = await sb.from('entries').select('*');
+      const { data: map, error } = await loadEntries();
       if (cancelled) return;
       if (error) { setSyncStatus('offline'); setLoading(false); return; }
-      const map = {};
-      (rows || []).forEach(r => { const e = rowToEntry(r); map[e.date] = e; });
       setEntries(map);
       // Voucher Toko (opsional — abaikan error jika tabel belum ada)
-      const { data: vtRows, error: vtErr } = await sb.from('voucher_toko').select('*');
-      if (!cancelled && !vtErr) {
-        const vmap = {};
-        (vtRows || []).forEach(r => {
-          const d = r.date; if (!vmap[d]) vmap[d] = {};
-          vmap[d][r.toko_id] = { drop: Number(r.drop_qty)||0, laku: Number(r.laku_qty)||0 };
-        });
-        setVoucherToko(vmap);
-      }
+      const { data: vmap, error: vtErr } = await loadVoucherToko();
+      if (!cancelled && !vtErr) setVoucherToko(vmap);
       setSyncStatus('online');
       setLoading(false);
     })();
     // Realtime
-    const ch = sb.channel('rt-entries')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
+    const unsubscribe = subscribeRealtime({
+      onEntry: (ev) => {
         setEntries(prev => {
           const next = { ...prev };
-          if (payload.eventType === 'DELETE') {
-            const oldDate = payload.old?.date; if (oldDate) delete next[oldDate];
-          } else {
-            const e = rowToEntry(payload.new); next[e.date] = e;
-          }
+          if (ev.type === 'delete') delete next[ev.date];
+          else next[ev.entry.date] = ev.entry;
           return next;
         });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, payload => {
-        if (payload.new?.key === 'saldo_awal') setInitialSaldo(Number(payload.new.value) || 0);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'voucher_toko' }, payload => {
+      },
+      onSaldoAwal: (value) => setInitialSaldo(value),
+      onVoucher: (ev) => {
         setVoucherToko(prev => {
           const next = { ...prev };
-          if (payload.eventType === 'DELETE') {
-            const d = payload.old?.date, t = payload.old?.toko_id;
-            if (d && next[d]) { const dm = { ...next[d] }; delete dm[t]; if (Object.keys(dm).length===0) delete next[d]; else next[d] = dm; }
+          if (ev.type === 'delete') {
+            if (next[ev.date]) { const dm = { ...next[ev.date] }; delete dm[ev.tokoId]; if (Object.keys(dm).length===0) delete next[ev.date]; else next[ev.date] = dm; }
           } else {
-            const r = payload.new; const d = r.date;
-            next[d] = { ...(next[d]||{}), [r.toko_id]: { drop: Number(r.drop_qty)||0, laku: Number(r.laku_qty)||0 } };
+            next[ev.date] = { ...(next[ev.date]||{}), [ev.tokoId]: ev.cell };
           }
           return next;
         });
-      })
-      .subscribe();
-    return () => { cancelled = true; sb.removeChannel(ch); };
+      },
+    });
+    return () => { cancelled = true; unsubscribe(); };
   }, [session]);
 
   async function saveInitialSaldo(val) {
@@ -602,10 +546,7 @@ function App() {
     setInitialSaldo(v);
     setEditingSaldo(false);
     try {
-      if (sb && session) {
-        const { error } = await sb.from('config').upsert({ key: 'saldo_awal', value: v }, { onConflict: 'key' });
-        if (error) throw error;
-      }
+      if (session) await saveSaldoAwal(v);
       showToast('Saldo awal disimpan: '+IDR(v));
     } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
   }
@@ -639,21 +580,18 @@ function App() {
     const stockBefore = voucherStockBefore(selectedDate, voucherToko);
     const rows = TOKO.map(t => {
       const d = voucherDraft[t.id] || { drop:'0', laku:'0' };
-      return { date: selectedDate, toko_id: t.id, drop_qty: parseInt(d.drop)||0, laku_qty: parseInt(d.laku)||0 };
+      return { tokoId: t.id, drop: parseInt(d.drop)||0, laku: parseInt(d.laku)||0 };
     });
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
-    const over = rows.find(r => { const sB = stockBefore[r.toko_id]; return r.laku_qty > ((sB.drop||0)-(sB.laku||0)) + r.drop_qty; });
-    if (over) { const t = TOKO.find(x=>x.id===over.toko_id); showToast('Laku '+(t?t.name:over.toko_id)+' melebihi stok — perbaiki dulu'); return; }
+    const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
+    if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     setVoucherSaving(true);
     try {
-      if (sb && session) {
-        const { error } = await sb.from('voucher_toko').upsert(rows, { onConflict: 'date,toko_id' });
-        if (error) throw error;
-      }
+      if (session) await dbSaveVoucherToko(selectedDate, rows);
       // Optimistic local update
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
-        rows.forEach(r => { dayMap[r.toko_id] = { drop: r.drop_qty, laku: r.laku_qty }; });
+        rows.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
         next[selectedDate] = dayMap; return next;
       });
       showToast('Voucher tersimpan · '+fmtDate(selectedDate));
@@ -688,10 +626,7 @@ function App() {
     const totalExpense = grossExp - totalCash;
     const entry = { date:selectedDate, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
     try {
-      if (sb && session) {
-        const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' });
-        if (error) throw error;
-      }
+      if (session) await dbSaveEntry(entry);
       // Optimistic local update (realtime menyusul) — Kas & "sudah tercatat" langsung kebaca
       setEntries(prev => ({ ...prev, [selectedDate]: entry }));
       showToast((existing?'Ditambahkan':'Tersimpan')+' · '+fmtDate(selectedDate));
@@ -704,10 +639,7 @@ function App() {
   async function deleteEntry(date) {
     if(!confirm('Yakin hapus data tanggal '+fmtDate(date)+'?')) return;
     try {
-      if (sb && session) {
-        const { error } = await sb.from('entries').delete().eq('date', date);
-        if (error) throw error;
-      }
+      if (session) await dbDeleteEntry(date);
       showToast('Entri dihapus');
     } catch(e) { showToast('Gagal: '+e.message); }
   }
@@ -739,9 +671,9 @@ function App() {
     let voucherRows = null;
     if (isVoucherDate) {
       const stockBefore = voucherStockBefore(date, voucherToko);
-      voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; return { date, toko_id:t.id, drop_qty:parseInt(dr.drop)||0, laku_qty:parseInt(dr.laku)||0 }; });
-      const over = voucherRows.find(r => { const sB = stockBefore[r.toko_id]; return r.laku_qty > ((sB.drop||0)-(sB.laku||0)) + r.drop_qty; });
-      if (over) { const t = TOKO.find(x=>x.id===over.toko_id); showToast('Laku '+(t?t.name:over.toko_id)+' melebihi stok — perbaiki dulu'); return; }
+      voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; return { tokoId:t.id, drop:parseInt(dr.drop)||0, laku:parseInt(dr.laku)||0 }; });
+      const over = voucherRows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
+      if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     }
     const accQty = {}; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
     const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
@@ -759,12 +691,12 @@ function App() {
     const writeEntry = entryHasData || entryExisted;
     setEditSaving(true);
     try {
-      if (sb && session) {
-        if (writeEntry) { const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' }); if (error) throw error; }
-        if (isVoucherDate) { const { error: vErr } = await sb.from('voucher_toko').upsert(voucherRows, { onConflict: 'date,toko_id' }); if (vErr) throw vErr; }
+      if (session) {
+        if (writeEntry) await dbSaveEntry(entry);
+        if (isVoucherDate) await dbSaveVoucherToko(date, voucherRows);
       }
       if (writeEntry) setEntries(prev => ({ ...prev, [date]: entry }));
-      if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.toko_id]={drop:r.drop_qty,laku:r.laku_qty};}); next[date]=dayMap; return next; });
+      if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku};}); next[date]=dayMap; return next; });
       showToast('Perubahan disimpan · '+fmtDate(date));
       setEditingDate(null);
     } catch(e) { showToast('Gagal menyimpan: '+e.message); }
@@ -874,7 +806,7 @@ function App() {
         <div className="content" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"70vh",padding:40,textAlign:"center"}}>
           <div style={{marginBottom:24,color:"var(--text3)"}}><Icon type="settings" size={56}/></div>
           <h2 style={{marginBottom:12,fontSize:22}}>Konfigurasi Supabase</h2>
-          <p style={{color:"var(--text2)",maxWidth:520,lineHeight:1.8,marginBottom:24}}>Buka file <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>index.html</code>, cari <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_URL</code> dan <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_ANON_KEY</code>, lalu isi dengan nilai dari Supabase Dashboard → Project Settings → API.</p>
+          <p style={{color:"var(--text2)",maxWidth:520,lineHeight:1.8,marginBottom:24}}>Buka file <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>src/db.js</code>, cari <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_URL</code> dan <code style={{background:"var(--bg3)",padding:"3px 10px",borderRadius:6,fontSize:13}}>SUPABASE_ANON_KEY</code>, lalu isi dengan nilai dari Supabase Dashboard → Project Settings → API.</p>
         </div>
       </div>
     </div>
@@ -952,7 +884,7 @@ function App() {
           <button className="nav-btn" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>
             <Icon type={theme==='dark'?'sun':'moon'} size={16}/> Mode {theme==='dark'?'terang':'gelap'}
           </button>
-          <button className="nav-btn" onClick={async()=>{ if(sb) await sb.auth.signOut(); }}>
+          <button className="nav-btn" onClick={async()=>{ await signOut(); }}>
             <Icon type="log-out" size={16}/> Logout
           </button>
         </div>
