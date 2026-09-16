@@ -17,6 +17,28 @@ export const PRODUCTS = [
   { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000 },
 ]
 
+// === Tata letak input Hari Ini ===
+// Diturunkan dari pemakaian NYATA, 72 hari sampai 17 Sep 2026:
+//   kopilain  79% hari · 365 gelas
+//   vietnam   68% hari · 333 gelas
+//   teh       14% hari ·  23 gelas
+//   esaren     3% · v1bln 3% · escaramel/v10k/ps4/v2k 0% (belum pernah)
+// Rata-rata 1,67 jenis produk per hari, maksimum 3.
+//
+// Dua teratas dapat kartu besar, teh dapat chip, sisanya dilipat. Daftar ini
+// sengaja statis dan bukan dihitung otomatis: muat awal hanya menarik kolom
+// angka (lihat Fase 5), jadi quantities tidak tersedia untuk menghitungnya.
+// Kalau kebiasaan berubah, ubah di sini — angkanya bisa dicek ulang dari CSV
+// export Riwayat.
+export const PRODUK_UTAMA = ['kopilain', 'vietnam']
+export const PRODUK_SEKUNDER = ['teh']
+
+// Keterangan pengeluaran yang paling sering diketik ulang, dari 112 baris
+// dalam 72 hari: susu 47x, good day 18x, gelas 6x, air 5x. Dua teratas saja
+// sudah 58% dari seluruh baris. Nominalnya berubah-ubah jadi tidak ikut
+// disetel — yang dihemat pengetikan keterangannya.
+export const PRESET_PENGELUARAN = ['Susu', 'Good Day', 'Gelas', 'Air']
+
 // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
 // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
 export const TOKO = [

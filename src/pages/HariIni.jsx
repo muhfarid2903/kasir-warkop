@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 // (akses Supabase lewat outbox — lihat src/outbox.js)
 import { kirimAtauAntre } from '../outbox.js'
 import {
-  PRODUCTS, VOUCHER_TOKO_CUTOFF,
+  PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, accumulateEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
@@ -18,6 +18,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
   const [expenses, setExpenses] = useState([]);
   const [cashIns, setCashIns] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [lainnyaTerbuka, setLainnyaTerbuka] = useState(false);
   const hariIniDateRef = useRef(null);
 
   const existingEntry = entries[selectedDate] || null;
@@ -41,9 +42,29 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     [entries, voucherToko]
   );
 
+  // Peredam salah sentuh: kartu produk itu sasaran besar, jadi jari yang
+  // sedang menggulir bisa memicunya. Ketukan baru dihitung kalau jari nyaris
+  // tidak bergeser dan tidak ditahan lama — gerakan menggulir diabaikan.
+  // Dipasang di sini, bukan mengecilkan kartunya, karena justru luasnya itu
+  // yang membuat menambah kopi jadi gampang sambil berdiri.
+  const sentuhAwal = useRef(null);
+  const mulaiSentuh = useCallback((e) => {
+    sentuhAwal.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+  }, []);
+  const selesaiSentuh = useCallback((e, aksi) => {
+    const a = sentuhAwal.current;
+    sentuhAwal.current = null;
+    if (!a) return;
+    const geser = Math.hypot(e.clientX - a.x, e.clientY - a.y);
+    if (geser > 12 || Date.now() - a.t > 700) return;   // menggulir atau menahan
+    aksi();
+  }, []);
+
   function changeQty(id, delta) { setQuantities(prev => ({...prev, [id]: Math.max(0, (prev[id]||0)+delta)})); }
   function setQty(id, val) { setQuantities(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
-  function addExpense() { setExpenses(prev => [...prev, {desc:'',amount:0}]); }
+  // desc diisi lewat chip preset supaya keterangan yang itu-itu saja tidak
+  // perlu diketik ulang; kursor langsung mendarat di kolom nominal.
+  function addExpense(desc='') { setExpenses(prev => [...prev, {desc, amount:0}]); }
   function removeExpense(i) { setExpenses(prev => prev.filter((_,idx)=>idx!==i)); }
   function updateExpense(i, field, val) { setExpenses(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? (parseInt(val)||0) : val} : e)); }
   function addCashIn() { setCashIns(prev => [...prev, {desc:'',amount:0}]); }
@@ -123,55 +144,137 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
             })()}
           </div>
 
-          <div className="card">
-            {PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF)).map(p => (
-              <div key={p.id} className="product-row">
-                <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
-                <div className="product-info">
-                  <div className="product-name">{p.name}</div>
-                  <div className="product-meta">{IDR(p.price)}</div>
+          {(() => {
+            const tersedia = PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF));
+            const cari = (id) => tersedia.find(p => p.id === id);
+            const utama = PRODUK_UTAMA.map(cari).filter(Boolean);
+            const sekunder = PRODUK_SEKUNDER.map(cari).filter(Boolean);
+            const dipakai = new Set([...utama, ...sekunder].map(p => p.id));
+            const lainnya = tersedia.filter(p => !dipakai.has(p.id));
+
+            return (
+              <>
+                {/* Dua produk yang menyumbang 97% volume: seluruh kartu jadi
+                    tombol +1, bukan tombol kecil yang harus dibidik. */}
+                <div className="produk-grid">
+                  {utama.map(p => {
+                    const n = quantities[p.id] || 0;
+                    return (
+                      <div
+                        key={p.id}
+                        className={"produk-kartu"+(n>0?" ada-isi":"")}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={"Tambah "+p.name}
+                        onPointerDown={mulaiSentuh}
+                        onPointerUp={(e)=>selesaiSentuh(e, ()=>changeQty(p.id,1))}
+                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); changeQty(p.id,1); } }}
+                      >
+                        <div className="produk-kartu-atas">
+                          <ProductIcon type={p.id} size={21}/>
+                          <div className="produk-kartu-nama">
+                            <div className="nama">{p.name}</div>
+                            <div className="harga">{IDR(p.price)}</div>
+                          </div>
+                        </div>
+                        <div className="produk-kartu-bawah">
+                          <span className="angka">{n}</span>
+                          {n > 0 && (
+                            <button
+                              className="kurang"
+                              aria-label={"Kurangi "+p.name}
+                              onPointerDown={(e)=>e.stopPropagation()}
+                              onPointerUp={(e)=>e.stopPropagation()}
+                              onClick={(e)=>{ e.stopPropagation(); changeQty(p.id,-1); }}
+                            >−</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="qty-control">
-                  <button className="qty-btn" onClick={()=>changeQty(p.id,-1)}>−</button>
-                  <input className="qty-display" type="number" inputMode="numeric" min="0" value={quantities[p.id]} onChange={e=>setQty(p.id,e.target.value)}/>
-                  <button className="qty-btn" onClick={()=>changeQty(p.id,1)}>+</button>
+
+                <div className="chip-row">
+                  {sekunder.map(p => {
+                    const n = quantities[p.id] || 0;
+                    return (
+                      <button
+                        key={p.id}
+                        className={"chip"+(n>0?" ada-isi":"")}
+                        onPointerDown={mulaiSentuh}
+                        onPointerUp={(e)=>selesaiSentuh(e, ()=>changeQty(p.id,1))}
+                      >
+                        {p.name}{n>0 && <span className="chip-angka">{n}</span>}
+                      </button>
+                    );
+                  })}
+                  {lainnya.length > 0 && (
+                    <button
+                      className={"chip"+(lainnyaTerbuka?" ada-isi":"")}
+                      aria-expanded={lainnyaTerbuka}
+                      onClick={()=>setLainnyaTerbuka(v=>!v)}
+                    >
+                      {lainnyaTerbuka ? 'Tutup' : 'Lainnya'} ({lainnya.length})
+                    </button>
+                  )}
                 </div>
+
+                {lainnyaTerbuka && lainnya.length > 0 && (
+                  <div className="card" style={{marginTop:10}}>
+                    {lainnya.map(p => (
+                      <div key={p.id} className="product-row">
+                        <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
+                        <div className="product-info">
+                          <div className="product-name">{p.name}</div>
+                          <div className="product-meta">{IDR(p.price)}</div>
+                        </div>
+                        <div className="qty-control">
+                          <button className="qty-btn" onClick={()=>changeQty(p.id,-1)}>−</button>
+                          <input className="qty-display" type="number" inputMode="numeric" min="0" value={quantities[p.id]} onChange={e=>setQty(p.id,e.target.value)}/>
+                          <button className="qty-btn" onClick={()=>changeQty(p.id,1)}>+</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(inputTotals.totalQty>0 || inputTotals.totalExpense>0 || inputTotals.totalCashIn>0) && (
+                  <div className="inline-summary" style={{marginTop:12}}>
+                    <span className="seg">Penjualan <strong>{IDR(inputTotals.totalSales)}</strong></span>
+                    <span className="seg">Gaji <strong>{IDR(inputTotals.totalGaji)}</strong></span>
+                    <span className={"seg profit"+(inputTotals.sisaKas<0?" neg":"")}>{inputTotals.sisaKas>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.sisaKas)}</strong></span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          {/* Pengeluaran naik ke sini: dipakai 89% hari, dulu terkubur di
+              bawah delapan baris produk. Chip-nya dari keterangan yang paling
+              sering diketik ulang. */}
+          <div className="pengeluaran-blok">
+            <div className="pengeluaran-label">Pengeluaran</div>
+            <div className="chip-row">
+              {PRESET_PENGELUARAN.map(nama => (
+                <button key={nama} className="chip" onClick={()=>addExpense(nama)}>{nama}</button>
+              ))}
+              <button className="chip samar" onClick={()=>addExpense('')}>+ Lain</button>
+              <button className="chip samar" onClick={addCashIn}>+ Cash Masuk</button>
+            </div>
+
+            {expenses.map((exp, i) => (
+              <div key={'e'+i} className="expense-row">
+                <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
+                <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" autoFocus={exp.desc!=='' && !exp.amount} value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
+                <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
               </div>
             ))}
-            {(inputTotals.totalQty>0 || inputTotals.totalExpense>0 || inputTotals.totalCashIn>0) && (
-              <div className="inline-summary">
-                <span className="seg">Penjualan <strong>{IDR(inputTotals.totalSales)}</strong></span>
-                <span className="seg">Gaji <strong>{IDR(inputTotals.totalGaji)}</strong></span>
-                <span className={"seg profit"+(inputTotals.sisaKas<0?" neg":"")}>{inputTotals.sisaKas>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.sisaKas)}</strong></span>
-              </div>
-            )}
-          </div>
 
-          <div className="card">
-            <div className="add-pill-row">
-              <button className="add-pill" onClick={addExpense}><Icon type="trending-down" size={14}/> Pengeluaran</button>
-              <button className="add-pill green" onClick={addCashIn}><Icon type="banknote" size={14}/> Cash Masuk</button>
-            </div>
-            {expenses.length===0 && cashIns.length===0 && (
-              <div className="catatan-empty">Belum ada catatan.</div>
-            )}
-            {expenses.length>0 && (
-              <div className="catatan-section">
-                <div className="catatan-section-label"><Icon type="trending-down" size={11}/> Pengeluaran</div>
-                {expenses.map((exp, i) => (
-                  <div key={i} className="expense-row">
-                    <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
-                    <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
-                    <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
             {cashIns.length>0 && (
               <div className="catatan-section">
-                <div className="catatan-section-label"><Icon type="banknote" size={11}/> Cash Masuk</div>
+                <div className="catatan-section-label green"><Icon type="banknote" size={11}/> Cash Masuk</div>
                 {cashIns.map((exp, i) => (
-                  <div key={i} className="expense-row">
+                  <div key={'c'+i} className="expense-row">
                     <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
                     <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
                     <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
@@ -181,7 +284,14 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
             )}
           </div>
 
-          <button className="btn-save" disabled={saving} onClick={saveEntry}><Icon type="coffee" size={16}/> Simpan</button>
+          <button
+            className={"btn-save simpan-sticky"+((inputTotals.totalQty>0||inputTotals.totalExpense>0||inputTotals.totalCashIn>0)?"":" kosong")}
+            disabled={saving}
+            onClick={saveEntry}
+          >
+            <Icon type="coffee" size={16}/> Simpan
+            {inputTotals.totalQty>0 && <span className="simpan-total">· {IDR(inputTotals.totalSales)}</span>}
+          </button>
   
     </>
   );

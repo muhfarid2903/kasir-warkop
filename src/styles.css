@@ -945,6 +945,10 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .card,
 [data-theme="light"] .history-item,
 [data-theme="light"] .gajian-card{background:#FFFFFF}
+[data-theme="light"] .produk-kartu{background:#FFFFFF}
+[data-theme="light"] .produk-kartu.ada-isi{background:linear-gradient(160deg,rgba(0,113,227,.09),rgba(0,113,227,.02))}
+[data-theme="light"] .produk-kartu-bawah .angka{color:#D2D2D7}
+[data-theme="light"] .produk-kartu-bawah .kurang{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.10)}
 [data-theme="light"] .stat-card{background:#FFFFFF}
 [data-theme="light"] .nav-btn:hover{background:rgba(0,0,0,.05);color:var(--text)}
 [data-theme="light"] .nav-btn.active{background:rgba(0,113,227,.10);box-shadow:none}
@@ -1176,4 +1180,107 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 
 @media(prefers-reduced-motion:reduce){
   .tab-btn,.tab-btn::before,.tab-btn::after,.tab-btn svg{transition:none}
+}
+
+/* === Input Hari Ini: kartu tap + chip ========================================
+   Ditata dari pemakaian nyata (lihat PRODUK_UTAMA di model.js). Dua produk
+   yang menyumbang 97% volume dapat kartu besar; sisanya dilipat.             */
+
+.produk-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+
+/* Seluruh kartu adalah tombol +1. Sasarannya ±10x lebih luas dari tombol +
+   yang lama (38px), supaya menambah kopi tidak perlu dibidik. */
+.produk-kartu{
+  position:relative;border-radius:16px;padding:13px 14px 12px;cursor:pointer;
+  background:linear-gradient(180deg,rgba(27,25,23,.92),rgba(18,17,16,.78));
+  border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+  transition:background .2s,border-color .2s,box-shadow .2s,transform .09s;
+  user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.produk-kartu:active{transform:scale(.985)}
+.produk-kartu.ada-isi{
+  background:linear-gradient(160deg,rgba(var(--accent-rgb),.13),rgba(var(--accent-rgb),.03));
+  border-color:rgba(var(--accent-rgb),.34);
+  box-shadow:0 6px 22px rgba(var(--accent-rgb),.14);
+}
+.produk-kartu:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.produk-kartu-atas{display:flex;align-items:flex-start;gap:9px;color:var(--text2)}
+.produk-kartu.ada-isi .produk-kartu-atas{color:var(--accent)}
+.produk-kartu-nama{flex:1;min-width:0}
+.produk-kartu-nama .nama{font-size:12.5px;font-weight:600;letter-spacing:-.2px;line-height:1.25;color:var(--text)}
+.produk-kartu-nama .harga{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+
+.produk-kartu-bawah{display:flex;align-items:flex-end;justify-content:space-between;margin-top:9px}
+.produk-kartu-bawah .angka{
+  font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;
+  line-height:1;letter-spacing:-1px;color:var(--bg4);transition:color .2s;
+}
+.produk-kartu.ada-isi .angka{color:var(--accent)}
+.produk-kartu-bawah .kurang{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;color:var(--text2);cursor:pointer;
+  background:rgba(0,0,0,.35);border:1px solid rgba(242,240,236,.1);
+  font-family:inherit;
+}
+.produk-kartu-bawah .kurang:active{background:rgba(0,0,0,.55)}
+
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:42px;padding:0 15px;border-radius:12px;flex:1 1 auto;
+  background:var(--bg2);border:1px solid var(--border);
+  color:var(--text2);font-family:inherit;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:all .18s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.chip:active{transform:scale(.98)}
+.chip.ada-isi{background:rgba(var(--accent-rgb),.10);border-color:rgba(var(--accent-rgb),.30);color:var(--accent)}
+.chip-angka{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent)}
+/* Aksi jarang (Cash Masuk dipakai 1 dari 72 hari) — hadir, tapi tidak menuntut perhatian */
+.chip.samar{background:transparent;border-style:dashed;color:var(--text3);flex:0 1 auto}
+
+.pengeluaran-blok{margin-top:18px}
+.pengeluaran-label{
+  font-size:10.5px;font-weight:700;color:var(--text3);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:2px;
+}
+.pengeluaran-blok .expense-row{margin-top:8px}
+
+.simpan-sticky{margin-top:18px}
+.simpan-total{font-family:'JetBrains Mono',monospace;font-weight:500;opacity:.85}
+/* Belum ada yang diinput: redup, tapi TIDAK di-disable — menekannya tetap
+   memunculkan toast "Belum ada input!" yang menjelaskan kenapa. */
+.btn-save.kosong{
+  background:var(--bg2);color:var(--text3);
+  box-shadow:0 4px 16px rgba(0,0,0,.25);
+  border:1px solid var(--border);
+}
+
+@media(max-width:900px){
+  /* Simpan ikut menempel di atas tab bar, jadi tidak perlu digulir untuk menyimpan */
+  /* Bilah tetap di atas tab bar. Sengaja fixed, bukan sticky: sticky menarik
+     tombol naik dari posisi alirannya dan menimpa isi terakhir. Dengan fixed,
+     ruangnya dipesan lewat padding-bottom .content sehingga tidak pernah
+     menutupi apa pun. */
+  .simpan-sticky{
+    position:fixed;left:10px;right:10px;width:auto;
+    bottom:calc(74px + env(safe-area-inset-bottom,20px));
+    z-index:40;margin-top:0;
+    box-shadow:0 8px 28px rgba(0,0,0,.55);
+  }
+  .content{padding-bottom:calc(146px + env(safe-area-inset-bottom,20px))}
+}
+@media(min-width:601px) and (max-width:900px){
+  .simpan-sticky{left:32px;right:32px}
+}
+
+@media(max-width:380px){
+  .produk-kartu-bawah .angka{font-size:30px}
+  .produk-kartu-nama .nama{font-size:12px}
 }
