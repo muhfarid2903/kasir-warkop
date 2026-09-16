@@ -221,6 +221,24 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Tab bar bawah — hanya tampil di HP (CSS menyembunyikannya di atas
+          900px, di mana sidebar yang dipakai). shortLabel ada di NAV_ITEMS
+          sejak dulu tapi belum pernah terpakai; di bilah sempit inilah
+          tempatnya: "Voucher" muat, "Voucher Toko" tidak. */}
+      <nav className="tabbar" aria-label="Navigasi utama">
+        {NAV_ITEMS.map(n => (
+          <button
+            key={n.id}
+            className={"tab-btn"+(page===n.id?" active":"")}
+            onClick={()=>handleNav(n.id)}
+            aria-current={page===n.id ? 'page' : undefined}
+          >
+            <Icon type={n.icon} size={23}/>
+            {n.shortLabel}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
