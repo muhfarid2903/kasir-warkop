@@ -197,37 +197,25 @@ export function entryDayTotals(entry, voucherToko) {
 // tidak perlu quantities/expenses. Itu yang membuat muat awal bisa mengambil
 // kolom angka saja.
 export function computeKasSummary(summaries, voucherToko, initialSaldo, now) {
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
   const all = Object.values(summaries);
 
-  // All-time → kasSekarang (posisi riil)
+  // Posisi kas riil = saldo awal + seluruh pemasukan − gaji − pengeluaran,
+  // sejak hari pertama. Bukan per bulan: yang ditanya kasir "sekarang ada
+  // berapa", dan itu tidak mengenal batas bulan.
   const ePenjualanAll = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
   const eGajiAll = all.reduce((s,e)=>s+(e.gaji||0),0);
   const ePengeluaranAll = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
   const vAll = voucherInRange('1900-01-01','9999-12-31', voucherToko);
   const kasSekarang = initialSaldo + (ePenjualanAll + vAll.penjualan) - (eGajiAll + vAll.gaji) - ePengeluaranAll;
 
-  // Bulan berjalan
-  const monthEntries = all.filter(e => e.date >= monthStart);
-  const ePenjualan = monthEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-  const eGaji = monthEntries.reduce((s,e)=>s+(e.gaji||0),0);
-  const totalPengeluaran = monthEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-  const vMonth = voucherInRange(monthStart, '9999-12-31', voucherToko);
-  const totalPenjualan = ePenjualan + vMonth.penjualan;
-  const totalGaji = eGaji + vMonth.gaji;
-  // Saldo awal bulan = kas akhir bulan lalu (carry-over, biar rumus tetap konsisten)
-  const saldoAwalBulan = kasSekarang - totalPenjualan + totalGaji + totalPengeluaran;
-
+  // Selisih hari ini, untuk baris di bawah angka besar.
   const todayStr = dateToISO(now);
-  const y = new Date(now.getTime()); y.setDate(y.getDate()-1);
-  const yestStr = dateToISO(y);
-  const tE = summaries[todayStr], yE = summaries[yestStr];
-  const tV = voucherForDate(todayStr, voucherToko); const yV = voucherForDate(yestStr, voucherToko);
+  const tE = summaries[todayStr];
+  const tV = voucherForDate(todayStr, voucherToko);
   const hasToday = !!tE || tV.drop>0 || tV.laku>0;
-  const hasYest = !!yE || yV.drop>0 || yV.laku>0;
   const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
-  const yestKas = hasYest ? (((yE?.totalPenjualan||0)+yV.penjualan) - ((yE?.gaji||0)+yV.gaji) - (yE?.totalPengeluaran||0)) : 0;
-  return { totalPenjualan, totalGaji, totalPengeluaran, kasSekarang, saldoAwalBulan, monthStart, todayKas, yestKas, hasToday, hasYest };
+
+  return { kasSekarang, todayKas, hasToday };
 }
 
 // Gaji terkumpul satu periode, termasuk limpahan tgl 29–31 bulan sebelumnya.
