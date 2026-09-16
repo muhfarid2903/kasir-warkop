@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { signIn, signUp } from '../db.js'
-import { showToast } from '../toast.js'
+import { signIn } from '../db.js'
 import { Icon } from '../components/Icon.jsx'
 
+// Hanya masuk, tidak ada daftar. Pendaftaran publik dimatikan di Supabase
+// (Authentication → Allow new users to sign up), jadi tombol "Daftar" cuma
+// akan menghasilkan error. Akun baru dibuat dari Supabase Dashboard →
+// Authentication → Add user.
 export default function LoginScreen({ onSession }) {
-  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,13 +15,7 @@ export default function LoginScreen({ onSession }) {
   async function submit(e) {
     e.preventDefault(); setErr(''); setBusy(true);
     try {
-      if (mode === 'signin') {
-        onSession(await signIn(email, password));
-      } else {
-        const session = await signUp(email, password);
-        if (session) { onSession(session); }
-        else { showToast('Cek email untuk konfirmasi akun'); setMode('signin'); }
-      }
+      onSession(await signIn(email, password));
     } catch(ex) { setErr(ex.message || 'Gagal'); }
     setBusy(false);
   }
@@ -44,14 +40,8 @@ export default function LoginScreen({ onSession }) {
             </div>
             {err && <div style={{padding:"10px 12px",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-border)",borderRadius:10,fontSize:12,marginBottom:12}}>{err}</div>}
             <button type="submit" className="btn-save" disabled={busy} style={{marginTop:4}}>
-              {busy ? 'Memproses…' : (mode==='signin' ? 'Masuk' : 'Daftar')}
+              {busy ? 'Memproses…' : 'Masuk'}
             </button>
-            <div style={{textAlign:"center",marginTop:14,fontSize:12,color:"var(--text2)"}}>
-              {mode==='signin' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-              <a href="#" onClick={(e)=>{e.preventDefault();setErr('');setMode(mode==='signin'?'signup':'signin');}} style={{color:"var(--accent)",fontWeight:600,textDecoration:"none"}}>
-                {mode==='signin' ? 'Daftar' : 'Masuk'}
-              </a>
-            </div>
           </div>
         </form>
       </div>

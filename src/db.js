@@ -68,17 +68,13 @@ export function onAuthChange(handler) {
   return () => sub.subscription.unsubscribe()
 }
 
+// Tidak ada signUp di sini dengan sengaja: pendaftaran publik dimatikan di
+// Supabase, dan fungsi yang dipanggil pun cuma akan ditolak server. Akun baru
+// dibuat lewat Supabase Dashboard → Authentication → Add user.
 export async function signIn(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password })
   if (error) throw error
   return data.session
-}
-
-export async function signUp(email, password) {
-  const { data, error } = await sb.auth.signUp({ email, password })
-  if (error) throw error
-  // session null = Supabase menunggu konfirmasi email dulu
-  return data.session || null
 }
 
 export async function signOut() {
