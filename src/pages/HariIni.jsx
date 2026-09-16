@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef } from 'react'
-import { saveEntry as dbSaveEntry } from '../db.js'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { saveEntry as dbSaveEntry, loadEntryDetail } from '../db.js'
 import {
   PRODUCTS, VOUCHER_TOKO_CUTOFF,
-  voucherForDate, draftTotals, buildEntry, computeKasSummary, computePaydayInfo,
+  voucherForDate, draftTotals, buildEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
 import { showToast } from '../toast.js'
@@ -12,7 +12,7 @@ import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
-export default function HariIni({ selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session }) {
+export default function HariIni({ selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail }) {
   const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
   const [expenses, setExpenses] = useState([]);
   const [cashIns, setCashIns] = useState([]);
@@ -20,6 +20,10 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
   const hariIniDateRef = useRef(null);
 
   const existingEntry = entries[selectedDate] || null;
+
+  // Muat awal cuma menarik kolom angka. Tanggal yang sedang dilihat butuh
+  // quantities & expenses-nya, jadi diambil satu baris saat tanggal berganti.
+  useEffect(() => { ensureDetail(selectedDate); }, [selectedDate, ensureDetail]);
 
   const inputTotals = useMemo(
     () => draftTotals(quantities, expenses, cashIns),
@@ -51,7 +55,11 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
     if (!hasQty && !hasExp && !hasCash) { showToast('Belum ada input!'); return; }
     setSaving(true);
-    const existing = entries[selectedDate] || null;
+    // Ambil baris LENGKAP yang segar dari server sebelum menumpuk. State lokal
+    // bisa berisi baris ringkas (tanpa quantities/expenses) — menumpuk di atas
+    // itu akan menghapus catatan lama tanggal tersebut.
+    const { data: existing, error: loadErr } = await loadEntryDetail(selectedDate);
+    if (loadErr) { showToast('Gagal menyimpan: tidak bisa membaca data tanggal ini'); setSaving(false); return; }
     // Menambah, bukan mengganti: qty & catatan hari ini ditumpuk di atas yang sudah tersimpan.
     const accQty = {}; PRODUCTS.forEach(p => { accQty[p.id] = (existing?(existing.quantities?.[p.id]||0):0) + (quantities[p.id]||0); });
     const newExpenses = expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='');
@@ -105,7 +113,10 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
               const v = voucherForDate(selectedDate, voucherToko);
               const hasVoucher = v.laku>0 || v.drop>0;
               if (!existingEntry && !hasVoucher) return null;
-              const items = existingEntry ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
+              // Detail tanggal ini belum tiba: diamkan dulu, jangan tampilkan "–"
+              // yang bikin seolah harinya kosong padahal ada isinya.
+              if (existingEntry && !hasDetail(existingEntry) && !hasVoucher) return null;
+              const items = hasDetail(existingEntry) ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
               const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
               return (
                 <span className="date-hint">

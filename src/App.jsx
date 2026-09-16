@@ -30,6 +30,7 @@ function App() {
     voucherToko, setVoucherToko,
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
+    loadAllDetails, detailsReady, ensureDetail,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -161,6 +162,7 @@ function App() {
               voucherToko={voucherToko}
               initialSaldo={initialSaldo}
               session={session}
+              ensureDetail={ensureDetail}
             />
           )}
 
@@ -182,6 +184,7 @@ function App() {
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
+              loadAllDetails={loadAllDetails} detailsReady={detailsReady}
             />
           )}
         </div>

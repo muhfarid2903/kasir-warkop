@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   supabaseReady,
   getSession, onAuthChange,
-  loadSaldoAwal, loadEntries, loadVoucherToko,
+  loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
   subscribeRealtime,
 } from './db.js'
+import { hasDetail } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
 // satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
@@ -29,6 +30,11 @@ export function useAuth() {
 // === Data warkop: muat awal + realtime ===
 // entries, voucherToko, dan initialSaldo dibaca Hari Ini, Voucher, Gajian, dan
 // Riwayat sekaligus, jadi sumbernya harus satu.
+//
+// entries dua tingkat. Muat awal mengisi baris RINGKAS (cuma kolom angka);
+// baris LENGKAP (dengan quantities & expenses) menyusul hanya kalau diminta —
+// Riwayat minta semuanya, Hari Ini minta satu tanggal. Bedakan keduanya dengan
+// hasDetail(); baris ringkas tidak punya kunci quantities sama sekali.
 export function useWarkopData(session) {
   const [entries, setEntries] = useState({});
   const [voucherToko, setVoucherToko] = useState({});
@@ -37,15 +43,19 @@ export function useWarkopData(session) {
   const [loading, setLoading] = useState(supabaseReady);
 
   useEffect(() => {
-    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); } setLoading(false); return; }
+    // Tanpa sesi: layar Login yang tampil, jadi nilai loading tidak kelihatan.
+    // Tetap dibiarkan true supaya saat sesi muncul tidak ada satu render antara
+    // di mana halaman sempat tampil dengan data kosong — itu bikin Hari Ini
+    // mount lalu unmount lagi, dan ikut menembakkan permintaan yang mubazir.
+    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); detailsLoaded.current = false; setDetailsReady(false); } setLoading(supabaseReady); return; }
     setLoading(true);
     let cancelled = false;
     (async () => {
       // Saldo awal
       const saldo = await loadSaldoAwal();
       if (!cancelled && saldo != null) setInitialSaldo(saldo);
-      // Entries
-      const { data: map, error } = await loadEntries();
+      // Entries — ringkas dulu; detailnya menyusul saat diminta
+      const { data: map, error } = await loadEntrySummaries();
       if (cancelled) return;
       if (error) { setSyncStatus('offline'); setLoading(false); return; }
       setEntries(map);
@@ -81,7 +91,46 @@ export function useWarkopData(session) {
     return () => { cancelled = true; unsubscribe(); };
   }, [session]);
 
-  return { entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, syncStatus, loading };
+  // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
+  // per sesi — realtime yang menjaga tetap segar setelahnya.
+  const detailsLoaded = useRef(false);
+  const [detailsReady, setDetailsReady] = useState(false);
+
+  const loadAllDetails = useCallback(async () => {
+    if (detailsLoaded.current) { setDetailsReady(true); return; }
+    detailsLoaded.current = true;
+    const { data, error } = await loadEntryDetails();
+    if (error) { detailsLoaded.current = false; setSyncStatus('offline'); return; }
+    // Baris lengkap menimpa yang ringkas; tanggal yang cuma ada di ringkas
+    // (mustahil, tapi murah untuk dijaga) tetap dipertahankan.
+    setEntries(prev => ({ ...prev, ...data }));
+    setDetailsReady(true);
+  }, []);
+
+  // Pastikan satu tanggal punya baris lengkap. Dipakai Hari Ini, yang perlu
+  // quantities & expenses tanggal terpilih untuk menumpuk input di atasnya.
+  const ensureDetail = useCallback(async (date) => {
+    // Sudah lengkap: tidak perlu menarik ulang.
+    let sudah = false;
+    setEntries(prev => { sudah = hasDetail(prev[date]); return prev; });
+    if (sudah) return;
+    const { data, error } = await loadEntryDetail(date);
+    if (error) return;
+    setEntries(prev => {
+      // Tidak ada entri di server: buang sisa baris ringkas supaya UI tidak
+      // menampilkan "sudah tercatat" untuk tanggal yang sebenarnya kosong.
+      if (!data) { if (!prev[date]) return prev; const next = { ...prev }; delete next[date]; return next; }
+      return { ...prev, [date]: data };
+    });
+  }, []);
+
+  return {
+    entries, setEntries,
+    voucherToko, setVoucherToko,
+    initialSaldo, setInitialSaldo,
+    syncStatus, loading,
+    loadAllDetails, detailsReady, ensureDetail,
+  };
 }
 
 // === Tema gelap/terang ===

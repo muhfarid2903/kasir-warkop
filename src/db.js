@@ -37,6 +37,18 @@ function rowToEntry(row) {
   }
 }
 
+// Baris ringan: hanya kolom angka, tanpa JSON quantities/expenses. Sengaja
+// TIDAK memuat kunci quantities/expenses sama sekali — supaya kode yang butuh
+// detail gagal terang-terangan, bukan diam-diam membaca {} dan menampilkan nol.
+function rowToSummary(row) {
+  return {
+    date: row.date,
+    totalPenjualan: Number(row.total_penjualan) || 0,
+    gaji: Number(row.gaji) || 0,
+    totalPengeluaran: Number(row.total_pengeluaran) || 0,
+  }
+}
+
 function entryToRow(e) {
   return {
     date: e.date,
@@ -98,14 +110,36 @@ export async function saveSaldoAwal(value) {
 
 // === Entries ===
 
+// Dua tingkat, karena kolom JSON (quantities + expenses) adalah 34,6 KB dari
+// 47,8 KB yang dulu ditarik tiap login — padahal yang butuh isinya cuma tab
+// Riwayat dan form simpan. Muat awal ambil kolom angka saja; detailnya
+// menyusul kalau memang diminta.
+
 // Mengembalikan { data, error }, bukan melempar: pemanggil membedakan gagal
 // muat (badge Offline) dari tabel kosong, dan keduanya bukan kondisi fatal.
-export async function loadEntries() {
+export async function loadEntrySummaries() {
+  const { data, error } = await sb.from('entries').select('date,total_penjualan,gaji,total_pengeluaran')
+  if (error) return { data: null, error }
+  const map = {}
+  ;(data || []).forEach(r => { const e = rowToSummary(r); map[e.date] = e })
+  return { data: map, error: null }
+}
+
+// Seluruh entri lengkap — dipanggil saat tab Riwayat dibuka.
+export async function loadEntryDetails() {
   const { data, error } = await sb.from('entries').select('*')
   if (error) return { data: null, error }
   const map = {}
   ;(data || []).forEach(r => { const e = rowToEntry(r); map[e.date] = e })
   return { data: map, error: null }
+}
+
+// Satu entri lengkap — dipakai Hari Ini, yang cuma perlu tanggal terpilih.
+// null = tanggal itu memang belum punya entri.
+export async function loadEntryDetail(date) {
+  const { data, error } = await sb.from('entries').select('*').eq('date', date).maybeSingle()
+  if (error) return { data: null, error }
+  return { data: data ? rowToEntry(data) : null, error: null }
 }
 
 export async function saveEntry(entry) {
@@ -125,7 +159,9 @@ export async function deleteEntry(date) {
 // Opsional: error dikembalikan apa adanya supaya pemanggil bisa mengabaikannya
 // kalau tabelnya memang belum ada di project Supabase yang lebih lama.
 export async function loadVoucherToko() {
-  const { data, error } = await sb.from('voucher_toko').select('*')
+  // Kolom disebut satu per satu, bukan '*': updated_at tidak pernah dibaca app
+  // tapi menyumbang 10,8 KB dari 26,3 KB yang ditarik tiap login.
+  const { data, error } = await sb.from('voucher_toko').select('date,toko_id,drop_qty,laku_qty')
   if (error) return { data: null, error }
   const map = {}
   ;(data || []).forEach(r => {

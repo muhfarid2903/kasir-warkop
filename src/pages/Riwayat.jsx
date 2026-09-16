@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   saveSaldoAwal,
   saveEntry as dbSaveEntry,
@@ -15,10 +15,15 @@ import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
 import { Icon } from '../components/Icon.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
+import { SkeletonInput } from '../components/Skeleton.jsx'
 
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, session }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady }) {
+  // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
+  // jadi di sinilah detail lengkap ditarik — bukan saat login.
+  useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
+
   const [openDetail, setOpenDetail] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSaldo, setEditingSaldo] = useState(false);
@@ -138,6 +143,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     } catch(e) { showToast('Gagal menyimpan: '+e.message); }
     setEditSaving(false);
   }
+
+  if (!detailsReady) return (
+    <>
+      <div style={{marginBottom:8}}></div>
+      <SkeletonInput/>
+    </>
+  );
 
   return (
     <>
