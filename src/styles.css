@@ -948,7 +948,8 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .produk-kartu{background:#FFFFFF}
 [data-theme="light"] .produk-kartu.ada-isi{background:linear-gradient(160deg,rgba(0,113,227,.09),rgba(0,113,227,.02))}
 [data-theme="light"] .produk-kartu-bawah .angka{color:#D2D2D7}
-[data-theme="light"] .produk-kartu-bawah .kurang{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.10)}
+[data-theme="light"] .produk-kartu-bawah .kurang,
+[data-theme="light"] .chip-kurang{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.10)}
 [data-theme="light"] .stat-card{background:#FFFFFF}
 [data-theme="light"] .nav-btn:hover{background:rgba(0,0,0,.05);color:var(--text)}
 [data-theme="light"] .nav-btn.active{background:rgba(0,113,227,.10);box-shadow:none}
@@ -1242,6 +1243,14 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .chip:active{transform:scale(.98)}
 .chip.ada-isi{background:rgba(var(--accent-rgb),.10);border-color:rgba(var(--accent-rgb),.30);color:var(--accent)}
 .chip-angka{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent)}
+/* Muncul hanya setelah chip punya isi — supaya chip kosong tetap ringkas */
+.chip-kurang{
+  width:28px;height:28px;margin:0 -6px 0 1px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:inherit;font-size:17px;line-height:1;cursor:pointer;
+  color:var(--text2);background:rgba(0,0,0,.30);border:1px solid rgba(242,240,236,.1);
+}
+.chip-kurang:active{background:rgba(0,0,0,.5)}
 /* Aksi jarang (Cash Masuk dipakai 1 dari 72 hari) — hadir, tapi tidak menuntut perhatian */
 .chip.samar{background:transparent;border-style:dashed;color:var(--text3);flex:0 1 auto}
 

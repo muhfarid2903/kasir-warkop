@@ -198,14 +198,30 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                   {sekunder.map(p => {
                     const n = quantities[p.id] || 0;
                     return (
-                      <button
+                      <div
                         key={p.id}
                         className={"chip"+(n>0?" ada-isi":"")}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={"Tambah "+p.name}
                         onPointerDown={mulaiSentuh}
                         onPointerUp={(e)=>selesaiSentuh(e, ()=>changeQty(p.id,1))}
+                        onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); changeQty(p.id,1); } }}
                       >
-                        {p.name}{n>0 && <span className="chip-angka">{n}</span>}
-                      </button>
+                        {p.name}
+                        {n>0 && <span className="chip-angka">{n}</span>}
+                        {/* Tanpa ini chip hanya bisa menambah — kelebihan tap
+                            tidak ada jalan pulangnya selain lewat Riwayat. */}
+                        {n>0 && (
+                          <button
+                            className="chip-kurang"
+                            aria-label={"Kurangi "+p.name}
+                            onPointerDown={(e)=>e.stopPropagation()}
+                            onPointerUp={(e)=>e.stopPropagation()}
+                            onClick={(e)=>{ e.stopPropagation(); changeQty(p.id,-1); }}
+                          >−</button>
+                        )}
+                      </div>
                     );
                   })}
                   {lainnya.length > 0 && (
