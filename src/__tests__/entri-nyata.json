@@ -1,0 +1,842 @@
+{
+ "2026-03-15": {
+  "date": "2026-03-15",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 4,
+   "kopilain": 0,
+   "v2k": 2,
+   "v10k": 1,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 29000
+   }
+  ],
+  "totalPenjualan": 34000,
+  "gaji": 6500,
+  "totalPengeluaran": 29000,
+  "sisaKas": -1500
+ },
+ "2026-03-16": {
+  "date": "2026-03-16",
+  "quantities": {
+   "vietnam": 2,
+   "teh": 7,
+   "kopilain": 0,
+   "v2k": 2,
+   "v10k": 1,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 65000,
+  "gaji": 12500,
+  "totalPengeluaran": 0,
+  "sisaKas": 52500
+ },
+ "2026-03-17": {
+  "date": "2026-03-17",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 3,
+   "kopilain": 0,
+   "v2k": 212,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 439000,
+  "gaji": 109000,
+  "totalPengeluaran": 0,
+  "sisaKas": 330000
+ },
+ "2026-03-18": {
+  "date": "2026-03-18",
+  "quantities": {
+   "vietnam": 18,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 2,
+   "v10k": 1,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 158000,
+  "gaji": 29500,
+  "totalPengeluaran": 0,
+  "sisaKas": 128500
+ },
+ "2026-03-20": {
+  "date": "2026-03-20",
+  "quantities": {
+   "vietnam": 14,
+   "teh": 5,
+   "kopilain": 14,
+   "v2k": 53,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 327000,
+  "gaji": 70700,
+  "totalPengeluaran": 0,
+  "sisaKas": 256300
+ },
+ "2026-03-21": {
+  "date": "2026-03-21",
+  "quantities": {
+   "vietnam": 14,
+   "teh": 0,
+   "kopilain": 1,
+   "v2k": 2,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 122000,
+  "gaji": 23300,
+  "totalPengeluaran": 0,
+  "sisaKas": 98700
+ },
+ "2026-03-22": {
+  "date": "2026-03-22",
+  "quantities": {
+   "vietnam": 17,
+   "teh": 0,
+   "kopilain": 5,
+   "v2k": 200,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 566000,
+  "gaji": 132000,
+  "totalPengeluaran": 0,
+  "sisaKas": 434000
+ },
+ "2026-03-23": {
+  "date": "2026-03-23",
+  "quantities": {
+   "vietnam": 6,
+   "teh": 0,
+   "kopilain": 2,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 60000,
+  "gaji": 11600,
+  "totalPengeluaran": 0,
+  "sisaKas": 48400
+ },
+ "2026-03-24": {
+  "date": "2026-03-24",
+  "quantities": {
+   "vietnam": 6,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 11,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 70000,
+  "gaji": 14500,
+  "totalPengeluaran": 0,
+  "sisaKas": 55500
+ },
+ "2026-03-25": {
+  "date": "2026-03-25",
+  "quantities": {
+   "vietnam": 18,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 329,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 802000,
+  "gaji": 191500,
+  "totalPengeluaran": 0,
+  "sisaKas": 610500
+ },
+ "2026-03-26": {
+  "date": "2026-03-26",
+  "quantities": {
+   "vietnam": 7,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 54,
+   "v10k": 1,
+   "v1bln": 2,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 234000,
+  "gaji": 49000,
+  "totalPengeluaran": 0,
+  "sisaKas": 185000
+ },
+ "2026-03-27": {
+  "date": "2026-03-27",
+  "quantities": {
+   "vietnam": 5,
+   "teh": 0,
+   "kopilain": 3,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 58000,
+  "gaji": 11400,
+  "totalPengeluaran": 0,
+  "sisaKas": 46600
+ },
+ "2026-03-28": {
+  "date": "2026-03-28",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "galon",
+    "amount": 5000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "voucher dio",
+    "amount": 424000
+   },
+   {
+    "desc": "susu",
+    "amount": 14000
+   },
+   {
+    "desc": "voucher anci",
+    "amount": 106000
+   },
+   {
+    "desc": "gula aren",
+    "amount": 20000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "viucher anci",
+    "amount": 144000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "galon",
+    "amount": 15000
+   },
+   {
+    "desc": "voucher dio",
+    "amount": 252000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "susu",
+    "amount": 28000
+   },
+   {
+    "desc": "viucher dio",
+    "amount": 648000
+   },
+   {
+    "desc": "voucher 1 bulan",
+    "amount": 45000
+   },
+   {
+    "desc": "voucher anci",
+    "amount": 108000
+   },
+   {
+    "desc": "kertas",
+    "amount": 50000
+   },
+   {
+    "desc": "voucher 1 minggu",
+    "amount": 10000
+   },
+   {
+    "desc": "voucher 1 bulan",
+    "amount": 60000
+   }
+  ],
+  "totalPenjualan": 24000,
+  "gaji": 4500,
+  "totalPengeluaran": 2069000,
+  "sisaKas": -2049500
+ },
+ "2026-03-29": {
+  "date": "2026-03-29",
+  "quantities": {
+   "vietnam": 8,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 54,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Voucher anci",
+    "amount": 108000
+   }
+  ],
+  "totalPenjualan": 172000,
+  "gaji": 39000,
+  "totalPengeluaran": 108000,
+  "sisaKas": 25000
+ },
+ "2026-03-30": {
+  "date": "2026-03-30",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 2,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 4000,
+  "gaji": 1000,
+  "totalPengeluaran": 0,
+  "sisaKas": 3000
+ },
+ "2026-03-31": {
+  "date": "2026-03-31",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 10,
+   "v2k": 503,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 14000
+   },
+   {
+    "desc": "Gula aren 10",
+    "amount": 20000
+   },
+   {
+    "desc": "Voucher dio",
+    "amount": 998000
+   }
+  ],
+  "totalPenjualan": 1090000,
+  "gaji": 269000,
+  "totalPengeluaran": 1032000,
+  "sisaKas": -211000
+ },
+ "2026-04-01": {
+  "date": "2026-04-01",
+  "quantities": {
+   "vietnam": 9,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 28000
+   },
+   {
+    "desc": "Galon 3",
+    "amount": 15000
+   }
+  ],
+  "totalPenjualan": 72000,
+  "gaji": 13500,
+  "totalPengeluaran": 43000,
+  "sisaKas": 15500
+ },
+ "2026-04-02": {
+  "date": "2026-04-02",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 0,
+   "kopilain": 8,
+   "v2k": 1,
+   "v10k": 1,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Gula aren 15",
+    "amount": 30000
+   }
+  ],
+  "totalPenjualan": 60000,
+  "gaji": 12400,
+  "totalPengeluaran": 30000,
+  "sisaKas": 17600
+ },
+ "2026-04-03": {
+  "date": "2026-04-03",
+  "quantities": {
+   "vietnam": 6,
+   "teh": 0,
+   "kopilain": 4,
+   "v2k": 2,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 76000,
+  "gaji": 15200,
+  "totalPengeluaran": 0,
+  "sisaKas": 60800
+ },
+ "2026-04-04": {
+  "date": "2026-04-04",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 59,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Voucher anci",
+    "amount": 108000
+   }
+  ],
+  "totalPenjualan": 118000,
+  "gaji": 29500,
+  "totalPengeluaran": 108000,
+  "sisaKas": -19500
+ },
+ "2026-04-05": {
+  "date": "2026-04-05",
+  "quantities": {
+   "vietnam": 2,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 6,
+   "v10k": 1,
+   "v1bln": 1,
+   "ps4": 1
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 14000
+   }
+  ],
+  "totalPenjualan": 78000,
+  "gaji": 14500,
+  "totalPengeluaran": 14000,
+  "sisaKas": 49500
+ },
+ "2026-04-06": {
+  "date": "2026-04-06",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 7,
+   "v2k": 1,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 1
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 28000
+   }
+  ],
+  "totalPenjualan": 78000,
+  "gaji": 16100,
+  "totalPengeluaran": 28000,
+  "sisaKas": 33900
+ },
+ "2026-04-07": {
+  "date": "2026-04-07",
+  "quantities": {
+   "vietnam": 4,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 32000,
+  "gaji": 6000,
+  "totalPengeluaran": 0,
+  "sisaKas": 26000
+ },
+ "2026-04-08": {
+  "date": "2026-04-08",
+  "quantities": {
+   "vietnam": 6,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 48000,
+  "gaji": 9000,
+  "totalPengeluaran": 0,
+  "sisaKas": 39000
+ },
+ "2026-04-09": {
+  "date": "2026-04-09",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 554,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 1
+  },
+  "expenses": [
+   {
+    "desc": "Voucher dio",
+    "amount": 996000
+   },
+   {
+    "desc": "Voucher anci",
+    "amount": 108000
+   }
+  ],
+  "totalPenjualan": 1142000,
+  "gaji": 283500,
+  "totalPengeluaran": 1104000,
+  "sisaKas": -245500
+ },
+ "2026-04-10": {
+  "date": "2026-04-10",
+  "quantities": {
+   "vietnam": 1,
+   "teh": 0,
+   "kopilain": 5,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 28000
+   }
+  ],
+  "totalPenjualan": 38000,
+  "gaji": 8000,
+  "totalPengeluaran": 28000,
+  "sisaKas": 2000
+ },
+ "2026-04-12": {
+  "date": "2026-04-12",
+  "quantities": {
+   "vietnam": 5,
+   "teh": 0,
+   "kopilain": 3,
+   "v2k": 1,
+   "v10k": 0,
+   "v1bln": 1,
+   "ps4": 2
+  },
+  "expenses": [
+   {
+    "desc": "Air",
+    "amount": 15000
+   }
+  ],
+  "totalPenjualan": 114000,
+  "gaji": 20900,
+  "totalPengeluaran": 15000,
+  "sisaKas": 78100
+ },
+ "2026-04-13": {
+  "date": "2026-04-13",
+  "quantities": {
+   "vietnam": 4,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 5,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 28000
+   }
+  ],
+  "totalPenjualan": 42000,
+  "gaji": 8500,
+  "totalPengeluaran": 28000,
+  "sisaKas": 5500
+ },
+ "2026-04-14": {
+  "date": "2026-04-14",
+  "quantities": {
+   "vietnam": 2,
+   "teh": 0,
+   "kopilain": 1,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 22000,
+  "gaji": 4300,
+  "totalPengeluaran": 0,
+  "sisaKas": 17700
+ },
+ "2026-04-15": {
+  "date": "2026-04-15",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 6,
+   "v2k": 67,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Voucher anci",
+    "amount": 134000
+   },
+   {
+    "desc": "Gelas",
+    "amount": 10000
+   }
+  ],
+  "totalPenjualan": 194000,
+  "gaji": 45800,
+  "totalPengeluaran": 144000,
+  "sisaKas": 4200
+ },
+ "2026-04-16": {
+  "date": "2026-04-16",
+  "quantities": {
+   "vietnam": 0,
+   "teh": 0,
+   "kopilain": 1,
+   "v2k": 0,
+   "v10k": 2,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 26000,
+  "gaji": 4300,
+  "totalPengeluaran": 0,
+  "sisaKas": 21700
+ },
+ "2026-04-17": {
+  "date": "2026-04-17",
+  "quantities": {
+   "vietnam": 3,
+   "teh": 0,
+   "kopilain": 10,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Susu",
+    "amount": 28000
+   }
+  ],
+  "totalPenjualan": 84000,
+  "gaji": 17500,
+  "totalPengeluaran": 28000,
+  "sisaKas": 38500
+ },
+ "2026-04-20": {
+  "date": "2026-04-20",
+  "quantities": {
+   "vietnam": 2,
+   "teh": 0,
+   "kopilain": 0,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [],
+  "totalPenjualan": 16000,
+  "gaji": 3000,
+  "totalPengeluaran": 0,
+  "sisaKas": 13000
+ },
+ "2026-04-21": {
+  "date": "2026-04-21",
+  "quantities": {
+   "vietnam": 2,
+   "teh": 0,
+   "kopilain": 4,
+   "v2k": 147,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Voucher anci",
+    "amount": 42000
+   },
+   {
+    "desc": "Voucher dio",
+    "amount": 252000
+   }
+  ],
+  "totalPenjualan": 334000,
+  "gaji": 81700,
+  "totalPengeluaran": 294000,
+  "sisaKas": -41700
+ },
+ "2026-04-22": {
+  "date": "2026-04-22",
+  "quantities": {
+   "vietnam": 4,
+   "teh": 0,
+   "kopilain": 4,
+   "v2k": 0,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 1
+  },
+  "expenses": [
+   {
+    "desc": "Gas",
+    "amount": 24000
+   },
+   {
+    "desc": "Susu",
+    "amount": 18000
+   }
+  ],
+  "totalPenjualan": 66000,
+  "gaji": 13200,
+  "totalPengeluaran": 42000,
+  "sisaKas": 10800
+ },
+ "2026-04-23": {
+  "date": "2026-04-23",
+  "quantities": {
+   "vietnam": 4,
+   "teh": 2,
+   "kopilain": 0,
+   "v2k": 457,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "voucher dio 351",
+    "amount": 702000
+   },
+   {
+    "desc": "Voucher anci",
+    "amount": 168000
+   },
+   {
+    "desc": "Voucher dadi",
+    "amount": 42000
+   }
+  ],
+  "totalPenjualan": 956000,
+  "gaji": 236500,
+  "totalPengeluaran": 912000,
+  "sisaKas": -192500
+ },
+ "2026-04-24": {
+  "date": "2026-04-24",
+  "quantities": {
+   "vietnam": 6,
+   "teh": 5,
+   "kopilain": 0,
+   "v2k": 5,
+   "v10k": 0,
+   "v1bln": 0,
+   "ps4": 0
+  },
+  "expenses": [
+   {
+    "desc": "Pppp",
+    "amount": 30000
+   },
+   {
+    "desc": "Susu",
+    "amount": 18000
+   }
+  ],
+  "totalPenjualan": 83000,
+  "gaji": 16500,
+  "totalPengeluaran": 48000,
+  "sisaKas": 18500
+ }
+}

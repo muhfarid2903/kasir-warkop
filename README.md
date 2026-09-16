@@ -12,9 +12,13 @@ npm run dev      # http://localhost:5173
 ```
 
 ```bash
+npm test         # tes rumus uang + antrean offline
 npm run build    # hasil ke dist/
 npm run preview  # cek hasil build sebelum push
 ```
+
+Tes jalan otomatis di CI sebelum build, jadi rumus yang salah tidak ikut
+ter-deploy. Datanya memakai 37 entri nyata dari `import_riwayat.sql`.
 
 ## Deploy
 
@@ -36,6 +40,7 @@ dipindah, custom domain akan lepas tiap deploy.
 | `format.js` | angka & tanggal jadi teks |
 | `toast.js` | notifikasi |
 | `csv.js` | export riwayat |
+| `outbox.js` | antrean kiriman saat sinyal putus |
 | `pages/` | Login, HariIni, VoucherToko, Gajian, Riwayat |
 | `components/` | Icon, ProductIcon, AnimatedIDR, Skeleton |
 
