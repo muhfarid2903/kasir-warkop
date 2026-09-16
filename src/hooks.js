@@ -1,0 +1,220 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  supabaseReady,
+  getSession, onAuthChange,
+  loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
+  subscribeRealtime,
+} from './db.js'
+import { hasDetail } from './model.js'
+
+// State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
+// satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
+
+// === Sesi login ===
+export function useAuth() {
+  const [session, setSession] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (!supabaseReady) { setAuthChecked(true); return; }
+    getSession().then(s => {
+      setSession(s);
+      setAuthChecked(true);
+    });
+    return onAuthChange(s => setSession(s));
+  }, []);
+
+  return { session, setSession, authChecked };
+}
+
+// === Data warkop: muat awal + realtime ===
+// entries, voucherToko, dan initialSaldo dibaca Hari Ini, Voucher, Gajian, dan
+// Riwayat sekaligus, jadi sumbernya harus satu.
+//
+// entries dua tingkat. Muat awal mengisi baris RINGKAS (cuma kolom angka);
+// baris LENGKAP (dengan quantities & expenses) menyusul hanya kalau diminta —
+// Riwayat minta semuanya, Hari Ini minta satu tanggal. Bedakan keduanya dengan
+// hasDetail(); baris ringkas tidak punya kunci quantities sama sekali.
+export function useWarkopData(session) {
+  const [entries, setEntries] = useState({});
+  const [voucherToko, setVoucherToko] = useState({});
+  const [initialSaldo, setInitialSaldo] = useState(0);
+  const [syncStatus, setSyncStatus] = useState(supabaseReady ? "loading" : "not_configured");
+  const [loading, setLoading] = useState(supabaseReady);
+
+  useEffect(() => {
+    // Tanpa sesi: layar Login yang tampil, jadi nilai loading tidak kelihatan.
+    // Tetap dibiarkan true supaya saat sesi muncul tidak ada satu render antara
+    // di mana halaman sempat tampil dengan data kosong — itu bikin Hari Ini
+    // mount lalu unmount lagi, dan ikut menembakkan permintaan yang mubazir.
+    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); detailsLoaded.current = false; setDetailsReady(false); } setLoading(supabaseReady); return; }
+    setLoading(true);
+    let cancelled = false;
+    (async () => {
+      // Saldo awal
+      const saldo = await loadSaldoAwal();
+      if (!cancelled && saldo != null) setInitialSaldo(saldo);
+      // Entries — ringkas dulu; detailnya menyusul saat diminta
+      const { data: map, error } = await loadEntrySummaries();
+      if (cancelled) return;
+      if (error) { setSyncStatus('offline'); setLoading(false); return; }
+      setEntries(map);
+      // Voucher Toko (opsional — abaikan error jika tabel belum ada)
+      const { data: vmap, error: vtErr } = await loadVoucherToko();
+      if (!cancelled && !vtErr) setVoucherToko(vmap);
+      setSyncStatus('online');
+      setLoading(false);
+    })();
+    // Realtime
+    const unsubscribe = subscribeRealtime({
+      onEntry: (ev) => {
+        setEntries(prev => {
+          const next = { ...prev };
+          if (ev.type === 'delete') delete next[ev.date];
+          else next[ev.entry.date] = ev.entry;
+          return next;
+        });
+      },
+      onSaldoAwal: (value) => setInitialSaldo(value),
+      onVoucher: (ev) => {
+        setVoucherToko(prev => {
+          const next = { ...prev };
+          if (ev.type === 'delete') {
+            if (next[ev.date]) { const dm = { ...next[ev.date] }; delete dm[ev.tokoId]; if (Object.keys(dm).length===0) delete next[ev.date]; else next[ev.date] = dm; }
+          } else {
+            next[ev.date] = { ...(next[ev.date]||{}), [ev.tokoId]: ev.cell };
+          }
+          return next;
+        });
+      },
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, [session]);
+
+  // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
+  // per sesi — realtime yang menjaga tetap segar setelahnya.
+  const detailsLoaded = useRef(false);
+  const [detailsReady, setDetailsReady] = useState(false);
+
+  const loadAllDetails = useCallback(async () => {
+    if (detailsLoaded.current) { setDetailsReady(true); return; }
+    detailsLoaded.current = true;
+    const { data, error } = await loadEntryDetails();
+    if (error) { detailsLoaded.current = false; setSyncStatus('offline'); return; }
+    // Baris lengkap menimpa yang ringkas; tanggal yang cuma ada di ringkas
+    // (mustahil, tapi murah untuk dijaga) tetap dipertahankan.
+    setEntries(prev => ({ ...prev, ...data }));
+    setDetailsReady(true);
+  }, []);
+
+  // Pastikan satu tanggal punya baris lengkap. Dipakai Hari Ini, yang perlu
+  // quantities & expenses tanggal terpilih untuk menumpuk input di atasnya.
+  const ensureDetail = useCallback(async (date) => {
+    // Sudah lengkap: tidak perlu menarik ulang.
+    let sudah = false;
+    setEntries(prev => { sudah = hasDetail(prev[date]); return prev; });
+    if (sudah) return;
+    const { data, error } = await loadEntryDetail(date);
+    if (error) return;
+    setEntries(prev => {
+      // Tidak ada entri di server: buang sisa baris ringkas supaya UI tidak
+      // menampilkan "sudah tercatat" untuk tanggal yang sebenarnya kosong.
+      if (!data) { if (!prev[date]) return prev; const next = { ...prev }; delete next[date]; return next; }
+      return { ...prev, [date]: data };
+    });
+  }, []);
+
+  return {
+    entries, setEntries,
+    voucherToko, setVoucherToko,
+    initialSaldo, setInitialSaldo,
+    syncStatus, loading,
+    loadAllDetails, detailsReady, ensureDetail,
+  };
+}
+
+// === Tema gelap/terang ===
+export function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('theme') || 'light'; } catch(e) { return 'light'; }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('theme', theme); } catch(e) {}
+  }, [theme]);
+
+  return [theme, setTheme];
+}
+
+// === Sidebar ===
+// Menutup sendiri saat pindah halaman di layar HP, membuka lagi saat lebar
+// layar melewati 900px.
+export function useSidebar() {
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth >= 900;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)');
+    const handler = (e) => setSidebarOpen(e.matches);
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else mq.addListener(handler);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', handler);
+      else mq.removeListener(handler);
+    };
+  }, []);
+
+  return [sidebarOpen, setSidebarOpen];
+}
+
+// === Perbaikan perilaku input number ===
+// Dipasang sekali di App, bukan per halaman: keduanya listener di document.
+export function useNumberInputGuards() {
+  // Cegah wheel/scroll mengubah nilai input number
+  useEffect(() => {
+    const onWheel = (e) => {
+      const el = e.target;
+      if (el && el.tagName === 'INPUT' && el.type === 'number' && document.activeElement === el) {
+        el.blur();
+      }
+    };
+    document.addEventListener('wheel', onWheel, { passive: true });
+    return () => document.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Auto-select isi input number saat di-focus, supaya ketikan baru menggantikan nilai lama (0 → 1, bukan 01/10)
+  useEffect(() => {
+    const onFocusIn = (e) => {
+      const el = e.target;
+      if (el && el.tagName === 'INPUT' && el.type === 'number') {
+        setTimeout(() => { try { el.select(); } catch(_) {} }, 0);
+      }
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, []);
+}
+
+// === Form edit entri (dipakai tab Riwayat) ===
+// Lima potong state yang selalu berubah bersamaan, dibungkus supaya Riwayat
+// tidak menyimpan sepuluh useState sendiri.
+export function useEntryEditor() {
+  const [editingDate, setEditingDate] = useState(null);
+  const [editQty, setEditQty] = useState({});
+  const [editExpenses, setEditExpenses] = useState([]);
+  const [editCashIns, setEditCashIns] = useState([]);
+  const [editVoucher, setEditVoucher] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+
+  return {
+    editingDate, setEditingDate,
+    editQty, setEditQty,
+    editExpenses, setEditExpenses,
+    editCashIns, setEditCashIns,
+    editVoucher, setEditVoucher,
+    editSaving, setEditSaving,
+  };
+}
