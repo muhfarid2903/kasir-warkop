@@ -45,6 +45,10 @@ jobs:
       # Itu yang membuat build di sini sama dengan build di laptop.
       - run: npm ci
 
+      # Tes jalan SEBELUM build: kalau rumus uang salah, jangan sampai
+      # hasilnya sempat ter-deploy.
+      - run: npm test
+
       - run: npm run build
 
       - name: Pastikan CNAME ikut ke dist/

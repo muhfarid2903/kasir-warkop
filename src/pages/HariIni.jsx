@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { saveEntry as dbSaveEntry, loadEntryDetail } from '../db.js'
+// (akses Supabase lewat outbox — lihat src/outbox.js)
+import { kirimAtauAntre } from '../outbox.js'
 import {
   PRODUCTS, VOUCHER_TOKO_CUTOFF,
-  voucherForDate, draftTotals, buildEntry, computeKasSummary, computePaydayInfo, hasDetail,
+  voucherForDate, draftTotals, accumulateEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
 import { showToast } from '../toast.js'
@@ -12,7 +13,7 @@ import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
-export default function HariIni({ selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail }) {
+export default function HariIni({ selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
   const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
   const [expenses, setExpenses] = useState([]);
   const [cashIns, setCashIns] = useState([]);
@@ -55,28 +56,19 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
     if (!hasQty && !hasExp && !hasCash) { showToast('Belum ada input!'); return; }
     setSaving(true);
-    // Ambil baris LENGKAP yang segar dari server sebelum menumpuk. State lokal
-    // bisa berisi baris ringkas (tanpa quantities/expenses) — menumpuk di atas
-    // itu akan menghapus catatan lama tanggal tersebut.
-    const { data: existing, error: loadErr } = await loadEntryDetail(selectedDate);
-    if (loadErr) { showToast('Gagal menyimpan: tidak bisa membaca data tanggal ini'); setSaving(false); return; }
-    // Menambah, bukan mengganti: qty & catatan hari ini ditumpuk di atas yang sudah tersimpan.
-    // Mulai dari SALINAN qty lama, bukan dari daftar PRODUCTS. Entri lama bisa
-    // memuat produk yang sudah tidak ada di PRODUCTS — mis. menu yang dihapus,
-    // atau data yang ditulis versi app lain. Membangun ulang dari PRODUCTS akan
-    // membuangnya diam-diam beserta nilainya.
-    const accQty = { ...(existing?.quantities || {}) };
-    PRODUCTS.forEach(p => { accQty[p.id] = (accQty[p.id]||0) + (quantities[p.id]||0); });
-    const newExpenses = expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='');
-    const newCashIns = cashIns.filter(e => (e.amount||0)>0 || e.desc.trim()!=='').map(e => ({...e, type:'cashin'}));
-    const accExpenses = [...(existing?(existing.expenses||[]):[]), ...newExpenses, ...newCashIns];
-    const entry = buildEntry(selectedDate, accQty, accExpenses);
+    const input = { quantities, expenses, cashIns };
     try {
-      if (session) await dbSaveEntry(entry);
-      // Optimistic local update (realtime menyusul) — Kas & "sudah tercatat" langsung kebaca
-      setEntries(prev => ({ ...prev, [selectedDate]: entry }));
-      showToast((existing?'Ditambahkan':'Tersimpan')+' · '+fmtDate(selectedDate));
-      // Reset form HANYA bila simpan berhasil — supaya input tidak hilang saat gagal
+      // Tebak hasilnya untuk layar: entri lokal dipakai kalau detailnya sudah
+      // ada. Angka pasti menyusul dari server / saat antrean terkirim.
+      const dasar = hasDetail(existingEntry) ? existingEntry : null;
+      const tebakan = accumulateEntry(dasar, selectedDate, input);
+      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:selectedDate, input });
+      tandaiTulis(hasil);
+      setEntries(prev => ({ ...prev, [selectedDate]: tebakan }));
+      showToast(hasil === 'diantre'
+        ? 'Belum ada sinyal — disimpan di HP, terkirim otomatis nanti'
+        : (dasar ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(selectedDate));
+      // Reset form HANYA bila tidak gagal — supaya input tidak hilang saat gagal
       const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]);
     } catch(e) { showToast('Gagal menyimpan: '+e.message); }
     setSaving(false);

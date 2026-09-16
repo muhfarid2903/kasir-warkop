@@ -8,6 +8,18 @@
   <meta name="description" content="Input & rekap kas harian warung kopi"/>
   <!-- Font Inter + JetBrains Mono di-bundle lewat @fontsource (lihat src/main.jsx),
        jadi tidak ada permintaan ke fonts.googleapis.com saat app dibuka. -->
+  <script>
+    // Tema dipasang SEBELUM React jalan. Tanpa ini ada satu frame bertema gelap
+    // (nilai :root di CSS) sebelum useEffect menyetelnya ke terang — kelihatan
+    // seperti kedipan tiap app dibuka.
+    (function () {
+      try {
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>

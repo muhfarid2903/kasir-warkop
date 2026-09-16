@@ -5,7 +5,8 @@ import {
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
   subscribeRealtime,
 } from './db.js'
-import { hasDetail } from './model.js'
+import { flushOutbox, onOutboxChange, outboxSize } from './outbox.js'
+import { hasDetail, todayISO } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
 // satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
@@ -76,6 +77,7 @@ export function useWarkopData(session) {
         });
       },
       onSaldoAwal: (value) => setInitialSaldo(value),
+      onStatus: (st) => setSyncStatus(prev => prev === 'not_configured' ? prev : st),
       onVoucher: (ev) => {
         setVoucherToko(prev => {
           const next = { ...prev };
@@ -90,6 +92,39 @@ export function useWarkopData(session) {
     });
     return () => { cancelled = true; unsubscribe(); };
   }, [session]);
+
+  // === Antrean kiriman tertunda ===
+  const [pending, setPending] = useState(outboxSize);
+  useEffect(() => onOutboxChange(setPending), []);
+
+  // Coba kirim ulang saat: ada sesi, browser bilang online lagi, app kembali
+  // terlihat, dan berkala. WiFi warkop bisa "tersambung" tapi tidak jalan,
+  // jadi event online saja tidak cukup diandalkan.
+  useEffect(() => {
+    if (!session) return;
+    let batal = false;
+    const coba = async () => {
+      if (batal || outboxSize() === 0) return;
+      const { terkirim, sisa } = await flushOutbox();
+      if (batal) return;
+      if (terkirim > 0 && sisa === 0) setSyncStatus('online');
+    };
+    coba();
+    const timer = setInterval(coba, 20000);
+    window.addEventListener('online', coba);
+    document.addEventListener('visibilitychange', coba);
+    return () => {
+      batal = true; clearInterval(timer);
+      window.removeEventListener('online', coba);
+      document.removeEventListener('visibilitychange', coba);
+    };
+  }, [session]);
+
+  // Dipanggil halaman setelah operasi tulis, supaya badge mencerminkan keadaan
+  // sebenarnya — bukan cuma hasil muat awal seperti sebelumnya.
+  const tandaiTulis = useCallback((hasil) => {
+    setSyncStatus(prev => prev === 'not_configured' ? prev : (hasil === 'diantre' ? 'offline' : 'online'));
+  }, []);
 
   // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
   // per sesi — realtime yang menjaga tetap segar setelahnya.
@@ -130,7 +165,36 @@ export function useWarkopData(session) {
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
+    pending, tandaiTulis,
   };
+}
+
+// === Tanggal hari ini yang ikut berganti saat lewat tengah malam ===
+// App kasir sering dibiarkan terbuka semalaman. Tanpa ini tanggalnya macet di
+// hari app dibuka, dan penjualan jam 1 pagi masuk ke hari kemarin — diam-diam,
+// karena saveEntry MENAMBAH ke entri yang sudah ada.
+export function useTodayISO() {
+  const [today, setToday] = useState(todayISO);
+
+  useEffect(() => {
+    let timer;
+    const jadwalkan = () => {
+      const now = new Date();
+      // 5 detik lewat tengah malam, bukan tepat 00:00 — supaya tidak kebentur
+      // pembulatan timer yang membuatnya menyala sedetik terlalu awal.
+      const besok = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 5);
+      timer = setTimeout(() => { setToday(todayISO()); jadwalkan(); }, besok - now);
+    };
+    jadwalkan();
+
+    // HP menidurkan timer saat layar mati, jadi setTimeout saja tidak cukup:
+    // periksa ulang tiap app kembali terlihat.
+    const saatTerlihat = () => { if (!document.hidden) setToday(todayISO()); };
+    document.addEventListener('visibilitychange', saatTerlihat);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', saatTerlihat); };
+  }, []);
+
+  return today;
 }
 
 // === Tema gelap/terang ===

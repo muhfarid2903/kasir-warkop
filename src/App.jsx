@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signOut } from './db.js'
-import { todayISO } from './model.js'
-import { DAYS, ML } from './format.js'
-import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards } from './hooks.js'
+import { DAYS, ML, fmtDateShort } from './format.js'
+import { showToast } from './toast.js'
+import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO } from './hooks.js'
 import { Icon } from './components/Icon.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
@@ -23,7 +23,22 @@ const NAV_ITEMS = [
 // halaman aktif, dan tanggal terpilih (dipakai bareng Hari Ini & Voucher Toko).
 function App() {
   const [page, setPage] = useState("input");
-  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const hariIni = useTodayISO();
+  const [selectedDate, setSelectedDate] = useState(hariIni);
+
+  // Saat hari berganti, ikut pindah HANYA kalau pengguna masih duduk di tanggal
+  // hari kemarin. Kalau dia sengaja memilih tanggal lain, jangan diseret.
+  const hariSebelumnya = useRef(hariIni);
+  useEffect(() => {
+    if (hariSebelumnya.current === hariIni) return;
+    const kemarin = hariSebelumnya.current;
+    hariSebelumnya.current = hariIni;
+    setSelectedDate(cur => {
+      if (cur !== kemarin) return cur;
+      showToast('Sudah lewat tengah malam — tanggal pindah ke '+fmtDateShort(hariIni));
+      return hariIni;
+    });
+  }, [hariIni]);
   const { session, setSession, authChecked } = useAuth();
   const {
     entries, setEntries,
@@ -31,6 +46,7 @@ function App() {
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
+    pending, tandaiTulis,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -93,7 +109,20 @@ function App() {
     </div>
   );
 
-  const SyncBadge = () => syncStatus==="online" ? null : (<div className="sync-badge sync-offline" title="Tidak terhubung — perubahan tidak tersinkron"><div className="sync-dot offline"/>Offline</div>);
+  // Tampil kalau tidak online ATAU masih ada kiriman tertunda. Jumlahnya
+  // disebutkan supaya kasir tahu ada yang belum sampai, bukan sekadar "offline".
+  const SyncBadge = () => {
+    if (syncStatus === "online" && pending === 0) return null;
+    const judul = pending > 0
+      ? pending+' perubahan tersimpan di HP, menunggu sinyal untuk terkirim'
+      : 'Tidak terhubung — perubahan tidak tersinkron';
+    return (
+      <div className="sync-badge sync-offline" title={judul}>
+        <div className="sync-dot offline"/>
+        {pending > 0 ? pending+' tertunda' : 'Offline'}
+      </div>
+    );
+  };
   const today = new Date();
 
   const currentPage = NAV_ITEMS.find(n=>n.id===page);
@@ -163,6 +192,7 @@ function App() {
               initialSaldo={initialSaldo}
               session={session}
               ensureDetail={ensureDetail}
+              tandaiTulis={tandaiTulis}
             />
           )}
 
@@ -171,6 +201,7 @@ function App() {
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               session={session}
+              tandaiTulis={tandaiTulis}
             />
           )}
 
@@ -185,6 +216,7 @@ function App() {
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
               loadAllDetails={loadAllDetails} detailsReady={detailsReady}
+              tandaiTulis={tandaiTulis}
             />
           )}
         </div>

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { accumulateEntry } from './model.js'
 
 // Satu-satunya file yang menyentuh Supabase. Komponen tidak pernah memanggil
 // sb.from(...) atau sb.auth langsung — supaya kalau nanti mau menambah retry,
@@ -148,6 +149,17 @@ export async function saveEntry(entry) {
   if (error) throw error
 }
 
+// Menambah input ke entri satu tanggal. Selalu membaca baris LENGKAP yang
+// segar dulu, jadi hasilnya benar walau state lokal basi — dan tetap benar
+// walau kirimannya baru terkirim beberapa jam kemudian dari antrean offline.
+export async function commitEntryAddition(date, input) {
+  const { data: existing, error } = await loadEntryDetail(date)
+  if (error) throw error
+  const entry = accumulateEntry(existing, date, input)
+  await saveEntry(entry)
+  return entry
+}
+
 export async function deleteEntry(date) {
   if (!sb) return
   const { error } = await sb.from('entries').delete().eq('date', date)
@@ -184,13 +196,22 @@ export async function saveVoucherToko(date, rows) {
   if (error) throw error
 }
 
+// Apakah kegagalan ini karena jaringan, bukan karena datanya ditolak?
+// Dipakai memutuskan menyalakan badge Offline atau tidak.
+export function isNetworkError(e) {
+  if (!e) return false
+  const m = String(e.message || e).toLowerCase()
+  return m.includes('fetch') || m.includes('network') || m.includes('failed to fetch')
+      || m.includes('timeout') || m.includes('load failed')
+}
+
 // === Realtime ===
 
 // Satu channel untuk ketiga tabel. Payload mentah Supabase (payload.new,
 // drop_qty, eventType) diterjemahkan di sini juga, supaya komponen cuma
 // menerima bentuk yang sudah dikenalnya.
 // Mengembalikan fungsi untuk berhenti berlangganan.
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onStatus }) {
   if (!sb) return () => {}
   const ch = sb.channel('rt-entries')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
@@ -213,6 +234,13 @@ export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher }) {
         onVoucher({ type: 'upsert', date: r.date, tokoId: r.toko_id, cell: voucherCell(r) })
       }
     })
-    .subscribe()
+    // Tanpa callback ini, channel yang mati (WiFi warkop putus) tidak
+    // memberi tanda apa pun: layar terus menampilkan angka basi sambil
+    // terlihat normal. Untuk pembukuan, diam-diam salah lebih berbahaya
+    // daripada jelas-jelas mati.
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') onStatus?.('online')
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') onStatus?.('offline')
+    })
   return () => sb.removeChannel(ch)
 }

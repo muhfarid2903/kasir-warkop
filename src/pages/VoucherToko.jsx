@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { saveVoucherToko as dbSaveVoucherToko } from '../db.js'
+import { kirimAtauAntre } from '../outbox.js'
 import {
   TOKO, VOUCHER_TOKO_CUTOFF, V2K, V2K_SETORAN,
   getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore,
@@ -10,7 +10,7 @@ import { Icon } from '../components/Icon.jsx'
 
 // Drop & laku voucher 2000 per toko, per hari. selectedDate dipegang App
 // karena dipakai bareng halaman Hari Ini.
-export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko, setVoucherToko, session }) {
+export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
   const [voucherDraft, setVoucherDraft] = useState({});
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
@@ -43,14 +43,17 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
     if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     setVoucherSaving(true);
     try {
-      if (session) await dbSaveVoucherToko(selectedDate, rows);
+      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows });
+      tandaiTulis(hasil);
       // Optimistic local update
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
         rows.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
         next[selectedDate] = dayMap; return next;
       });
-      showToast('Voucher tersimpan · '+fmtDate(selectedDate));
+      showToast(hasil === 'diantre'
+        ? 'Belum ada sinyal — voucher disimpan di HP, terkirim otomatis nanti'
+        : 'Voucher tersimpan · '+fmtDate(selectedDate));
     } catch(e) { showToast('Gagal simpan voucher: '+e.message); }
     setVoucherSaving(false);
   }

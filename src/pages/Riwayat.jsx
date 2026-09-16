@@ -1,10 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import {
-  saveSaldoAwal,
-  saveEntry as dbSaveEntry,
-  deleteEntry as dbDeleteEntry,
-  saveVoucherToko as dbSaveVoucherToko,
-} from '../db.js'
+import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '../db.js'
+import { kirimAtauAntre } from '../outbox.js'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
   voucherForDate, voucherStockBefore, buildEntry, entryDayTotals,
@@ -19,7 +15,7 @@ import { SkeletonInput } from '../components/Skeleton.jsx'
 
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis }) {
   // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
   // jadi di sinilah detail lengkap ditarik — bukan saat login.
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
@@ -76,16 +72,18 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     setInitialSaldo(v);
     setEditingSaldo(false);
     try {
-      if (session) await saveSaldoAwal(v);
-      showToast('Saldo awal disimpan: '+IDR(v));
+      const hasil = await kirimAtauAntre({ type:'simpanSaldo', value:v });
+      tandaiTulis(hasil);
+      showToast(hasil === 'diantre' ? 'Saldo awal disimpan di HP, terkirim nanti' : 'Saldo awal disimpan: '+IDR(v));
     } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
   }
 
   async function deleteEntry(date) {
     if(!confirm('Yakin hapus data tanggal '+fmtDate(date)+'?')) return;
     try {
-      if (session) await dbDeleteEntry(date);
-      showToast('Entri dihapus');
+      const hasil = await kirimAtauAntre({ type:'hapusEntri', date });
+      tandaiTulis(hasil);
+      showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Entri dihapus');
     } catch(e) { showToast('Gagal: '+e.message); }
   }
 
@@ -134,6 +132,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     const writeEntry = entryHasData || entryExisted;
     setEditSaving(true);
     try {
+      // Edit MENGGANTI nilai, jadi tidak lewat antrean: mengirim ulang nanti
+      // bisa menimpa perubahan yang lebih baru dari perangkat lain. Lebih baik
+      // gagal terang-terangan dan diulang sendiri saat sinyal kembali.
       if (session) {
         if (writeEntry) await dbSaveEntry(entry);
         if (isVoucherDate) await dbSaveVoucherToko(date, voucherRows);
