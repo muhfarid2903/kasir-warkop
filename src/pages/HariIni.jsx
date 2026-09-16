@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { saveEntry as dbSaveEntry, loadEntryDetail } from '../db.js'
 import {
-  PRODUCTS, ALL_PRODUCTS, VOUCHER_TOKO_CUTOFF,
+  PRODUCTS, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, buildEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
@@ -62,9 +62,9 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     if (loadErr) { showToast('Gagal menyimpan: tidak bisa membaca data tanggal ini'); setSaving(false); return; }
     // Menambah, bukan mengganti: qty & catatan hari ini ditumpuk di atas yang sudah tersimpan.
     // Mulai dari SALINAN qty lama, bukan dari daftar PRODUCTS. Entri lama bisa
-    // memuat produk yang sudah tidak dijual (lihat LEGACY_PRODUCTS) atau kunci
-    // lain yang tidak dikenal; membangun ulang dari PRODUCTS akan membuangnya
-    // diam-diam beserta nilainya.
+    // memuat produk yang sudah tidak ada di PRODUCTS — mis. menu yang dihapus,
+    // atau data yang ditulis versi app lain. Membangun ulang dari PRODUCTS akan
+    // membuangnya diam-diam beserta nilainya.
     const accQty = { ...(existing?.quantities || {}) };
     PRODUCTS.forEach(p => { accQty[p.id] = (accQty[p.id]||0) + (quantities[p.id]||0); });
     const newExpenses = expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='');
@@ -121,7 +121,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
               // Detail tanggal ini belum tiba: diamkan dulu, jangan tampilkan "–"
               // yang bikin seolah harinya kosong padahal ada isinya.
               if (existingEntry && !hasDetail(existingEntry) && !hasVoucher) return null;
-              const items = hasDetail(existingEntry) ? ALL_PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
+              const items = hasDetail(existingEntry) ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
               const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
               return (
                 <span className="date-hint">

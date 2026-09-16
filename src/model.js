@@ -9,31 +9,13 @@ export const PRODUCTS = [
   { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500 },
   { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000 },
   { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300 },
+  { id: 'esaren',   name: 'Es Kopi Gula Aren',  price: 15000, gaji: 2000 },
+  { id: 'escaramel',name: 'Es Kopi Caramel',    price: 15000, gaji: 2000 },
   { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  komisi_toko: 500 },
   { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500 },
   { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000 },
   { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000 },
 ]
-
-// Produk yang sudah tidak dijual lagi tapi masih ada di data lama. Tidak
-// muncul di form input Hari Ini, tapi TETAP dihitung dan tetap tampil di
-// Riwayat — kalau tidak, mengedit entri lama akan diam-diam menghapusnya
-// beserta nilainya.
-//
-// Harga diturunkan dari data tersimpan, konsisten di dua entri yang ada:
-// 3 Sep 2026 esaren×2 = Rp30.000 (gaji Rp4.000), 7 Sep 2026 esaren×1 =
-// Rp15.000 (gaji Rp2.000).
-//
-// 'escaramel' juga pernah ada sebagai kolom tapi qty-nya selalu 0, jadi
-// harganya tidak bisa disimpulkan dan tidak perlu — kuncinya tetap aman
-// karena buildEntry membawa serta semua kunci quantities yang tidak dikenal.
-export const LEGACY_PRODUCTS = [
-  { id: 'esaren', name: 'Es Aren', price: 15000, gaji: 2000 },
-]
-
-// Untuk MENGHITUNG dan MENAMPILKAN, pakai ini. Untuk form input, pakai
-// PRODUCTS saja — yang legacy tidak boleh bisa diinput lagi.
-export const ALL_PRODUCTS = [...PRODUCTS, ...LEGACY_PRODUCTS]
 
 // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
 // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
@@ -136,7 +118,7 @@ export function hasDetail(entry) {
 
 export function productTotals(quantities) {
   let totalQty=0, totalSales=0, totalGaji=0;
-  ALL_PRODUCTS.forEach(p => { const q=quantities?.[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+  PRODUCTS.forEach(p => { const q=quantities?.[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
   return { totalQty, totalSales, totalGaji };
 }
 

@@ -25,6 +25,20 @@ export const ProductIcon = ({type, size=20}) => {
       <path d="M8 3.5c0 1.2 1 1.2 1 2.4s-1 1.2-1 2.4"/>
       <path d="M12 3c0 1.2 1 1.2 1 2.4s-1 1.2-1 2.4"/>
     </>,
+    // Es Kopi Gula Aren — gelas tinggi berisi es + sedotan + layer gula aren
+    esaren: <>
+      <path d="M6.5 6.5h11l-1.2 12.6a2.2 2.2 0 01-2.2 2H9.9a2.2 2.2 0 01-2.2-2z"/>
+      <line x1="6.9" y1="10" x2="17.1" y2="10"/>
+      <line x1="7.9" y1="15.6" x2="16.1" y2="15.6"/>
+      <line x1="15.6" y1="2.6" x2="13" y2="9"/>
+    </>,
+    // Es Kopi Caramel — gelas es + drizzle caramel berlekuk + kubus es
+    escaramel: <>
+      <path d="M6.5 8.5h11l-1.2 10.6a2.2 2.2 0 01-2.2 2h-4.2a2.2 2.2 0 01-2.2-2z"/>
+      <path d="M5.6 8.5c1.1-2.2 2.8-2.2 3.9-.6 1.1 1.6 2.8 1.6 3.9-.6 1.1-2.2 2.8-2.2 3.9-.6"/>
+      <rect x="8.9" y="11.8" width="2.8" height="2.8" rx="0.5"/>
+      <rect x="12.4" y="15" width="2.6" height="2.6" rx="0.5"/>
+    </>,
     // Voucher 2000 — bentuk tiket bernotch + WiFi arc kecil di tengah
     v2k: <>
       <path d="M3 7.5v1.7a1.5 1.5 0 010 3v1.6a1.5 1.5 0 010 3v0a2 2 0 002 2h14a2 2 0 002-2v0a1.5 1.5 0 010-3v-1.6a1.5 1.5 0 010-3V7.5a2 2 0 00-2-2H5a2 2 0 00-2 2z"/>
