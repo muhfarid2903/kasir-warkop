@@ -5,7 +5,7 @@ import {
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
   subscribeRealtime,
 } from './db.js'
-import { hasDetail } from './model.js'
+import { hasDetail, todayISO } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
 // satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
@@ -131,6 +131,34 @@ export function useWarkopData(session) {
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
   };
+}
+
+// === Tanggal hari ini yang ikut berganti saat lewat tengah malam ===
+// App kasir sering dibiarkan terbuka semalaman. Tanpa ini tanggalnya macet di
+// hari app dibuka, dan penjualan jam 1 pagi masuk ke hari kemarin — diam-diam,
+// karena saveEntry MENAMBAH ke entri yang sudah ada.
+export function useTodayISO() {
+  const [today, setToday] = useState(todayISO);
+
+  useEffect(() => {
+    let timer;
+    const jadwalkan = () => {
+      const now = new Date();
+      // 5 detik lewat tengah malam, bukan tepat 00:00 — supaya tidak kebentur
+      // pembulatan timer yang membuatnya menyala sedetik terlalu awal.
+      const besok = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 5);
+      timer = setTimeout(() => { setToday(todayISO()); jadwalkan(); }, besok - now);
+    };
+    jadwalkan();
+
+    // HP menidurkan timer saat layar mati, jadi setTimeout saja tidak cukup:
+    // periksa ulang tiap app kembali terlihat.
+    const saatTerlihat = () => { if (!document.hidden) setToday(todayISO()); };
+    document.addEventListener('visibilitychange', saatTerlihat);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', saatTerlihat); };
+  }, []);
+
+  return today;
 }
 
 // === Tema gelap/terang ===

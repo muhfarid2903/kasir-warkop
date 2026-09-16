@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signOut } from './db.js'
-import { todayISO } from './model.js'
-import { DAYS, ML } from './format.js'
-import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards } from './hooks.js'
+import { DAYS, ML, fmtDateShort } from './format.js'
+import { showToast } from './toast.js'
+import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO } from './hooks.js'
 import { Icon } from './components/Icon.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
@@ -23,7 +23,22 @@ const NAV_ITEMS = [
 // halaman aktif, dan tanggal terpilih (dipakai bareng Hari Ini & Voucher Toko).
 function App() {
   const [page, setPage] = useState("input");
-  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const hariIni = useTodayISO();
+  const [selectedDate, setSelectedDate] = useState(hariIni);
+
+  // Saat hari berganti, ikut pindah HANYA kalau pengguna masih duduk di tanggal
+  // hari kemarin. Kalau dia sengaja memilih tanggal lain, jangan diseret.
+  const hariSebelumnya = useRef(hariIni);
+  useEffect(() => {
+    if (hariSebelumnya.current === hariIni) return;
+    const kemarin = hariSebelumnya.current;
+    hariSebelumnya.current = hariIni;
+    setSelectedDate(cur => {
+      if (cur !== kemarin) return cur;
+      showToast('Sudah lewat tengah malam — tanggal pindah ke '+fmtDateShort(hariIni));
+      return hariIni;
+    });
+  }, [hariIni]);
   const { session, setSession, authChecked } = useAuth();
   const {
     entries, setEntries,
