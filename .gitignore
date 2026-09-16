@@ -4,3 +4,9 @@
 .idea/
 import_riwayat.sql
 *.csv
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
