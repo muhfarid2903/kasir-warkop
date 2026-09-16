@@ -7,112 +7,31 @@ import {
   loadVoucherToko, saveVoucherToko as dbSaveVoucherToko,
   subscribeRealtime,
 } from './db.js'
+import {
+  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K, V2K_SETORAN,
+  todayISO, getPayPeriods,
+  voucherForDate, voucherInRange, voucherStockPerToko, voucherStockBefore,
+  draftTotals, buildEntry, entryDayTotals,
+  computeKasSummary, computePaydayInfo, periodGaji,
+} from './model.js'
 
-const PRODUCTS = [
-  { id: 'vietnam',  name: 'Kopi Vietnam Drip',  price: 8000,  gaji: 1500 },
-  { id: 'teh',      name: 'Teh',                price: 5000,  gaji: 1000 },
-  { id: 'kopilain', name: 'Kopi Lain',          price: 6000,  gaji: 1300 },
-  { id: 'v2k',      name: 'Voucher 2000',       price: 2000,  gaji: 500,  komisi_toko: 500 },
-  { id: 'v10k',     name: 'Paket Mingguan Lite',price: 14000, gaji: 1500 },
-  { id: 'v1bln',    name: 'Paket Bulanan',      price: 34000, gaji: 5000 },
-  { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000 },
-];
-
-// Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
-// Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
-const TOKO = [
-  { id: 'dadi',   name: 'Dadi'    },
-  { id: 'dio',    name: 'Dio'     },
-  { id: 'hrahim', name: 'H Rahim' },
-  { id: 'anci',   name: 'Anci'    },
-  { id: 'nahrul', name: 'Nahrul'  },
-];
 const NAV_ITEMS = [
   { id:'input',   icon:'coffee', label:'Hari Ini',     shortLabel:'Hari Ini' },
   { id:'voucher', icon:'signal', label:'Voucher Toko', shortLabel:'Voucher'  },
   { id:'gajian',  icon:'dollar', label:'Gajian',       shortLabel:'Gajian'   },
   { id:'riwayat', icon:'clock',  label:'Riwayat',      shortLabel:'Riwayat'  },
 ];
-const VOUCHER_TOKO_CUTOFF = '2026-05-01';
-const V2K = PRODUCTS.find(p => p.id === 'v2k');
-// Setoran toko per voucher = harga jual − komisi toko (mulai 1 Mei 2026).
-// Toko ambil 500/voucher sebagai komisi mereka, hanya menyetor 1500 ke kas warkop.
-const V2K_SETORAN = V2K.price - (V2K.komisi_toko || 0);
-
-// Hitung agregat voucher (drop & laku × harga/gaji v2k) untuk satu tanggal.
-// vtData berbentuk: { '2026-05-01': { dadi: {drop, laku}, dio: {...}, ... }, ... }
-function voucherForDate(date, vtData) {
-  const dayMap = vtData?.[date] || {};
-  let drop = 0, laku = 0;
-  TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { drop += r.drop||0; laku += r.laku||0; } });
-  return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
-}
-// Sum voucher untuk semua tanggal di [start..end] (inklusif), hanya yang >= cutoff.
-function voucherInRange(start, end, vtData) {
-  let drop = 0, laku = 0;
-  Object.keys(vtData || {}).forEach(d => {
-    if (d < VOUCHER_TOKO_CUTOFF) return;
-    if (d >= start && d <= end) {
-      const r = voucherForDate(d, vtData); drop += r.drop; laku += r.laku;
-    }
-  });
-  return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
-}
-// Stok berjalan per toko sampai (≤) endDate.
-function voucherStockPerToko(endDate, vtData) {
-  const stok = {}; TOKO.forEach(t => stok[t.id] = { drop:0, laku:0 });
-  Object.keys(vtData || {}).forEach(d => {
-    if (d > endDate) return;
-    const dayMap = vtData[d] || {};
-    TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { stok[t.id].drop += r.drop||0; stok[t.id].laku += r.laku||0; } });
-  });
-  return stok;
-}
-// Stok per toko SEBELUM tanggal (eksklusif).
-function voucherStockBefore(date, vtData) {
-  const stok = {}; TOKO.forEach(t => stok[t.id] = { drop:0, laku:0 });
-  Object.keys(vtData || {}).forEach(d => {
-    if (d >= date) return;
-    const dayMap = vtData[d] || {};
-    TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { stok[t.id].drop += r.drop||0; stok[t.id].laku += r.laku||0; } });
-  });
-  return stok;
-}
-
 const IDR = v => 'Rp' + Math.round(v).toLocaleString('id-ID');
 const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const MO = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const ML = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 function fmtDate(d) { const dt = new Date(d+'T00:00:00'); return DAYS[dt.getDay()]+', '+dt.getDate()+' '+MO[dt.getMonth()]+' '+dt.getFullYear(); }
-// Tanggal lokal (bukan UTC) — penting: toISOString() memakai UTC, sehingga
-// antara 00:00–06:59 WIB tanggalnya mundur sehari. Pakai komponen lokal.
-function dateToISO(dt) { return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
-function todayISO() { return dateToISO(new Date()); }
-
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
-}
-
-function getPayPeriods(year, month) {
-  const mm = String(month+1).padStart(2,'0');
-  const prevMonth = month === 0 ? 11 : month - 1;
-  const prevYear  = month === 0 ? year - 1 : year;
-  const pmm = String(prevMonth+1).padStart(2,'0');
-  const lastDayPrev = new Date(year, month, 0).getDate();
-  const overflowDays = [];
-  for (let d = 29; d <= lastDayPrev; d++) overflowDays.push(d);
-  return [
-    { label:'Awal Bulan', start:year+'-'+mm+'-01', end:year+'-'+mm+'-14', payday:14, startDay:1, endDay:14,
-      overflowStart: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(overflowDays[0]).padStart(2,'0') : null,
-      overflowEnd: overflowDays.length>0 ? prevYear+'-'+pmm+'-'+String(lastDayPrev).padStart(2,'0') : null,
-      overflowDays, prevYear, prevMonth },
-    { label:'Akhir Bulan', start:year+'-'+mm+'-15', end:year+'-'+mm+'-28', payday:28, startDay:15, endDay:28,
-      overflowStart:null, overflowEnd:null, overflowDays:[], prevYear, prevMonth },
-  ];
 }
 
 const Icon = ({type, size=18}) => {
@@ -248,16 +167,8 @@ function exportRiwayatCSV(entries, voucherToko) {
       const r = (voucherToko?.[d]||{})[t.id] || { drop:0, laku:0 };
       tokoCells.push(r.drop||0, r.laku||0); vLakuTotal += r.laku||0; vDropTotal += r.drop||0;
     });
-    const v = voucherForDate(d, voucherToko);
-    const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
-    const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
-    const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
-    const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
+    const { expGross, cashGross, totalPengeluaran: totalExp, totalPenjualan, totalGaji, sisaKas } = entryDayTotals(e, voucherToko);
     const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[CASH MASUK] ':'')+(x.desc||(x.type==='cashin'?'Cash Masuk':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
-    const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
-    const totalPenjualan = (e.totalPenjualan||0) + v.penjualan;
-    const totalGaji = (e.gaji||0) + v.gaji;
-    const sisaKas = totalPenjualan - totalGaji - totalExp;
     rows.push([d, DAYS[dt.getDay()], ...prodQtys, totalQty, ...tokoCells, vLakuTotal, vDropTotal, totalPenjualan, totalGaji, expDetail, expGross, cashGross, sisaKas]);
     prodQtys.forEach((q,i)=>totals.prod[i]+=q);
     tokoCells.forEach((c,i)=>totals.toko[i]+=c);
@@ -552,13 +463,10 @@ function App() {
   }
 
   const existingEntry = entries[selectedDate] || null;
-  const inputTotals = useMemo(() => {
-    let totalQty=0, totalSales=0, totalGaji=0;
-    PRODUCTS.forEach(p => { const q=quantities[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
-    const totalExpense = expenses.reduce((s,e) => s+(e.amount||0), 0);
-    const totalCashIn = cashIns.reduce((s,e) => s+(e.amount||0), 0);
-    return { totalQty, totalSales, totalGaji, totalExpense, totalCashIn, sisaKas: totalSales-totalGaji-totalExpense+totalCashIn };
-  }, [quantities, expenses, cashIns]);
+  const inputTotals = useMemo(
+    () => draftTotals(quantities, expenses, cashIns),
+    [quantities, expenses, cashIns]
+  );
 
   // Sinkronkan draft voucher dari data tersimpan saat tanggal/voucherToko berubah
   useEffect(() => {
@@ -615,16 +523,12 @@ function App() {
     if (!hasQty && !hasExp && !hasCash) { showToast('Belum ada input!'); return; }
     setSaving(true);
     const existing = entries[selectedDate] || null;
+    // Menambah, bukan mengganti: qty & catatan hari ini ditumpuk di atas yang sudah tersimpan.
     const accQty = {}; PRODUCTS.forEach(p => { accQty[p.id] = (existing?(existing.quantities?.[p.id]||0):0) + (quantities[p.id]||0); });
     const newExpenses = expenses.filter(e => (e.amount||0)>0 || e.desc.trim()!=='');
     const newCashIns = cashIns.filter(e => (e.amount||0)>0 || e.desc.trim()!=='').map(e => ({...e, type:'cashin'}));
     const accExpenses = [...(existing?(existing.expenses||[]):[]), ...newExpenses, ...newCashIns];
-    let totalSales=0, totalGaji=0;
-    PRODUCTS.forEach(p => { const q=accQty[p.id]||0; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
-    const grossExp = accExpenses.filter(e => e.type !== 'cashin').reduce((s,e) => s+(e.amount||0), 0);
-    const totalCash = accExpenses.filter(e => e.type === 'cashin').reduce((s,e) => s+(e.amount||0), 0);
-    const totalExpense = grossExp - totalCash;
-    const entry = { date:selectedDate, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
+    const entry = buildEntry(selectedDate, accQty, accExpenses);
     try {
       if (session) await dbSaveEntry(entry);
       // Optimistic local update (realtime menyusul) — Kas & "sudah tercatat" langsung kebaca
@@ -675,16 +579,12 @@ function App() {
       const over = voucherRows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
       if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     }
+    // Mengganti, bukan menambah: nilai lama dibuang, yang tersimpan hasil edit.
     const accQty = {}; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
     const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
     const cashIns  = editCashIns.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'cashin'}));
     const accExpenses = [...expenses, ...cashIns];
-    let totalSales=0, totalGaji=0;
-    PRODUCTS.forEach(p => { const q=accQty[p.id]||0; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
-    const grossExp = expenses.reduce((s,e)=>s+(e.amount||0),0);
-    const totalCash = cashIns.reduce((s,e)=>s+(e.amount||0),0);
-    const totalExpense = grossExp - totalCash;
-    const entry = { date, quantities:accQty, expenses:accExpenses, totalPenjualan:totalSales, gaji:totalGaji, totalPengeluaran:totalExpense, sisaKas:totalSales-totalGaji-totalExpense };
+    const entry = buildEntry(date, accQty, accExpenses);
     // Hindari membuat baris entri kosong untuk tanggal yang cuma punya data voucher
     const entryExisted = !!entries[date];
     const entryHasData = PRODUCTS.some(p=>(accQty[p.id]||0)>0) || accExpenses.length>0;
@@ -703,62 +603,15 @@ function App() {
     setEditSaving(false);
   }
 
-  const kasSummary = useMemo(() => {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-    const all = Object.values(entries);
+  const kasSummary = useMemo(
+    () => computeKasSummary(entries, voucherToko, initialSaldo, new Date()),
+    [entries, voucherToko, initialSaldo]
+  );
 
-    // Warkop = kopi vietnam, teh, kopi lain. WiFi = sisanya (voucher, ps4) + setoran voucher toko.
-    const WARKOP_IDS = new Set(['vietnam','teh','kopilain']);
-    const warkopOf = (e) => PRODUCTS.reduce((s,p) => WARKOP_IDS.has(p.id) ? s + (e.quantities?.[p.id]||0)*p.price : s, 0);
-
-    // All-time → kasSekarang (posisi riil)
-    const ePenjualanAll = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-    const eGajiAll = all.reduce((s,e)=>s+(e.gaji||0),0);
-    const ePengeluaranAll = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-    const vAll = voucherInRange('1900-01-01','9999-12-31', voucherToko);
-    const kasSekarang = initialSaldo + (ePenjualanAll + vAll.penjualan) - (eGajiAll + vAll.gaji) - ePengeluaranAll;
-
-    // Bulan berjalan
-    const monthEntries = all.filter(e => e.date >= monthStart);
-    const ePenjualan = monthEntries.reduce((s,e)=>s+(e.totalPenjualan||0),0);
-    const ePenjualanWarkop = monthEntries.reduce((s,e)=>s+warkopOf(e),0);
-    const ePenjualanWifi = ePenjualan - ePenjualanWarkop;
-    const eGaji = monthEntries.reduce((s,e)=>s+(e.gaji||0),0);
-    const totalPengeluaran = monthEntries.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
-    const vMonth = voucherInRange(monthStart, '9999-12-31', voucherToko);
-    const totalPenjualan = ePenjualan + vMonth.penjualan;
-    const totalPenjualanWarkop = ePenjualanWarkop;
-    const totalPenjualanWifi = ePenjualanWifi + vMonth.penjualan;
-    const totalGaji = eGaji + vMonth.gaji;
-    // Saldo awal bulan = kas akhir bulan lalu (carry-over, biar rumus tetap konsisten)
-    const saldoAwalBulan = kasSekarang - totalPenjualan + totalGaji + totalPengeluaran;
-
-    const todayStr = todayISO();
-    const y = new Date(); y.setDate(y.getDate()-1);
-    const yestStr = dateToISO(y);
-    const tE = entries[todayStr], yE = entries[yestStr];
-    const tV = voucherForDate(todayStr, voucherToko); const yV = voucherForDate(yestStr, voucherToko);
-    const hasToday = !!tE || tV.drop>0 || tV.laku>0;
-    const hasYest = !!yE || yV.drop>0 || yV.laku>0;
-    const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
-    const yestKas = hasYest ? (((yE?.totalPenjualan||0)+yV.penjualan) - ((yE?.gaji||0)+yV.gaji) - (yE?.totalPengeluaran||0)) : 0;
-    return { totalPenjualan, totalPenjualanWarkop, totalPenjualanWifi, totalGaji, totalPengeluaran, kasSekarang, saldoAwalBulan, monthStart, todayKas, yestKas, hasToday, hasYest };
-  }, [entries, voucherToko, initialSaldo]);
-
-  const paydayInfo = useMemo(() => {
-    const today = new Date(); const day = today.getDate(); const year = today.getFullYear(); const month = today.getMonth();
-    const periods = getPayPeriods(year, month); let show=null, period=null;
-    if (day===14||day===28) { period=day===14?periods[0]:periods[1]; show='today'; }
-    else if (day>=12&&day<=13) { period=periods[0]; show='upcoming'; }
-    else if (day>=26&&day<=27) { period=periods[1]; show='upcoming'; }
-    if (!show||!period) return null;
-    const periodGaji = Object.values(entries).filter(e=>e.date>=period.start&&e.date<=period.end).reduce((s,e)=>s+(e.gaji||0),0);
-    const overflowGaji = (period.overflowStart&&period.overflowEnd) ? Object.values(entries).filter(e=>e.date>=period.overflowStart&&e.date<=period.overflowEnd).reduce((s,e)=>s+(e.gaji||0),0) : 0;
-    const vMain = voucherInRange(period.start, period.end, voucherToko);
-    const vOver = (period.overflowStart&&period.overflowEnd) ? voucherInRange(period.overflowStart, period.overflowEnd, voucherToko) : { gaji:0 };
-    return { show, period, totalGaji:periodGaji+overflowGaji+vMain.gaji+vOver.gaji, daysLeft:show==='today'?0:(period.payday-day), month };
-  }, [entries, voucherToko]);
+  const paydayInfo = useMemo(
+    () => computePaydayInfo(entries, voucherToko, new Date()),
+    [entries, voucherToko]
+  );
 
   const sortedEntries = useMemo(() => {
     const map = { ...entries };
@@ -1171,10 +1024,7 @@ function App() {
                   const mainEntries = Object.values(entries).filter(e=>e.date>=p.start&&e.date<=p.end);
                   const overflowEntries = (p.overflowStart&&p.overflowEnd) ? Object.values(entries).filter(e=>e.date>=p.overflowStart&&e.date<=p.overflowEnd) : [];
                   const periodEntries = [...overflowEntries, ...mainEntries];
-                  const eGaji = periodEntries.reduce((s,e)=>s+(e.gaji||0),0);
-                  const vMain = voucherInRange(p.start, p.end, voucherToko);
-                  const vOver = (p.overflowStart&&p.overflowEnd) ? voucherInRange(p.overflowStart, p.overflowEnd, voucherToko) : { gaji:0, penjualan:0, laku:0, drop:0 };
-                  const totalGaji = eGaji + vMain.gaji + vOver.gaji;
+                  const totalGaji = periodGaji(entries, voucherToko, p);
                   // Hitung hari kerja: gabungan tanggal dari entries + voucher_toko (yang punya laku/drop)
                   const periodDateSet = new Set(periodEntries.map(e=>e.date));
                   Object.keys(voucherToko||{}).forEach(d => {
@@ -1342,15 +1192,9 @@ function App() {
               <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
             ) : filteredEntries.map((e) => {
               const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
-              const expItems = (e.expenses||[]).filter(x=>x.type!=='cashin');
-              const cashItems = (e.expenses||[]).filter(x=>x.type==='cashin');
-              const expGross = expItems.reduce((s,x)=>s+(x.amount||0),0);
-              const cashGross = cashItems.reduce((s,x)=>s+(x.amount||0),0);
-              const totalExp = e.totalPengeluaran!=null ? e.totalPengeluaran : (expGross - cashGross);
-              const v = voucherForDate(e.date, voucherToko);
-              const totalGajiRow = (e.gaji||0) + v.gaji;
-              const totalPenjualanRow = (e.totalPenjualan||0) + v.penjualan;
-              const sisaKas = totalPenjualanRow - totalGajiRow - totalExp;
+              const { expItems, cashItems, expGross, cashGross, voucher: v,
+                      totalPengeluaran: totalExp, totalGaji: totalGajiRow,
+                      totalPenjualan: totalPenjualanRow, sisaKas } = entryDayTotals(e, voucherToko);
               const hasVoucher = v.laku>0 || v.drop>0;
               const tokoBreakdown = hasVoucher ? TOKO.map(t => {
                 const r = (voucherToko[e.date]||{})[t.id]; if (!r || (!r.drop && !r.laku)) return null;
