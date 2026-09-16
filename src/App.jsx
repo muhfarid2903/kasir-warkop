@@ -46,6 +46,7 @@ function App() {
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
+    pending, tandaiTulis,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -108,7 +109,20 @@ function App() {
     </div>
   );
 
-  const SyncBadge = () => syncStatus==="online" ? null : (<div className="sync-badge sync-offline" title="Tidak terhubung — perubahan tidak tersinkron"><div className="sync-dot offline"/>Offline</div>);
+  // Tampil kalau tidak online ATAU masih ada kiriman tertunda. Jumlahnya
+  // disebutkan supaya kasir tahu ada yang belum sampai, bukan sekadar "offline".
+  const SyncBadge = () => {
+    if (syncStatus === "online" && pending === 0) return null;
+    const judul = pending > 0
+      ? pending+' perubahan tersimpan di HP, menunggu sinyal untuk terkirim'
+      : 'Tidak terhubung — perubahan tidak tersinkron';
+    return (
+      <div className="sync-badge sync-offline" title={judul}>
+        <div className="sync-dot offline"/>
+        {pending > 0 ? pending+' tertunda' : 'Offline'}
+      </div>
+    );
+  };
   const today = new Date();
 
   const currentPage = NAV_ITEMS.find(n=>n.id===page);
@@ -178,6 +192,7 @@ function App() {
               initialSaldo={initialSaldo}
               session={session}
               ensureDetail={ensureDetail}
+              tandaiTulis={tandaiTulis}
             />
           )}
 
@@ -186,6 +201,7 @@ function App() {
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               session={session}
+              tandaiTulis={tandaiTulis}
             />
           )}
 
@@ -200,6 +216,7 @@ function App() {
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
               loadAllDetails={loadAllDetails} detailsReady={detailsReady}
+              tandaiTulis={tandaiTulis}
             />
           )}
         </div>

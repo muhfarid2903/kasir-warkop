@@ -156,6 +156,22 @@ export function buildEntry(date, quantities, expenseList) {
   };
 }
 
+// Gabungkan input Hari Ini ke atas entri yang sudah tersimpan. Dipakai dua
+// tempat: saat simpan langsung, dan saat kiriman tertunda dikirim ulang —
+// keduanya harus menumpuk dengan cara yang sama persis.
+//
+// existing boleh null (tanggal belum punya entri). Salin qty lama dulu, jangan
+// bangun ulang dari PRODUCTS: entri lama bisa memuat produk yang sudah tidak
+// ada di daftar, dan membangun ulang akan membuangnya diam-diam.
+export function accumulateEntry(existing, date, { quantities, expenses, cashIns }) {
+  const accQty = { ...(existing?.quantities || {}) };
+  PRODUCTS.forEach(p => { accQty[p.id] = (accQty[p.id]||0) + (quantities?.[p.id]||0); });
+  const barangKeluar = (expenses || []).filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='');
+  const uangMasuk = (cashIns || []).filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e => ({...e, type:'cashin'}));
+  const accExpenses = [...(existing?.expenses || []), ...barangKeluar, ...uangMasuk];
+  return buildEntry(date, accQty, accExpenses);
+}
+
 // Total satu hari termasuk setoran voucher toko — dipakai baris Riwayat & export CSV.
 // totalPengeluaran diambil dari entri bila ada; entri lama yang belum punya kolom
 // itu dihitung ulang dari daftarnya.
