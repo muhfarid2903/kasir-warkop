@@ -1,6 +1,6 @@
 // Export riwayat ke CSV. Satu-satunya tempat yang menulis file ke disk.
 
-import { PRODUCTS, TOKO, todayISO, voucherForDate, entryDayTotals } from './model.js'
+import { ALL_PRODUCTS, TOKO, todayISO, voucherForDate, entryDayTotals } from './model.js'
 import { DAYS } from './format.js'
 import { showToast } from './toast.js'
 
@@ -19,14 +19,14 @@ export function exportRiwayatCSV(entries, voucherToko) {
   Object.keys(voucherToko||{}).forEach(d => { const v = voucherForDate(d, voucherToko); if (v.laku>0||v.drop>0) dateSet.add(d); });
   const sortedDates = [...dateSet].sort();
   if(sortedDates.length===0){ showToast('Belum ada data untuk di-export'); return; }
-  const prodHeaders = PRODUCTS.map(p=>p.name);
+  const prodHeaders = ALL_PRODUCTS.map(p=>p.name);
   const tokoHeaders = TOKO.flatMap(t => [t.name+' Drop', t.name+' Laku']);
   let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Cash Masuk','Sisa Kas']];
-  const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
+  const totals = { prod: ALL_PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
   sortedDates.forEach(d => {
     const e = entries[d] || { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0 };
     const dt = new Date(d+'T00:00:00');
-    const prodQtys = PRODUCTS.map(p => e.quantities?.[p.id] || 0);
+    const prodQtys = ALL_PRODUCTS.map(p => e.quantities?.[p.id] || 0);
     const totalQty = prodQtys.reduce((s,q)=>s+q,0);
     const tokoCells = []; let vLakuTotal=0, vDropTotal=0;
     TOKO.forEach(t => {

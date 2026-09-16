@@ -15,6 +15,26 @@ export const PRODUCTS = [
   { id: 'ps4',      name: 'PS4 (1 Jam)',        price: 10000, gaji: 2000 },
 ]
 
+// Produk yang sudah tidak dijual lagi tapi masih ada di data lama. Tidak
+// muncul di form input Hari Ini, tapi TETAP dihitung dan tetap tampil di
+// Riwayat — kalau tidak, mengedit entri lama akan diam-diam menghapusnya
+// beserta nilainya.
+//
+// Harga diturunkan dari data tersimpan, konsisten di dua entri yang ada:
+// 3 Sep 2026 esaren×2 = Rp30.000 (gaji Rp4.000), 7 Sep 2026 esaren×1 =
+// Rp15.000 (gaji Rp2.000).
+//
+// 'escaramel' juga pernah ada sebagai kolom tapi qty-nya selalu 0, jadi
+// harganya tidak bisa disimpulkan dan tidak perlu — kuncinya tetap aman
+// karena buildEntry membawa serta semua kunci quantities yang tidak dikenal.
+export const LEGACY_PRODUCTS = [
+  { id: 'esaren', name: 'Es Aren', price: 15000, gaji: 2000 },
+]
+
+// Untuk MENGHITUNG dan MENAMPILKAN, pakai ini. Untuk form input, pakai
+// PRODUCTS saja — yang legacy tidak boleh bisa diinput lagi.
+export const ALL_PRODUCTS = [...PRODUCTS, ...LEGACY_PRODUCTS]
+
 // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
 // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
 export const TOKO = [
@@ -116,7 +136,7 @@ export function hasDetail(entry) {
 
 export function productTotals(quantities) {
   let totalQty=0, totalSales=0, totalGaji=0;
-  PRODUCTS.forEach(p => { const q=quantities?.[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+  ALL_PRODUCTS.forEach(p => { const q=quantities?.[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
   return { totalQty, totalSales, totalGaji };
 }
 

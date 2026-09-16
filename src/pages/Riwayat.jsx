@@ -6,7 +6,7 @@ import {
   saveVoucherToko as dbSaveVoucherToko,
 } from '../db.js'
 import {
-  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
+  PRODUCTS, ALL_PRODUCTS, LEGACY_PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
   voucherForDate, voucherStockBefore, buildEntry, entryDayTotals,
 } from '../model.js'
 import { IDR, DAYS, MO, fmtDate } from '../format.js'
@@ -57,7 +57,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       if (e.date.toLowerCase().includes(q)) return true;
       const fmt = fmtDate(e.date).toLowerCase();
       if (fmt.includes(q)) return true;
-      const prodMatch = PRODUCTS.some(p => (e.quantities?.[p.id]||0) > 0 && p.name.toLowerCase().includes(q));
+      const prodMatch = ALL_PRODUCTS.some(p => (e.quantities?.[p.id]||0) > 0 && p.name.toLowerCase().includes(q));
       if (prodMatch) return true;
       const expMatch = (e.expenses||[]).some(x => (x.desc||'').toLowerCase().includes(q));
       if (expMatch) return true;
@@ -91,7 +91,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
 
   // === Edit entri (mengganti nilai, bukan menambah) ===
   function startEdit(e) {
-    const q = {}; PRODUCTS.forEach(p => q[p.id] = e.quantities?.[p.id] || 0);
+    // Salin dulu SEMUA kunci qty yang ada, baru pastikan tiap PRODUCTS punya
+    // nilai. Produk yang sudah tidak dijual ikut terbawa apa adanya.
+    const q = { ...(e.quantities || {}) }; PRODUCTS.forEach(p => q[p.id] = e.quantities?.[p.id] || 0);
     const exp  = (e.expenses||[]).filter(x=>x.type!=='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
     const cash = (e.expenses||[]).filter(x=>x.type==='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
     const vday = voucherToko[e.date] || {};
@@ -121,14 +123,14 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     }
     // Mengganti, bukan menambah: nilai lama dibuang, yang tersimpan hasil edit.
-    const accQty = {}; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
+    const accQty = { ...editQty }; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
     const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
     const cashIns  = editCashIns.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'cashin'}));
     const accExpenses = [...expenses, ...cashIns];
     const entry = buildEntry(date, accQty, accExpenses);
     // Hindari membuat baris entri kosong untuk tanggal yang cuma punya data voucher
     const entryExisted = !!entries[date];
-    const entryHasData = PRODUCTS.some(p=>(accQty[p.id]||0)>0) || accExpenses.length>0;
+    const entryHasData = Object.values(accQty).some(v=>(v||0)>0) || accExpenses.length>0;
     const writeEntry = entryHasData || entryExisted;
     setEditSaving(true);
     try {
@@ -213,7 +215,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
           ) : filteredEntries.length===0 ? (
             <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
           ) : filteredEntries.map((e) => {
-            const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
+            const sold = ALL_PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
             const { expItems, cashItems, expGross, cashGross, voucher: v,
                     totalPengeluaran: totalExp, totalGaji: totalGajiRow,
                     totalPenjualan: totalPenjualanRow, sisaKas } = entryDayTotals(e, voucherToko);
@@ -249,7 +251,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                 {isOpen && isEditing && (
                   <div className="history-detail" onClick={ev=>ev.stopPropagation()}>
                     {(() => {
-                      const editProducts = PRODUCTS.filter(p => !(p.id==='v2k' && e.date >= VOUCHER_TOKO_CUTOFF));
+                      // Produk yang sudah tidak dijual hanya muncul di entri yang
+                      // memang memuatnya — bisa dikoreksi, tanpa mengubah tampilan
+                      // entri lain.
+                      const editProducts = [
+                        ...PRODUCTS.filter(p => !(p.id==='v2k' && e.date >= VOUCHER_TOKO_CUTOFF)),
+                        ...LEGACY_PRODUCTS.filter(p => (editQty[p.id]||0) > 0),
+                      ];
                       let eSales=0, eGaji=0; editProducts.forEach(p=>{const q=editQty[p.id]||0; eSales+=q*p.price; eGaji+=q*p.gaji;});
                       const eExp = editExpenses.reduce((s,x)=>s+(x.amount||0),0);
                       const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
