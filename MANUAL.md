@@ -81,6 +81,18 @@ Saldo awal = uang kas yang sudah ada sebelum Anda mulai pakai aplikasi. Anchor t
 ### Mode Tema
 Di sidebar (paling bawah), klik **Mode terang** / **Mode gelap** untuk ganti tema.
 
+### Bunyi
+Tiap ketukan dan ketikan ada bunyinya, supaya jelas kapan kopi benar-benar
+masuk hitungan tanpa harus memicingkan mata ke layar. Bunyi menyimpan berbeda
+dari bunyi menambah, dan gagal berbeda dari keduanya.
+
+Untuk mendiamkan: ikon **speaker** di pojok kanan atas (ada di HP maupun
+komputer). Pilihannya diingat, jadi kalau dimatikan sekali tetap diam sampai
+dinyalakan lagi.
+
+> Di iPhone, saklar bisu di sisi HP ikut mendiamkan app — kalau bunyinya tidak
+> terdengar padahal ikon speaker menyala, periksa saklar itu dulu.
+
 ---
 
 ## 3. Menu Hari Ini

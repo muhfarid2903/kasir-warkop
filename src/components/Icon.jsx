@@ -32,6 +32,8 @@ export const Icon = ({type, size=18}) => {
     x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     'panel-left':<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></>,
     user:<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    volume:<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.6 8.6a5 5 0 010 6.8"/><path d="M18.6 5.6a9 9 0 010 12.8"/></>,
+    'volume-x':<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="17" y1="9" x2="23" y2="15"/><line x1="23" y1="9" x2="17" y2="15"/></>,
   };
   return <svg viewBox="0 0 24 24" style={s}>{P[type]}</svg>;
 };

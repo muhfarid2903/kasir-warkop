@@ -1304,3 +1304,192 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   font-family:inherit;color:inherit;text-align:left;
 }
 .rekap-chev{color:var(--text3);font-size:13px;flex-shrink:0}
+
+/* === Sentuhan: riak, denyut, dan bukaan sinematik ===========================
+   Pasangan visual dari src/sfx.js. Aturannya satu: tiap gerakan harus punya
+   sebab yang bisa ditunjuk — jari mendarat, angka bertambah, entri tersimpan.
+   Tidak ada yang bergerak sendiri kecuali sapuan cahaya di Kas Saat Ini, dan
+   itu pun sekali tiap tujuh detik.
+   Semuanya mati total di prefers-reduced-motion (paling bawah).             */
+
+/* Lapisan riak: fixed, di atas segalanya, tidak bisa disentuh. Sengaja di luar
+   pohon kartu — kartu produk punya overflow, radius, dan transform sendiri
+   yang akan memotong riak kalau ditanam di dalamnya. */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden;contain:strict}
+
+.fx-riak{
+  position:absolute;width:var(--r,130px);height:var(--r,130px);border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(var(--accent-rgb),.36) 0%,rgba(var(--accent-rgb),.13) 45%,transparent 70%);
+  animation:fxRiak .62s cubic-bezier(.22,1,.36,1) forwards;
+  will-change:transform,opacity;
+}
+/* Cincin yang menyusul sepersekian detik di belakang riaknya — ini yang bikin
+   sentuhan terbaca sebagai "mendarat", bukan sekadar noda cahaya. */
+.fx-riak::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid rgba(var(--accent-rgb),.5);
+  animation:fxCincin .72s cubic-bezier(.22,1,.36,1) forwards;
+}
+/* Dua tahap, bukan satu: lengkung cubic-bezier di atas menghabiskan jaraknya
+   di sepertiga waktu pertama, jadi kalau opasitasnya ikut kurva yang sama,
+   riaknya sudah hilang sebelum sempat terlihat. Skalanya tetap melesat,
+   pudarnya yang ditahan. */
+@keyframes fxRiak{
+  0%{opacity:.95;transform:translate(-50%,-50%) scale(.26)}
+  30%{opacity:.72}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes fxCincin{
+  0%{opacity:.9;transform:scale(.32)}
+  35%{opacity:.6}
+  100%{opacity:0;transform:scale(1.3)}
+}
+
+/* Satu momen saja: entri hari itu tersimpan. Cahayanya naik dari bawah layar,
+   dari arah tombol Simpan. */
+.fx-kilat{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 130% 68% at 50% 100%,
+    rgba(var(--accent-rgb),.32) 0%,rgba(var(--accent-rgb),.09) 42%,transparent 74%);
+  animation:fxKilat 1.05s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes fxKilat{
+  0%{opacity:0;transform:translateY(22px) scale(1.06)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translateY(-10px) scale(1)}
+}
+
+/* Tekanan jari. Turun dulu, lalu memantul sedikit melewati ukuran asalnya —
+   pantulan itu yang membuat benda terasa punya bobot. */
+.fx-pop{animation:fxPop .36s cubic-bezier(.22,1,.36,1)}
+@keyframes fxPop{
+  0%{transform:scale(1)}
+  22%{transform:scale(.955)}
+  58%{transform:scale(1.022)}
+  100%{transform:scale(1)}
+}
+
+/* Tiap ketikan: kolomnya berdenyut sekali. Sengaja memakai box-shadow, bukan
+   border — border yang berubah menggeser isi kolom satu piksel tiap huruf. */
+.fx-ketik{animation:fxKetik .26s ease-out}
+@keyframes fxKetik{
+  0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55),0 0 20px rgba(var(--accent-rgb),.32)}
+  100%{box-shadow:0 0 0 8px rgba(var(--accent-rgb),0),0 0 20px rgba(var(--accent-rgb),0)}
+}
+
+/* Angka yang berubah naik dari bawah sambil menajam. Dipicu lewat key={n} di
+   HariIni.jsx: React memasang ulang span-nya, animasinya ikut main dari awal —
+   jadi ketukan kesepuluh terlihat sejelas ketukan pertama. */
+.produk-kartu-bawah .angka{transform-origin:left bottom;animation:fxAngka .46s cubic-bezier(.16,1,.3,1)}
+.chip-angka{display:inline-block;animation:fxAngka .4s cubic-bezier(.16,1,.3,1)}
+@keyframes fxAngka{
+  0%{opacity:0;transform:translateY(9px) scale(.72);filter:blur(4px)}
+  55%{opacity:1;transform:translateY(0) scale(1.1);filter:blur(0)}
+  100%{transform:scale(1)}
+}
+
+/* Pindah halaman. Isinya naik berurutan, tidak serentak — mata jadi punya
+   arah baca, dan perpindahan terasa disengaja. */
+/* Pembungkusnya HANYA memudar — tidak boleh di-transform, dan tidak boleh
+   di-filter. Keduanya menjadikan pembungkus ini titik acuan baru bagi anak
+   yang position:fixed, dan di HP tombol Simpan itu fixed: selama setengah
+   detik animasi ia akan melompat dari dasar layar ke dasar pembungkus.
+   Gerakannya dititipkan ke anak-anaknya, yang tidak menampung apa pun. */
+.page-cinema{animation:fxHalaman .42s ease both}
+@keyframes fxHalaman{
+  from{opacity:0}
+  to{opacity:1}
+}
+.page-cinema > *{animation:fxNaik .5s cubic-bezier(.22,1,.36,1) both}
+.page-cinema > *:nth-child(1){animation-delay:.02s}
+.page-cinema > *:nth-child(2){animation-delay:.07s}
+.page-cinema > *:nth-child(3){animation-delay:.12s}
+.page-cinema > *:nth-child(4){animation-delay:.17s}
+.page-cinema > *:nth-child(5){animation-delay:.22s}
+.page-cinema > *:nth-child(6){animation-delay:.26s}
+.page-cinema > *:nth-child(n+7){animation-delay:.3s}
+@keyframes fxNaik{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:none}
+}
+.page-cinema .produk-grid .produk-kartu{animation:fxKartu .52s cubic-bezier(.22,1,.36,1) both}
+.page-cinema .produk-grid .produk-kartu:nth-child(2){animation-delay:.07s}
+@keyframes fxKartu{
+  from{opacity:0;transform:translateY(10px) scale(.97)}
+  to{opacity:1;transform:none}
+}
+
+/* Sapuan cahaya pelan melintasi Kas Saat Ini — satu-satunya gerakan yang tidak
+   menunggu disentuh. Angka ini yang paling sering dipandangi; sapuannya bikin
+   layar terasa hidup tanpa ada yang berkedip. */
+.kas-hero::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,
+    transparent 40%,rgba(var(--accent-rgb),.16) 48%,rgba(255,255,255,.09) 52%,transparent 62%);
+  background-size:280% 100%;background-position:190% 0;
+  animation:fxSapuan 7.5s ease-in-out 1.4s infinite;
+  /* Tanpa topeng ini, cahayanya berhenti tepat di tepi kotak hero dan yang
+     terlihat malah persegi panjang yang melintas, bukan cahaya. */
+  -webkit-mask-image:radial-gradient(ellipse 62% 72% at 50% 50%,#000 25%,transparent 100%);
+  mask-image:radial-gradient(ellipse 62% 72% at 50% 50%,#000 25%,transparent 100%);
+}
+@keyframes fxSapuan{
+  0%{background-position:190% 0}
+  24%{background-position:-70% 0}
+  100%{background-position:-70% 0}
+}
+[data-theme="light"] .kas-hero::after{
+  background:linear-gradient(105deg,transparent 40%,rgba(var(--accent-rgb),.10) 50%,transparent 62%);
+  background-size:280% 100%;
+}
+
+/* Tersimpan: tombolnya memantul sekali dan dilewati kilau dari kiri ke kanan. */
+.btn-save.sukses{animation:fxSimpan .9s cubic-bezier(.22,1,.36,1)}
+.btn-save.sukses::before{opacity:1;animation:shimmer .9s ease-out}
+@keyframes fxSimpan{
+  0%{transform:scale(1)}
+  18%{transform:scale(.97)}
+  46%{transform:scale(1.028)}
+  100%{transform:scale(1)}
+}
+
+/* Toast masuk dari kabur ke tajam, bukan sekadar muncul. */
+.toast{
+  transform:translateX(-50%) translateY(20px) scale(.94);
+  filter:blur(6px);
+  transition:opacity .34s ease,transform .46s cubic-bezier(.22,1,.36,1),filter .34s ease;
+}
+.toast.show{transform:translateX(-50%) translateY(0) scale(1);filter:blur(0)}
+
+/* Saklar bunyi. Duduk di header, bukan di sidebar, karena di HP sidebar-nya
+   tidak ada — dan HP justru tempat orang paling perlu mendiamkan app. */
+.sound-toggle{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  border:1px solid var(--border);background:rgba(255,255,255,.02);
+  color:var(--accent);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .25s,background .25s,border-color .25s,transform .18s cubic-bezier(.4,0,.2,1);
+}
+.sound-toggle svg{filter:drop-shadow(0 0 7px rgba(var(--accent-rgb),.5))}
+.sound-toggle:hover{background:var(--accent-bg);border-color:var(--accent-border)}
+.sound-toggle:active{transform:scale(.93)}
+.sound-toggle.mati{color:var(--text3)}
+.sound-toggle.mati svg{filter:none}
+[data-theme="light"] .sound-toggle{background:#F0F0F3}
+@media(max-width:600px){
+  .sound-toggle{width:34px;height:34px;border-radius:9px}
+}
+
+/* Yang minta gerakan dikurangi tetap dapat bunyinya — yang dimatikan hanya
+   yang bergerak. */
+@media(prefers-reduced-motion:reduce){
+  .fx-riak,.fx-riak::after,.fx-kilat,.fx-pop,.fx-ketik,
+  .produk-kartu-bawah .angka,.chip-angka,
+  .page-cinema,.page-cinema > *,.page-cinema .produk-grid .produk-kartu,
+  .kas-hero::after,.btn-save.sukses,.btn-save.sukses::before{
+    animation:none!important;opacity:1;transform:none;filter:none;
+  }
+  .toast{transition:opacity .2s ease;filter:none;transform:translateX(-50%)}
+  .toast.show{transform:translateX(-50%)}
+}

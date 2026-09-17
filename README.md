@@ -39,6 +39,8 @@ dipindah, custom domain akan lepas tiap deploy.
 | `hooks.js` | state yang dipakai lintas halaman |
 | `format.js` | angka & tanggal jadi teks |
 | `toast.js` | notifikasi |
+| `sfx.js` | bunyi ketuk/ketik, disintesis Web Audio — tanpa berkas audio |
+| `fx.js` | riak & denyut sentuhan, satu listener untuk seluruh app |
 | `csv.js` | export riwayat |
 | `outbox.js` | antrean kiriman saat sinyal putus |
 | `pages/` | Login, HariIni, VoucherToko, Gajian, Riwayat |
