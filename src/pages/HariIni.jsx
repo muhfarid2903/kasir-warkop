@@ -292,7 +292,6 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                 <button key={nama} className="chip" onClick={()=>addExpense(nama)}>{nama}</button>
               ))}
               <button className="chip samar" onClick={()=>addExpense('')}>+ Lain</button>
-              <button className="chip samar" onClick={addCashIn}>+ Cash Masuk</button>
             </div>
 
             {expenses.map((exp, i) => (
@@ -302,6 +301,17 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                 <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
               </div>
             ))}
+          </div>
+
+          {/* Cash Masuk keluar dari blok Pengeluaran: uangnya masuk, bukan
+              keluar. Dulu chipnya berdiri sebaris dengan Susu/Gelas/Air di
+              bawah label PENGELUARAN, jadi terbaca sebagai jenis pengeluaran.
+              Tetap samar — dipakai 1 dari 72 hari — tapi hijau dan berdiri
+              sendiri supaya arah uangnya tidak salah baca. */}
+          <div className="pemasukan-blok">
+            <button className="chip samar hijau" onClick={addCashIn}>
+              <Icon type="banknote" size={13}/> + Cash Masuk
+            </button>
 
             {cashIns.length>0 && (
               <div className="catatan-section">

@@ -1264,6 +1264,20 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 .pengeluaran-blok .expense-row{margin-top:8px}
 
+/* Blok pemasukan. Sengaja tidak diberi judul besar: satu chip hijau yang
+   berdiri sendiri sudah cukup membedakannya dari deretan pengeluaran di
+   atasnya, tanpa menaikkan bobot aksi yang jarang dipakai. */
+.pemasukan-blok{margin-top:20px}
+.pemasukan-blok .expense-row{margin-top:8px}
+.chip.samar.hijau{
+  color:var(--green);border-color:var(--green-border);
+  flex:0 0 auto;padding:0 14px;
+}
+.chip.samar.hijau:active{background:var(--green-bg)}
+@media(hover:hover){
+  .chip.samar.hijau:hover{background:var(--green-bg);border-style:solid}
+}
+
 .simpan-sticky{margin-top:18px}
 .simpan-total{font-family:'JetBrains Mono',monospace;font-weight:500;opacity:.85}
 /* Belum ada yang diinput: redup, tapi TIDAK di-disable — menekannya tetap
