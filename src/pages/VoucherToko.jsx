@@ -14,6 +14,7 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
   const [voucherDraft, setVoucherDraft] = useState({});
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
+  const [rekapTerbuka, setRekapTerbuka] = useState(false);
   const voucherDateRef = useRef(null);
 
   // Sinkronkan draft voucher dari data tersimpan saat tanggal/voucherToko berubah
@@ -127,11 +128,11 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
                         </span>
                       </div>
                       <div className="toko-inputs">
-                        <div className={"toko-input-group drop"+(dDrop===0?" empty":"")}>
+                        <div className={"toko-input-group drop"+(dDrop===0?" kosong":"")}>
                           <label>+ Drop</label>
                           <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
                         </div>
-                        <div className={"toko-input-group laku"+(dLaku===0?" empty":"")}>
+                        <div className={"toko-input-group laku"+(dLaku===0?" kosong":"")}>
                           <label>− Laku</label>
                           <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
                         </div>
@@ -169,8 +170,16 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
                   const range = voucherInRange(p.start, p.end, voucherToko);
                   return (
                     <div className="card" style={{marginTop:24}}>
-                      <div className="card-title"><Icon type="calendar" size={16}/> Rekap Periode {ML[sm]} · {p.label} (tgl {p.startDay}–{p.endDay})</div>
-                      <div className="voucher-day-summary" style={{margin:"0 0 16px"}}>
+                      {/* Rekap itu bacaan, bukan input — dilipat supaya tidak
+                          memakan 267px di halaman yang kerjanya mengisi angka.
+                          Bagian "sisa stok per toko" di dalamnya juga mengulang
+                          pil stok yang sudah ada di tiap kartu toko. */}
+                      <button className="rekap-toggle" aria-expanded={rekapTerbuka} onClick={()=>setRekapTerbuka(v=>!v)}>
+                        <span className="card-title" style={{marginBottom:0}}><Icon type="calendar" size={16}/> Rekap Periode {ML[sm]} · {p.label}</span>
+                        <span className="rekap-chev">{rekapTerbuka ? '\u25B4' : '\u25BE'}</span>
+                      </button>
+                      {rekapTerbuka && <>
+                      <div className="voucher-day-summary" style={{margin:"14px 0 16px"}}>
                         <span className="seg">Total drop <strong>{range.drop}</strong></span>
                         <span className="seg">Total laku <strong>{range.laku}</strong></span>
                         <span className="seg gaji">Gaji periode <strong>{IDR(range.gaji)}</strong></span>
@@ -193,6 +202,7 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
                           });
                         })()}
                       </div>
+                      </>}
                     </div>
                   );
                 })()}
