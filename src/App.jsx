@@ -3,6 +3,8 @@ import { signOut } from './db.js'
 import { DAYS, ML, fmtDateShort } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO } from './hooks.js'
+import { useEfekSentuh } from './fx.js'
+import { suaraAktif, setSuaraAktif, bunyi } from './sfx.js'
 import { Icon } from './components/Icon.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
@@ -51,6 +53,9 @@ function App() {
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
   useNumberInputGuards();
+  // Bunyi + riak untuk seluruh app, satu listener di document (lihat src/fx.js).
+  useEfekSentuh();
+  const [suara, setSuara] = useState(suaraAktif);
 
   const handleNav = (id) => {
     setPage(id);
@@ -180,10 +185,20 @@ function App() {
           </div>
           <div className="header-right">
             <SyncBadge/>
+            <button
+              className={"sound-toggle"+(suara?"":" mati")}
+              onClick={()=>{ const nyala=!suara; setSuaraAktif(nyala); setSuara(nyala); if(nyala) bunyi('alih'); }}
+              aria-label={suara?"Matikan bunyi":"Nyalakan bunyi"}
+              aria-pressed={suara}
+              title={suara?"Bunyi nyala — ketuk untuk mendiamkan":"Bunyi mati"}
+            >
+              <Icon type={suara?'volume':'volume-x'} size={17}/>
+            </button>
           </div>
         </div>
 
         <div className="content">
+         <div className="page-cinema" key={page}>
           {page==="input" && (
             <HariIni
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
@@ -219,6 +234,7 @@ function App() {
               tandaiTulis={tandaiTulis}
             />
           )}
+         </div>
         </div>
       </div>
 

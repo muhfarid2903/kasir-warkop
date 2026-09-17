@@ -10,6 +10,8 @@ import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
+import { rayakan, kilat, denyut } from '../fx.js'
+import { bunyi } from '../sfx.js'
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
@@ -20,6 +22,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
   const [saving, setSaving] = useState(false);
   const [lainnyaTerbuka, setLainnyaTerbuka] = useState(false);
   const hariIniDateRef = useRef(null);
+  const simpanRef = useRef(null);
 
   const existingEntry = entries[selectedDate] || null;
 
@@ -57,6 +60,10 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     if (!a) return;
     const geser = Math.hypot(e.clientX - a.x, e.clientY - a.y);
     if (geser > 12 || Date.now() - a.t > 700) return;   // menggulir atau menahan
+    // Bunyi & riak ikut menunggu di sini, bukan di pointerdown seperti tombol
+    // lain (lihat data-fx="tunda" di bawah): jari yang cuma lewat sambil
+    // menggulir tidak boleh ikut membunyikan kasir.
+    rayakan(e);
     aksi();
   }, []);
 
@@ -75,7 +82,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     const hasQty = PRODUCTS.some(p => (quantities[p.id]||0) > 0);
     const hasExp = expenses.some(e => (e.amount||0) > 0);
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
-    if (!hasQty && !hasExp && !hasCash) { showToast('Belum ada input!'); return; }
+    if (!hasQty && !hasExp && !hasCash) { bunyi('gagal'); showToast('Belum ada input!'); return; }
     setSaving(true);
     const input = { quantities, expenses, cashIns };
     try {
@@ -86,12 +93,17 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
       const hasil = await kirimAtauAntre({ type:'tambahEntri', date:selectedDate, input });
       tandaiTulis(hasil);
       setEntries(prev => ({ ...prev, [selectedDate]: tebakan }));
+      // Terkirim dapat kilau selebar layar; yang baru mengantre di HP dapat
+      // nada konfirmasi saja — bedanya harus kedengaran tanpa membaca toast.
+      if (hasil === 'diantre') bunyi('enter');
+      else { bunyi('simpan'); kilat(); }
+      denyut(simpanRef.current, 'sukses', 900);
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — disimpan di HP, terkirim otomatis nanti'
         : (dasar ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(selectedDate));
       // Reset form HANYA bila tidak gagal — supaya input tidak hilang saat gagal
       const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]);
-    } catch(e) { showToast('Gagal menyimpan: '+e.message); }
+    } catch(e) { bunyi('gagal'); showToast('Gagal menyimpan: '+e.message); }
     setSaving(false);
   }
 
@@ -163,6 +175,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                       <div
                         key={p.id}
                         className={"produk-kartu"+(n>0?" ada-isi":"")}
+                        data-fx="tunda"
                         role="button"
                         tabIndex={0}
                         aria-label={"Tambah "+p.name}
@@ -178,7 +191,10 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                           </div>
                         </div>
                         <div className="produk-kartu-bawah">
-                          <span className="angka">{n}</span>
+                          {/* key={n} memasang ulang span-nya tiap angka berubah,
+                              jadi animasi hitungnya main lagi dari awal — tanpa
+                              itu ketukan kedua di kartu yang sama diam saja. */}
+                          <span className="angka" key={n}>{n}</span>
                           {n > 0 && (
                             <button
                               className="kurang"
@@ -201,6 +217,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                       <div
                         key={p.id}
                         className={"chip"+(n>0?" ada-isi":"")}
+                        data-fx="tunda"
                         role="button"
                         tabIndex={0}
                         aria-label={"Tambah "+p.name}
@@ -209,7 +226,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                         onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); changeQty(p.id,1); } }}
                       >
                         {p.name}
-                        {n>0 && <span className="chip-angka">{n}</span>}
+                        {n>0 && <span className="chip-angka" key={n}>{n}</span>}
                         {/* Tanpa ini chip hanya bisa menambah — kelebihan tap
                             tidak ada jalan pulangnya selain lewat Riwayat. */}
                         {n>0 && (
@@ -301,6 +318,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
           </div>
 
           <button
+            ref={simpanRef}
             className={"btn-save simpan-sticky"+((inputTotals.totalQty>0||inputTotals.totalExpense>0||inputTotals.totalCashIn>0)?"":" kosong")}
             disabled={saving}
             onClick={saveEntry}
