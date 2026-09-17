@@ -653,8 +653,8 @@ body::before{
   width:100%;letter-spacing:-.5px;transition:color .15s;
 }
 .toko-input-group input::placeholder{color:var(--text3);opacity:.4}
-.toko-input-group.empty input{color:var(--text3);opacity:.45}
-.toko-input-group.empty:focus-within input{color:var(--text);opacity:1}
+.toko-input-group.kosong input{color:var(--text3);opacity:.45}
+.toko-input-group.kosong:focus-within input{color:var(--text);opacity:1}
 .toko-footer{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 14px;
   margin-top:12px;padding-top:11px;border-top:1px dashed var(--border2);
@@ -753,6 +753,9 @@ body::before{
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* Keadaan kosong satu halaman penuh (Riwayat). Sengaja dipakai HANYA untuk
+   itu — kelasnya pernah bertabrakan dengan .toko-input-group.empty di
+   Voucher Toko dan membuat tiap kartu toko 233px, padahal ~115px. */
 .empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:48px;margin-bottom:16px}
 
@@ -1293,3 +1296,11 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   .produk-kartu-bawah .angka{font-size:30px}
   .produk-kartu-nama .nama{font-size:12px}
 }
+
+/* Pelipat Rekap Periode di Voucher Toko */
+.rekap-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:0;background:none;border:none;cursor:pointer;
+  font-family:inherit;color:inherit;text-align:left;
+}
+.rekap-chev{color:var(--text3);font-size:13px;flex-shrink:0}
