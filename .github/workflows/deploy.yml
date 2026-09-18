@@ -56,10 +56,7 @@ jobs:
           test -f dist/CNAME || { echo "dist/CNAME hilang — custom domain akan lepas"; exit 1; }
           echo "CNAME: $(cat dist/CNAME)"
 
-      # Berkas titik gampang hilang tanpa suara (Vite, Jekyll, rsync — semua
-      # punya kebiasaan melewatinya), dan hilangnya tidak terlihat dari mana
-      # pun kecuali address bar yang tiba-tiba muncul di app Android.
-      - name: Pastikan assetlinks.json & manifest ikut ke dist/
+      - name: Pastikan berkas app ada di dist/
         run: |
           test -f dist/.well-known/assetlinks.json || { echo "dist/.well-known/assetlinks.json hilang — app Android akan memunculkan address bar"; exit 1; }
           test -f dist/manifest.webmanifest || { echo "dist/manifest.webmanifest hilang — app tidak bisa dipasang ke layar utama"; exit 1; }
@@ -67,9 +64,39 @@ jobs:
 
       - uses: actions/configure-pages@v6.0.0
 
-      - uses: actions/upload-pages-artifact@v5.0.0
+      # Dibungkus sendiri, bukan pakai actions/upload-pages-artifact: action
+      # itu membungkus dengan `--exclude=.[^/]*`, yang membuang SELURUH berkas
+      # & folder titik — termasuk .well-known. Akibatnya assetlinks.json ada di
+      # dist, lolos pemeriksaan di atas, lalu hilang diam-diam saat dikirim,
+      # dan gejalanya cuma address bar yang muncul di app Android.
+      #
+      # Bentuk artefaknya sama persis dengan yang dibuat action itu: satu
+      # berkas artifact.tar berisi isi dist/, diunggah dengan nama
+      # "github-pages" — yang memang dicari actions/deploy-pages.
+      - name: Bungkus dist/ (termasuk berkas titik)
+        run: |
+          tar --dereference --hard-dereference \
+              --directory dist \
+              -cf "$RUNNER_TEMP/artifact.tar" \
+              --exclude=.git \
+              --exclude=.github \
+              .
+
+      # Yang diperiksa isi bungkusannya, bukan lagi isi dist/. Pemeriksaan
+      # sebelumnya lolos sementara berkasnya tetap tidak sampai ke server —
+      # justru itu yang membuat masalahnya tidak kelihatan.
+      - name: Pastikan berkas titik ikut terbungkus
+        run: |
+          tar -tf "$RUNNER_TEMP/artifact.tar" | grep -qF ".well-known/assetlinks.json" \
+            || { echo "assetlinks.json tidak ikut terbungkus — app Android akan memunculkan address bar"; exit 1; }
+          echo "isi bungkusan:"; tar -tf "$RUNNER_TEMP/artifact.tar" | grep -E "well-known|manifest|sw.js|CNAME"
+
+      - uses: actions/upload-artifact@v7.0.1
         with:
-          path: dist
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     needs: build
