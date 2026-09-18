@@ -253,13 +253,49 @@ Ketik di kotak search untuk filter:
 - Tanggal · Hari (kiri) — Untung/Rugi (kanan, hijau/merah)
 - Pills produk yang terjual + voucher laku/drop
 - Pills uang: `−Rp X keluar`, `+Rp Y cash`
+- Pills nama penginput (cuma muncul kalau yang pernah input lebih dari satu orang)
 
 ### Detail entri (klik untuk expand)
 - **Ringkasan**: Pemasukan, Gaji, Pengeluaran, Cash Masuk, Untung/Rugi Hari Ini
 - **Rincian Gaji** — breakdown per produk, lengkap dengan voucher per toko + catatan drop ("semua terjual hari ini", "sisa N di toko", "ada laku dari stok sebelumnya")
 - **Rincian Pengeluaran** — daftar item & total
 - **Cash Masuk** — daftar pelanggan yang bayar hutang
+- **Jejak Input** — siapa menyentuh hari ini, melakukan apa, jam berapa
 - Tombol merah **Hapus Data Ini** — menghapus entri tanggal tersebut
+
+### Jejak Input
+
+Tiap kali tombol simpan ditekan — di Hari Ini, di Voucher Toko, atau saat
+mengedit/menghapus di Riwayat — tercatat satu baris: **nama · apa yang
+dilakukan · jam**. Contoh:
+
+```
+Jaya      INPUT     3 Kopi Lain · −Rp20.000 Susu          07:32
+Farid     EDIT      penjualan Rp96.000 → Rp80.000         12:10
+```
+
+Yang perlu diketahui:
+
+- **Jam yang tercatat = jam tombol ditekan**, bukan jam datanya sampai server.
+  Input saat sinyal mati tetap tercatat jam kejadiannya, walau baru terkirim
+  besok pagi.
+- **Jejak menempel di tanggal datanya.** Mengedit data kemarin dari hari ini
+  meninggalkan jejak di baris kemarin — di situ orang mencarinya.
+- **Hari yang datanya dihapus tetap muncul** sebagai baris abu-abu bertanda
+  "Data dihapus", isinya cuma jejak siapa yang menghapus.
+- **Saldo Awal** tidak punya baris harian, jadi perubahan terakhirnya ditulis
+  di bar Saldo Awal sendiri: "diubah Jaya · 14 Sep 10:32".
+- **Search juga menerima nama**: ketik `jaya` untuk melihat hari apa saja yang
+  dia sentuh.
+- Jejak **tidak bisa diedit atau dihapus** dari app — termasuk oleh yang
+  membuatnya.
+- Hari-hari lama (sebelum fitur ini menyala) jejaknya kosong. Bukan error;
+  memang belum pernah dicatat.
+
+> Nama yang muncul diambil dari akun Supabase. Kalau yang tampil masih potongan
+> email (`prof.mf3`), isi User Metadata akun itu dengan `{ "nama": "Farid" }`
+> lewat Supabase Dashboard → Authentication → pilih user. Nama yang sedang
+> dipakai selalu terlihat di pojok kiri bawah, di atas email.
 
 > Hapus entri di Riwayat **TIDAK** menghapus data voucher toko untuk tanggal yang sama. Kalau ingin reset voucher, set ulang drop=0, laku=0 di menu Voucher Toko.
 
@@ -271,6 +307,7 @@ Hanya tersedia di **menu Riwayat** — klik icon download (⬇) di kanan kotak s
 
 Isi file:
 - Per tanggal: qty per produk, kolom drop & laku per toko, total penjualan, gaji, pengeluaran (detail), cash masuk, sisa kas
+- Kolom terakhir **Diinput Oleh** — nama penginput hari itu beserta berapa kali, cth: `Jaya (3×), Farid (1×)`
 - Baris **TOTAL** di paling bawah
 
 > File CSV bisa dibuka di Excel, Google Sheets, atau Numbers.
@@ -320,6 +357,15 @@ Tabel `voucher_toko` belum dibuat di Supabase. Jalankan migrasi:
 2. Cek koneksi internet
 3. Refresh halaman (Ctrl+R / Cmd+R)
 4. Coba logout (di sidebar) lalu login ulang
+
+### Nama penginput tidak muncul di Riwayat
+Tiga kemungkinan, urut dari yang paling sering:
+1. **Cuma satu orang yang pernah input.** Pills nama sengaja disembunyikan di
+   baris ringkas kalau tidak ada yang perlu dibedakan — buka detail entri,
+   jejaknya tetap ada di sana.
+2. **Datanya lama**, dibuat sebelum jejak dicatat. Tidak bisa diisi surut.
+3. **Tabel `jejak` belum dibuat** di Supabase. Jalankan `jejak_migration.sql`
+   lewat SQL Editor. App tetap jalan tanpa tabel itu, jejaknya saja yang kosong.
 
 ### Salah input — gimana koreksi?
 - **Penjualan/Pengeluaran/Cash Masuk**: buka Riwayat, klik entri tanggal yang salah → expand → **Hapus Data Ini** → input ulang dari Hari Ini

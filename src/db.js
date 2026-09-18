@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { accumulateEntry } from './model.js'
+import { accumulateEntry, todayISO } from './model.js'
 
 // Satu-satunya file yang menyentuh Supabase. Komponen tidak pernah memanggil
 // sb.from(...) atau sb.auth langsung — supaya kalau nanti mau menambah retry,
@@ -103,10 +103,13 @@ export async function loadSaldoAwal() {
   return data?.value != null ? Number(data.value) || 0 : null
 }
 
-export async function saveSaldoAwal(value) {
+export async function saveSaldoAwal(value, jejak) {
   if (!sb) return
   const { error } = await sb.from('config').upsert({ key: 'saldo_awal', value }, { onConflict: 'key' })
   if (error) throw error
+  // Saldo awal tidak punya tanggalnya sendiri; dititipkan ke tanggal saat
+  // tombol ditekan, supaya tetap punya tempat di urutan waktu.
+  await catatJejak(jejak?.date || todayISO(), jejak)
 }
 
 // === Entries ===
@@ -143,27 +146,29 @@ export async function loadEntryDetail(date) {
   return { data: data ? rowToEntry(data) : null, error: null }
 }
 
-export async function saveEntry(entry) {
+export async function saveEntry(entry, jejak) {
   if (!sb) return
   const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' })
   if (error) throw error
+  await catatJejak(entry.date, jejak)
 }
 
 // Menambah input ke entri satu tanggal. Selalu membaca baris LENGKAP yang
 // segar dulu, jadi hasilnya benar walau state lokal basi — dan tetap benar
 // walau kirimannya baru terkirim beberapa jam kemudian dari antrean offline.
-export async function commitEntryAddition(date, input) {
+export async function commitEntryAddition(date, input, jejak) {
   const { data: existing, error } = await loadEntryDetail(date)
   if (error) throw error
   const entry = accumulateEntry(existing, date, input)
-  await saveEntry(entry)
+  await saveEntry(entry, jejak)
   return entry
 }
 
-export async function deleteEntry(date) {
+export async function deleteEntry(date, jejak) {
   if (!sb) return
   const { error } = await sb.from('entries').delete().eq('date', date)
   if (error) throw error
+  await catatJejak(date, jejak)
 }
 
 // === Voucher Toko ===
@@ -184,7 +189,7 @@ export async function loadVoucherToko() {
 }
 
 // rows berbentuk UI: [{ tokoId, drop, laku }] untuk satu tanggal.
-export async function saveVoucherToko(date, rows) {
+export async function saveVoucherToko(date, rows, jejak) {
   if (!sb) return
   const payload = rows.map(r => ({
     date,
@@ -194,6 +199,63 @@ export async function saveVoucherToko(date, rows) {
   }))
   const { error } = await sb.from('voucher_toko').upsert(payload, { onConflict: 'date,toko_id' })
   if (error) throw error
+  await catatJejak(date, jejak)
+}
+
+// === Jejak input ===
+
+// Siapa menginput apa, kapan. Bentuk barisnya lihat jejak_migration.sql;
+// isinya disusun src/jejak.js, file ini cuma mengantar.
+
+function rowToJejak(row) {
+  return {
+    id: row.id,
+    date: row.date,
+    aksi: row.aksi,
+    oleh: row.oleh,
+    email: row.email,
+    rincian: row.rincian || {},
+    waktu: row.waktu,
+  }
+}
+
+// Menulis jejak TIDAK boleh menggagalkan tulisan uangnya. Kalau insert ini
+// dibiarkan melempar, kiriman yang uangnya sudah masuk akan dianggap gagal
+// lalu diulang dari antrean — dan penjualannya tercatat dua kali. Kehilangan
+// satu baris jejak jauh lebih murah daripada itu.
+//
+// Ikut diam pula kalau tabelnya memang belum dibuat: app lama yang belum
+// dimigrasikan tetap jalan, jejaknya saja yang kosong.
+async function catatJejak(date, jejak) {
+  if (!sb || !jejak) return
+  try {
+    await sb.from('jejak').insert({
+      date,
+      aksi: jejak.aksi,
+      oleh: jejak.oleh,
+      email: jejak.email || null,
+      rincian: jejak.rincian || {},
+      waktu: jejak.waktu,
+    })
+  } catch (_) {}
+}
+
+// Seluruh jejak, dikelompokkan per tanggal dan urut waktu. Dipanggil saat tab
+// Riwayat dibuka — halaman lain tidak menampilkannya, jadi tidak perlu ikut
+// ditarik saat login.
+export async function loadJejak() {
+  const { data, error } = await sb
+    .from('jejak')
+    .select('id,date,aksi,oleh,email,rincian,waktu')
+    .order('waktu', { ascending: true })
+  if (error) return { data: null, error }
+  const map = {}
+  ;(data || []).forEach(r => {
+    const j = rowToJejak(r)
+    if (!map[j.date]) map[j.date] = []
+    map[j.date].push(j)
+  })
+  return { data: map, error: null }
 }
 
 // Apakah kegagalan ini karena jaringan, bukan karena datanya ditolak?
@@ -211,7 +273,7 @@ export function isNetworkError(e) {
 // drop_qty, eventType) diterjemahkan di sini juga, supaya komponen cuma
 // menerima bentuk yang sudah dikenalnya.
 // Mengembalikan fungsi untuk berhenti berlangganan.
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onStatus }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onStatus }) {
   if (!sb) return () => {}
   const ch = sb.channel('rt-entries')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
@@ -242,5 +304,17 @@ export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onStatus })
       if (status === 'SUBSCRIBED') onStatus?.('online')
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') onStatus?.('offline')
     })
-  return () => sb.removeChannel(ch)
+
+  // Jejak sengaja di channel sendiri, bukan menumpang yang di atas: di project
+  // yang tabel jejak-nya belum dibuat, binding-nya ditolak server dan seluruh
+  // channel ikut mati — entries pun berhenti realtime, hanya karena sebuah
+  // catatan tambahan. Statusnya juga tidak ikut menyalakan badge Offline:
+  // kasir tidak perlu dibuat cemas oleh tabel yang cuma menyimpan riwayat.
+  const chJejak = sb.channel('rt-jejak')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jejak' }, payload => {
+      if (payload.new) onJejak?.(rowToJejak(payload.new))
+    })
+    .subscribe()
+
+  return () => { sb.removeChannel(ch); sb.removeChannel(chJejak) }
 }

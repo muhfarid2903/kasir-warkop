@@ -182,9 +182,14 @@ body::before{
   font-weight:700;font-size:13px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
 }
+.sidebar-user-teks{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sidebar-user-nama{
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:12.5px;font-weight:600;color:var(--text);letter-spacing:-.1px;
+}
 .sidebar-user-email{
-  flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text3);letter-spacing:.01em;
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:.01em;
 }
 
 /* Backdrop for mobile overlay */
@@ -484,6 +489,36 @@ body::before{
 .toko-main strong{color:var(--text);font-weight:700}
 .toko-sub{color:var(--text3);font-size:11px;line-height:1.4;letter-spacing:.02em}
 
+/* Jejak input: siapa menyentuh hari ini, jam berapa. Sengaja sekecil catatan
+   kaki — yang dicari orang tetap angkanya; nama penginput dibaca cuma kalau
+   ada yang perlu ditelusuri. */
+.history-orang{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pill.orang{display:inline-flex;align-items:center;gap:5px;background:transparent;color:var(--text3);border-style:dashed}
+.jejak-list{display:flex;flex-direction:column}
+.jejak-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.jejak-row:last-child{border-bottom:none}
+.jejak-ikon{
+  flex-shrink:0;width:22px;height:22px;border-radius:7px;margin-top:1px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--bg3);color:var(--text3);border:1px solid var(--border);
+}
+.jejak-row.tambah .jejak-ikon,
+.jejak-row.voucher .jejak-ikon{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.jejak-row.ubah .jejak-ikon{background:var(--blue-bg);color:var(--blue)}
+.jejak-row.hapus .jejak-ikon{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+.jejak-isi{flex:1;min-width:0}
+.jejak-kepala{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;font-size:12.5px}
+.jejak-kepala strong{color:var(--text);font-weight:600}
+.jejak-aksi{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.jejak-teks{font-size:11.5px;color:var(--text2);line-height:1.5;margin-top:2px;overflow-wrap:anywhere}
+.jejak-jam{flex-shrink:0;margin-top:3px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.jejak-kosong{font-size:11.5px;color:var(--text3);font-style:italic;padding:4px 0 2px}
+/* Hari yang datanya sudah dihapus: masih disebut, tapi tidak berlagak seperti
+   baris yang bisa dibuka — tidak ada lagi isinya selain jejak ini. */
+.history-item.terhapus{opacity:.72;cursor:default}
+.history-item.terhapus:hover{transform:none;border-color:var(--border);box-shadow:none}
+.history-item.terhapus .history-item-header{margin-bottom:6px}
+
 .gajian-card{
   background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
   border:1px solid var(--border);border-radius:var(--radius-lg);
@@ -737,6 +772,9 @@ body::before{
   .gajian-total-value{font-size:28px}
   .saldo-awal-bar{padding:10px 13px;font-size:11.5px}
   .saldo-awal-bar > .val{font-size:14px}
+  /* Di layar HP catatan "diubah siapa, kapan" tidak muat di sisa baris —
+     dipatahkan ke barisnya sendiri, bukan diperas jadi tiga baris sempit. */
+  .saldo-awal-bar > .info{flex-basis:100%}
 }
 .gajian-status-badge.paid{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
 .gajian-status-badge.pending{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
@@ -963,6 +1001,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .form-input,
 [data-theme="light"] .date-input{background:#F0F0F3}
 [data-theme="light"] .pill{background:#F0F0F3}
+[data-theme="light"] .pill.orang{background:transparent}
 [data-theme="light"] td{border-bottom-color:var(--border)}
 [data-theme="light"] tr:hover td{background:rgba(0,0,0,.03)}
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:saturate(0) brightness(.55);opacity:.55}

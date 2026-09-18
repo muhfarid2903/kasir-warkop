@@ -43,12 +43,17 @@ export function onOutboxChange(fn) {
 
 export function outboxSize() { return antrean.length }
 
+// op.jejak ikut dititipkan ke db: siapa yang menekan tombol dan jam berapa,
+// direkam saat itu juga. Kiriman yang baru terkirim besok pagi tetap tercatat
+// atas nama orang yang benar-benar menginputnya. Kiriman lama yang tersimpan
+// di localStorage sebelum fitur ini ada tidak punya op.jejak — undefined, dan
+// db diam saja soal itu.
 function kirimSatu(op) {
   switch (op.type) {
-    case 'tambahEntri':   return commitEntryAddition(op.date, op.input)
-    case 'hapusEntri':    return dbDeleteEntry(op.date)
-    case 'simpanVoucher': return dbSaveVoucherToko(op.date, op.rows)
-    case 'simpanSaldo':   return dbSaveSaldoAwal(op.value)
+    case 'tambahEntri':   return commitEntryAddition(op.date, op.input, op.jejak)
+    case 'hapusEntri':    return dbDeleteEntry(op.date, op.jejak)
+    case 'simpanVoucher': return dbSaveVoucherToko(op.date, op.rows, op.jejak)
+    case 'simpanSaldo':   return dbSaveSaldoAwal(op.value, op.jejak)
     default:              return Promise.resolve()
   }
 }

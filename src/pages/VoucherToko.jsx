@@ -4,6 +4,7 @@ import {
   TOKO, VOUCHER_TOKO_CUTOFF, V2K, V2K_SETORAN,
   getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore,
 } from '../model.js'
+import { tandaJejak, rincianVoucher } from '../jejak.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
@@ -42,9 +43,14 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
     const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
     if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
+    // Tombol ini selalu mengirim kelima toko, padahal biasanya cuma satu yang
+    // disentuh. Yang dicatat hanya yang benar-benar berubah; simpan yang tidak
+    // mengubah apa pun tidak meninggalkan jejak sama sekali (null).
+    const berubah = rincianVoucher(rows, voucherToko[selectedDate]);
+    const jejak = berubah ? tandaJejak(session, 'voucher', berubah) : null;
     setVoucherSaving(true);
     try {
-      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows });
+      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows, jejak });
       tandaiTulis(hasil);
       // Optimistic local update
       setVoucherToko(prev => {

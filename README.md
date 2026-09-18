@@ -43,6 +43,7 @@ dipindah, custom domain akan lepas tiap deploy.
 | `fx.js` | riak & denyut sentuhan, satu listener untuk seluruh app |
 | `csv.js` | export riwayat |
 | `outbox.js` | antrean kiriman saat sinyal putus |
+| `jejak.js` | siapa menginput apa — nama penginput & ringkasannya |
 | `pages/` | Login, HariIni, VoucherToko, Gajian, Riwayat |
 | `components/` | Icon, ProductIcon, AnimatedIDR, Skeleton |
 
@@ -58,6 +59,11 @@ menjaga data adalah RLS policy di Supabase, bukan kerahasiaan kunci ini.
 Pendaftaran akun publik **dimatikan** di Supabase (Authentication → Allow new
 users to sign up). Akun baru dibuat lewat Dashboard → Authentication → Add user.
 
+Nama yang menempel di jejak input diambil dari User Metadata akun. Isi
+`{ "nama": "Jaya" }` di Dashboard → Authentication → pilih user → User
+Metadata. Kalau kosong, yang dipakai bagian depan email — jalan, tapi jelek
+dibaca di riwayat.
+
 ## Dependency
 
 Versi dipin eksak tanpa `^` atau `~`. Tidak ada backend yang menyaring rilis
@@ -70,3 +76,5 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
 - `MANUAL.md` — panduan pemakaian untuk yang menjaga warkop
 - `import_riwayat.sql` — import riwayat awal dari CSV
 - `voucher_toko_migration.sql` — bikin tabel `voucher_toko` + RLS
+- `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
+  Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
