@@ -13,3 +13,12 @@ dist/
 
 # Cache Vite
 .vite/
+
+# Kunci penanda tangan APK. JANGAN pernah masuk repo — repo ini publik, dan
+# siapa pun yang punya berkas ini bisa menerbitkan "update" palsu atas nama
+# app ini. Simpan di tempat aman (password manager / Drive pribadi); kalau
+# hilang, app yang sudah terpasang tidak bisa di-update, harus dicopot dulu.
+android.keystore
+*.keystore
+*.jks
+build-twa/

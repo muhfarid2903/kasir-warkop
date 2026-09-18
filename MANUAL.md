@@ -16,6 +16,7 @@ URL: **https://kasir.balanglompo.com**
 7. [Export CSV](#7-export-csv)
 8. [Tips & Praktik Terbaik](#8-tips--praktik-terbaik)
 9. [Troubleshooting](#9-troubleshooting)
+10. [Pasang di HP](#10-pasang-di-hp)
 
 ---
 
@@ -379,6 +380,48 @@ Tiga kemungkinan, urut dari yang paling sering:
 
 ### Lupa password
 Saat ini belum ada flow reset password di app. Hubungi admin (Muhammad Farid).
+
+---
+
+## 10. Pasang di HP
+
+App ini bisa duduk di layar utama HP seperti aplikasi biasa: punya ikonnya
+sendiri, buka layar penuh tanpa address bar.
+
+### Cara 1 — dari Chrome (paling cepat)
+
+1. Buka **kasir.balanglompo.com** di Chrome HP
+2. Menu ⋮ → **Tambahkan ke layar utama** (atau "Install app")
+3. Ikon Warkopsaja muncul di layar utama
+
+### Cara 2 — file APK
+
+Kalau yang dibagikan file `.apk`:
+
+1. Buka file APK-nya, izinkan "Install dari sumber ini" kalau ditanya
+2. Pasang, lalu buka dari layar utama
+
+Isinya sama persis dengan Cara 1 — APK-nya cuma pembungkus. Update app datang
+sendiri dari internet; APK tidak perlu dikirim ulang tiap ada perbaikan.
+
+### Waktu sinyal warkop mati
+
+App tetap **bisa dibuka** — kerangkanya sudah tersimpan di HP sejak pemakaian
+sebelumnya. Yang tidak bisa cuma menarik data baru dari server:
+
+- Angka di layar adalah angka terakhir yang sempat termuat
+- Badge **Offline** / **N tertunda** muncul di kanan atas
+- Input tetap bisa diketik dan disimpan — masuk antrean di HP
+- Begitu sinyal kembali, antrean terkirim sendiri; badge-nya hilang
+
+Yang perlu diingat: jangan hapus data app / "Clear storage" selagi badge
+tertunda masih menyala — antrean itu tersimpan di HP, bukan di server.
+
+### Kalau muncul "Versi baru sudah diunduh"
+
+Tutup app-nya betul-betul (geser dari daftar aplikasi terbuka), lalu buka
+lagi. Versi barunya dipakai setelah itu. Sengaja tidak menyela sendiri supaya
+tidak ada input yang hilang di tengah jalan.
 
 ---
 

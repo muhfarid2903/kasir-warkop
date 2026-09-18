@@ -7,6 +7,7 @@ import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, use
 import { useEfekSentuh } from './fx.js'
 import { suaraAktif, setSuaraAktif, bunyi } from './sfx.js'
 import { Icon } from './components/Icon.jsx'
+import { Logo } from './components/Logo.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
 import HariIni from './pages/HariIni.jsx'
@@ -84,7 +85,7 @@ function App() {
 
   const SplashHeader = () => (
     <div className="header">
-      <div className="header-logo" style={{color:"#1a0e05",width:38,height:38,background:"var(--grad-warm)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(184,92,44,.35),inset 0 1px 0 rgba(255,255,255,.25)"}}><Icon type="coffee" size={20}/></div>
+      <div className="header-logo" style={{width:38,height:38,borderRadius:11}}><Logo size={38} radius={11}/></div>
       <div className="header-page-title">Warkopsaja</div>
     </div>
   );
@@ -162,7 +163,7 @@ function App() {
     <div className={"app"+(sidebarOpen?" sidebar-open":"")}>
       <aside className="sidebar" aria-label="Navigasi">
         <div className="sidebar-header">
-          <div className="sidebar-logo"><Icon type="coffee" size={20}/></div>
+          <div className="sidebar-logo"><Logo size={36} radius={11}/></div>
           <div className="sidebar-brand">
             <div className="sidebar-brand-title">Warkopsaja</div>
             <div className="sidebar-brand-sub">{today.getDate()} {ML[today.getMonth()]} · {DAYS[today.getDay()]}</div>

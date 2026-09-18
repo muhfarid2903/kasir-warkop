@@ -1,0 +1,112 @@
+# Membungkus situs yang sudah live jadi APK Android (TWA — Trusted Web
+# Activity). Yang dikemas BUKAN isi app, melainkan alamatnya: APK-nya cuma
+# ±20 KB dan menjalankan kasir.balanglompo.com di mesin Chrome yang sudah ada
+# di HP, tanpa address bar.
+#
+# Artinya: setelah APK terpasang sekali, isi app diperbarui lewat `git push`
+# seperti biasa. APK hanya perlu dibuat ulang kalau nama, ikon, atau warnanya
+# berubah — bukan tiap kali ada fitur baru.
+#
+# Jalan manual saja (Actions → Build APK Android → Run workflow): membuat APK
+# di tiap push cuma menumpuk berkas yang tidak dipakai siapa-siapa.
+
+name: Build APK Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      versi:
+        description: 'Nomor versi yang tampil di HP (mis. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '22'
+
+      # Bubblewrap memanggil Gradle, dan Gradle butuh JDK. Runner sudah punya
+      # Android SDK-nya (ANDROID_HOME), jadi yang perlu disiapkan cuma Java.
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Tanpa berkas ini Bubblewrap mencoba mengunduh JDK & SDK sendiri
+      # (ratusan MB) padahal keduanya sudah ada di runner.
+      - name: Tunjuk JDK & Android SDK yang sudah ada
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json <<JSON
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_HOME"
+          }
+          JSON
+          cat ~/.bubblewrap/config.json
+
+      # Kunci penanda tangan tidak pernah ada di repo (repo ini publik).
+      # Isinya datang dari Secrets, dipakai sebentar, lalu ikut hilang bersama
+      # runner-nya.
+      - name: Pasang kunci penanda tangan
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo "Secret ANDROID_KEYSTORE_BASE64 belum diisi — lihat scripts/buat-keystore.sh"; exit 1; }
+          echo "$KEYSTORE_B64" | base64 -d > android.keystore
+          test -s android.keystore || { echo "Keystore kosong setelah di-decode"; exit 1; }
+
+      # Nomor build harus NAIK tiap APK baru, kalau tidak Android menolak
+      # memasangnya sebagai update. Nomor urut workflow sudah menjamin itu
+      # tanpa perlu diingat orang.
+      - name: Setel versi
+        run: |
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("twa-manifest.json", "utf8"));
+            m.appVersionName = process.env.VERSI;
+            m.appVersionCode = Number(process.env.RUN);
+            fs.writeFileSync("twa-manifest.json", JSON.stringify(m, null, 2));
+            console.log("versi", m.appVersionName, "kode", m.appVersionCode);
+          '
+        env:
+          VERSI: ${{ inputs.versi }}
+          RUN: ${{ github.run_number }}
+
+      - name: Bangun proyek Android dari twa-manifest.json
+        run: npx --yes @bubblewrap/cli@1.25.0 update --skipVersionUpgrade
+
+      - name: Build APK + AAB
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npx --yes @bubblewrap/cli@1.25.0 build --skipPwaValidation
+
+      # Sidik jari APK jadi harus sama dengan yang tertulis di
+      # public/.well-known/assetlinks.json. Kalau beda, app tetap jalan tapi
+      # address bar muncul di atas layar — gejalanya halus, jadi lebih baik
+      # ketahuan di sini daripada di HP.
+      - name: Cocokkan sidik jari APK dengan assetlinks.json
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          SIDIK=$("$APKSIGNER" verify --print-certs app-release-signed.apk | grep -i "SHA-256 digest" | head -1 | sed 's/.*: *//' | tr 'a-z' 'A-Z' | sed 's/\(..\)/\1:/g;s/:$//')
+          TERTULIS=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("public/.well-known/assetlinks.json","utf8"))[0].target.sha256_cert_fingerprints[0])')
+          echo "APK        : $SIDIK"
+          echo "assetlinks : $TERTULIS"
+          test "$SIDIK" = "$TERTULIS" || { echo "❌ Tidak cocok — address bar akan muncul di app. Perbarui assetlinks.json lalu deploy ulang situsnya."; exit 1; }
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Kasir-Warkopsaja-${{ inputs.versi }}
+          path: |
+            app-release-signed.apk
+            app-release-bundle.aab
+          if-no-files-found: error

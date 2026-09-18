@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { signIn } from '../db.js'
-import { Icon } from '../components/Icon.jsx'
+import { Logo } from '../components/Logo.jsx'
 
 // Hanya masuk, tidak ada daftar. Pendaftaran publik dimatikan di Supabase
 // (Authentication → Allow new users to sign up), jadi tombol "Daftar" cuma
@@ -25,7 +25,7 @@ export default function LoginScreen({ onSession }) {
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"40px 20px"}}>
         <form onSubmit={submit} style={{width:400,maxWidth:"100%"}}>
           <div className="login-hero">
-            <div className="login-hero-logo"><Icon type="coffee" size={32}/></div>
+            <div className="login-hero-logo"><Logo size={68} radius={20}/></div>
             <h1 className="login-hero-title">Warkopsaja</h1>
             <p className="login-hero-tag">Catat hari, lihat hasilnya.</p>
           </div>

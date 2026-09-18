@@ -56,6 +56,15 @@ jobs:
           test -f dist/CNAME || { echo "dist/CNAME hilang — custom domain akan lepas"; exit 1; }
           echo "CNAME: $(cat dist/CNAME)"
 
+      # Berkas titik gampang hilang tanpa suara (Vite, Jekyll, rsync — semua
+      # punya kebiasaan melewatinya), dan hilangnya tidak terlihat dari mana
+      # pun kecuali address bar yang tiba-tiba muncul di app Android.
+      - name: Pastikan assetlinks.json & manifest ikut ke dist/
+        run: |
+          test -f dist/.well-known/assetlinks.json || { echo "dist/.well-known/assetlinks.json hilang — app Android akan memunculkan address bar"; exit 1; }
+          test -f dist/manifest.webmanifest || { echo "dist/manifest.webmanifest hilang — app tidak bisa dipasang ke layar utama"; exit 1; }
+          test -f dist/sw.js || { echo "dist/sw.js hilang — app tidak bisa dibuka tanpa sinyal"; exit 1; }
+
       - uses: actions/configure-pages@v6.0.0
 
       - uses: actions/upload-pages-artifact@v5.0.0
