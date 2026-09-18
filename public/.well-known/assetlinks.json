@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.balanglompo.warkopsaja",
+      "sha256_cert_fingerprints": [
+        "BELUM_DIISI__jalankan_scripts/buat-keystore.sh"
+      ]
+    }
+  }
+]

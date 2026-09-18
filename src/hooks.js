@@ -241,6 +241,11 @@ export function useTheme() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    // Bilah status HP ikut warna app. Nilainya sama dengan --bg tiap tema;
+    // kalau tidak, app gelap duduk di bawah bilah putih dan terlihat seperti
+    // dua aplikasi yang ditempel.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#121110' : '#F5F5F7');
     try { localStorage.setItem('theme', theme); } catch(e) {}
   }, [theme]);
 

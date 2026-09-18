@@ -66,17 +66,9 @@ body::before{
 }
 .header-logo{
   width:46px;height:46px;
-  background:var(--grad-warm);
   border-radius:14px;display:flex;align-items:center;justify-content:center;
   font-size:22px;flex-shrink:0;position:relative;
-  box-shadow:0 6px 24px rgba(91,211,199,.4),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);
-}
-.header-logo::after{
-  content:'';position:absolute;inset:-2px;border-radius:16px;padding:2px;
-  background:linear-gradient(135deg,rgba(91,211,199,.5),transparent 50%,rgba(143,229,220,.4));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+  box-shadow:0 6px 24px rgba(0,0,0,.28);
 }
 .header-title{
   font-size:20px;font-weight:700;letter-spacing:-.6px;
@@ -123,9 +115,9 @@ body::before{
 }
 .sidebar-logo{
   width:36px;height:36px;flex-shrink:0;
-  background:var(--grad-warm);border-radius:11px;
-  display:flex;align-items:center;justify-content:center;color:#0B1413;
-  box-shadow:0 4px 14px rgba(91,211,199,.35),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);
+  border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
   position:relative;
 }
 .sidebar-brand{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.15}
@@ -704,18 +696,14 @@ body::before{
 .login-hero{text-align:center;margin-bottom:32px;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both}
 .login-hero-logo{
   width:68px;height:68px;margin:0 auto 16px;
-  background:var(--grad-warm);border-radius:20px;
+  border-radius:20px;
   display:flex;align-items:center;justify-content:center;
-  color:#0B1413;position:relative;
-  box-shadow:0 10px 32px rgba(91,211,199,.4),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);
+  position:relative;
+  box-shadow:0 10px 32px rgba(0,0,0,.3);
 }
-.login-hero-logo::after{
-  content:'';position:absolute;inset:-3px;border-radius:23px;padding:3px;
-  background:linear-gradient(135deg,rgba(91,211,199,.5),transparent 50%,rgba(143,229,220,.4));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
-}
+/* Tanda warkop itu sendiri (public/icon.svg). Dipasang lewat <img>, jadi
+   ukuran & radiusnya ikut komponen Logo, bukan CSS per tempat. */
+.logo-mark{display:block;user-select:none;-webkit-user-drag:none}
 .login-hero-title{
   font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.1;
   background:linear-gradient(180deg,var(--text),var(--accent));
@@ -1038,9 +1026,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .toast{box-shadow:0 12px 40px rgba(0,113,227,.32),0 2px 8px rgba(0,0,0,.14)}
 [data-theme="light"] .header-logo,
 [data-theme="light"] .sidebar-logo,
-[data-theme="light"] .login-hero-logo{color:#fff!important;box-shadow:0 4px 14px rgba(0,113,227,.30),inset 0 1px 0 rgba(255,255,255,.25)!important}
-[data-theme="light"] .header-logo::after,
-[data-theme="light"] .login-hero-logo::after{background:linear-gradient(135deg,rgba(120,180,255,.6),transparent 50%,rgba(90,200,250,.4))}
+[data-theme="light"] .login-hero-logo{box-shadow:0 6px 20px rgba(0,0,0,.14)}
 [data-theme="light"] .sk{background:linear-gradient(90deg,#F0F0F3 0%,#E4E4E9 50%,#F0F0F3 100%);background-size:200% 100%}
 
 /* === Skeleton loader === */

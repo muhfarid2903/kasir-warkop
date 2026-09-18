@@ -4,8 +4,19 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Warkopsaja — Input Harian</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f4d4a8'/><stop offset='1' stop-color='%23c9975f'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' fill='%231a0e05' font-size='16' font-weight='bold'>☕</text></svg>"/>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
   <meta name="description" content="Input & rekap kas harian warung kopi"/>
+
+  <!-- Dipasang di layar utama HP: ikon, nama, warna splash. Lihat
+       public/manifest.webmanifest — berkas yang sama juga dibaca Bubblewrap
+       saat membungkus APK, jadi ikon app Android ikut dari sana. -->
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <meta name="theme-color" content="#F5F5F7"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Warkopsaja"/>
   <!-- Font Inter + JetBrains Mono di-bundle lewat @fontsource (lihat src/main.jsx),
        jadi tidak ada permintaan ke fonts.googleapis.com saat app dibuka. -->
   <script>
@@ -13,11 +24,14 @@
     // (nilai :root di CSS) sebelum useEffect menyetelnya ke terang — kelihatan
     // seperti kedipan tiap app dibuka.
     (function () {
-      try {
-        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light');
-      }
+      var tema = 'light';
+      try { tema = localStorage.getItem('theme') || 'light'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', tema);
+      // Bilah status HP ikut warna app, bukan putih sendirian di atas layar
+      // gelap. Disetel di sini juga (bukan cuma di useTheme) supaya tidak ada
+      // satu frame salah warna saat app dibuka dari layar utama.
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', tema === 'dark' ? '#121110' : '#F5F5F7');
     })();
   </script>
 </head>
