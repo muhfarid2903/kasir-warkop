@@ -59,6 +59,24 @@ function App() {
   useEfekSentuh();
   const [suara, setSuara] = useState(suaraAktif);
 
+  // Menu akun di header. Ada HANYA karena di HP sidebar disembunyikan (lihat
+  // .sidebar{display:none} di blok ≤900px): Mode terang/gelap dan Logout
+  // tinggal di kaki sidebar, jadi di HP keduanya tidak punya jalan sama
+  // sekali — tab bar bawah cuma memuat empat halaman.
+  const [menuAkun, setMenuAkun] = useState(false);
+  const akunRef = useRef(null);
+  useEffect(() => {
+    if (!menuAkun) return;
+    // pointerdown, bukan click: menu harus sudah tertutup sebelum jari
+    // terangkat, supaya ketukan berikutnya tidak jatuh ke menu yang
+    // sebenarnya sudah tidak diinginkan.
+    const tutup = (e) => { if (!akunRef.current?.contains(e.target)) setMenuAkun(false); };
+    const esc = (e) => { if (e.key === 'Escape') setMenuAkun(false); };
+    document.addEventListener('pointerdown', tutup);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', tutup); document.removeEventListener('keydown', esc); };
+  }, [menuAkun]);
+
   const handleNav = (id) => {
     setPage(id);
     if (typeof window !== 'undefined' && window.innerWidth < 900) setSidebarOpen(false);
@@ -203,6 +221,32 @@ function App() {
             >
               <Icon type={suara?'volume':'volume-x'} size={17}/>
             </button>
+
+            {/* CSS menyembunyikannya di atas 900px — di sana sidebar-nya ada,
+                dan dua tombol yang sama di satu layar cuma membingungkan. */}
+            <div className="user-menu-wrap" ref={akunRef}>
+              <button
+                className="header-akun"
+                onClick={()=>setMenuAkun(v=>!v)}
+                aria-haspopup="menu"
+                aria-expanded={menuAkun}
+                aria-label="Akun"
+                title={userEmail}
+              >{userInitial}</button>
+              {menuAkun && (
+                <div className="user-menu" role="menu">
+                  <div className="user-menu-nama">{userNama}</div>
+                  <div className="user-menu-email" title={userEmail}>{userEmail}</div>
+                  <div className="user-menu-divider"/>
+                  <button role="menuitem" onClick={()=>{ setTheme(theme==='dark'?'light':'dark'); setMenuAkun(false); }}>
+                    <Icon type={theme==='dark'?'sun':'moon'} size={15}/> Mode {theme==='dark'?'terang':'gelap'}
+                  </button>
+                  <button role="menuitem" onClick={async()=>{ setMenuAkun(false); await signOut(); }}>
+                    <Icon type="log-out" size={15}/> Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
