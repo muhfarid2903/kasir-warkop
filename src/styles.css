@@ -730,8 +730,26 @@ body::before{
   background:none;-webkit-text-fill-color:var(--text);color:var(--text);
 }
 
-/* === User menu popover (consolidate theme + logout) === */
-.user-menu-wrap{position:relative;display:inline-flex}
+/* === Menu akun di header (mode terang/gelap + logout) ===
+   Kembarannya ada di kaki sidebar. Yang ini khusus lebar ≤900px, di mana
+   sidebar disembunyikan demi tab bar bawah — tanpa menu ini, Logout dan Mode
+   gelap tidak bisa dijangkau sama sekali dari HP. Karena itu defaultnya mati;
+   yang menyalakannya blok ≤900px di bawah. */
+.user-menu-wrap{position:relative;display:none}
+.header-akun{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;cursor:pointer;
+  border:1px solid var(--border);
+  background:linear-gradient(135deg,var(--accent-deep),var(--accent));
+  color:#0B1413;font-family:inherit;font-weight:700;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .18s cubic-bezier(.4,0,.2,1),box-shadow .25s;
+}
+.header-akun:active{transform:scale(.93)}
+.user-menu-nama{
+  font-size:13px;font-weight:600;color:var(--text);padding:8px 12px 0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+}
 .user-menu{
   position:absolute;top:calc(100% + 8px);right:0;
   background:var(--bg2);border:1px solid var(--border2);
@@ -1219,6 +1237,8 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   /* Hamburger & sidebar tidak lagi dipakai di HP */
   .sidebar-toggle{display:none}
   .sidebar,.sidebar-backdrop{display:none}
+  /* ...jadi isi kakinya pindah ke menu akun di header. */
+  .user-menu-wrap{display:inline-flex}
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -1532,6 +1552,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .sound-toggle{background:#F0F0F3}
 @media(max-width:600px){
   .sound-toggle{width:34px;height:34px;border-radius:9px}
+  .header-akun{width:34px;height:34px;border-radius:9px;font-size:13px}
 }
 
 /* Yang minta gerakan dikurangi tetap dapat bunyinya — yang dimatikan hanya
