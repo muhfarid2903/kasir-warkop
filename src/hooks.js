@@ -3,7 +3,7 @@ import {
   supabaseReady,
   getSession, onAuthChange,
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
-  subscribeRealtime,
+  loadJejak, subscribeRealtime,
 } from './db.js'
 import { flushOutbox, onOutboxChange, outboxSize } from './outbox.js'
 import { hasDetail, todayISO } from './model.js'
@@ -39,6 +39,9 @@ export function useAuth() {
 export function useWarkopData(session) {
   const [entries, setEntries] = useState({});
   const [voucherToko, setVoucherToko] = useState({});
+  // Jejak input per tanggal. Hanya Riwayat yang menampilkannya, jadi isinya
+  // menyusul saat tab itu dibuka — bukan ikut ditarik saat login.
+  const [jejak, setJejak] = useState({});
   const [initialSaldo, setInitialSaldo] = useState(0);
   const [syncStatus, setSyncStatus] = useState(supabaseReady ? "loading" : "not_configured");
   const [loading, setLoading] = useState(supabaseReady);
@@ -48,7 +51,7 @@ export function useWarkopData(session) {
     // Tetap dibiarkan true supaya saat sesi muncul tidak ada satu render antara
     // di mana halaman sempat tampil dengan data kosong — itu bikin Hari Ini
     // mount lalu unmount lagi, dan ikut menembakkan permintaan yang mubazir.
-    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setInitialSaldo(0); detailsLoaded.current = false; setDetailsReady(false); } setLoading(supabaseReady); return; }
+    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setJejak({}); setInitialSaldo(0); detailsLoaded.current = false; setDetailsReady(false); jejakLoaded.current = false; } setLoading(supabaseReady); return; }
     setLoading(true);
     let cancelled = false;
     (async () => {
@@ -77,6 +80,16 @@ export function useWarkopData(session) {
         });
       },
       onSaldoAwal: (value) => setInitialSaldo(value),
+      // Diabaikan selama Riwayat belum pernah memuat jejak: daftar yang cuma
+      // berisi kiriman satu jam terakhir lebih menyesatkan daripada kosong.
+      onJejak: (j) => {
+        if (!jejakLoaded.current) return;
+        setJejak(prev => {
+          const hari = prev[j.date] || [];
+          if (hari.some(x => x.id === j.id)) return prev;
+          return { ...prev, [j.date]: [...hari, j].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu))) };
+        });
+      },
       onStatus: (st) => setSyncStatus(prev => prev === 'not_configured' ? prev : st),
       onVoucher: (ev) => {
         setVoucherToko(prev => {
@@ -129,6 +142,7 @@ export function useWarkopData(session) {
   // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
   // per sesi — realtime yang menjaga tetap segar setelahnya.
   const detailsLoaded = useRef(false);
+  const jejakLoaded = useRef(false);
   const [detailsReady, setDetailsReady] = useState(false);
 
   const loadAllDetails = useCallback(async () => {
@@ -136,6 +150,27 @@ export function useWarkopData(session) {
     detailsLoaded.current = true;
     const { data, error } = await loadEntryDetails();
     if (error) { detailsLoaded.current = false; setSyncStatus('offline'); return; }
+    // Jejak ikut ditarik di sini karena tempat menampilkannya sama. Gagalnya
+    // dibiarkan tanpa suara: tabelnya opsional (lihat jejak_migration.sql),
+    // dan riwayat uangnya tetap utuh walau daftar penginputnya kosong.
+    //
+    // Penanda dinyalakan SEBELUM menarik, lalu hasilnya digabung: input orang
+    // lain yang masuk persis selagi halaman ini memuat datang lewat realtime,
+    // dan kalau ditunggu sampai selesai, baris itu hilang sampai app dibuka
+    // lagi.
+    jejakLoaded.current = true;
+    loadJejak().then(({ data: jmap, error: jerr }) => {
+      if (jerr) { jejakLoaded.current = false; return; }
+      setJejak(prev => {
+        const next = { ...jmap };
+        Object.keys(prev).forEach(d => {
+          const sudahAda = new Set((next[d] || []).map(j => j.id));
+          const susulan = prev[d].filter(j => !sudahAda.has(j.id));
+          if (susulan.length) next[d] = [...(next[d] || []), ...susulan].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu)));
+        });
+        return next;
+      });
+    });
     // Baris lengkap menimpa yang ringkas; tanggal yang cuma ada di ringkas
     // (mustahil, tapi murah untuk dijaga) tetap dipertahankan.
     setEntries(prev => ({ ...prev, ...data }));
@@ -162,6 +197,7 @@ export function useWarkopData(session) {
   return {
     entries, setEntries,
     voucherToko, setVoucherToko,
+    jejak,
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,

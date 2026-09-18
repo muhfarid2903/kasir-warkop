@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signOut } from './db.js'
+import { namaPengguna } from './jejak.js'
 import { DAYS, ML, fmtDateShort } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO } from './hooks.js'
@@ -45,6 +46,7 @@ function App() {
   const {
     entries, setEntries,
     voucherToko, setVoucherToko,
+    jejak,
     initialSaldo, setInitialSaldo,
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
@@ -132,7 +134,11 @@ function App() {
 
   const currentPage = NAV_ITEMS.find(n=>n.id===page);
   const userEmail = session?.user?.email || '';
-  const userInitial = (userEmail[0] || 'W').toUpperCase();
+  // Nama inilah yang menempel di tiap jejak input, jadi ditampilkan juga di
+  // sini — supaya jelas atas nama siapa yang sedang dicatat, dan ketahuan
+  // kalau masih berupa potongan email yang perlu diberi nama asli.
+  const userNama = namaPengguna(session);
+  const userInitial = (userNama[0] || 'W').toUpperCase();
 
   return (
     <div className={"app"+(sidebarOpen?" sidebar-open":"")}>
@@ -161,7 +167,10 @@ function App() {
           {userEmail && (
             <div className="sidebar-user">
               <div className="sidebar-user-avatar">{userInitial}</div>
-              <div className="sidebar-user-email" title={userEmail}>{userEmail}</div>
+              <div className="sidebar-user-teks">
+                <div className="sidebar-user-nama">{userNama}</div>
+                <div className="sidebar-user-email" title={userEmail}>{userEmail}</div>
+              </div>
             </div>
           )}
           <button className="nav-btn" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>
@@ -228,6 +237,7 @@ function App() {
             <Riwayat
               entries={entries} setEntries={setEntries}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
+              jejak={jejak}
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
               loadAllDetails={loadAllDetails} detailsReady={detailsReady}

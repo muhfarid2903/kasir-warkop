@@ -3,8 +3,13 @@ import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '
 import { kirimAtauAntre } from '../outbox.js'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals,
+  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, todayISO,
 } from '../model.js'
+import {
+  tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
+  ringkasJejak, jamJejak, tglJejak, pelakuHari, banyakPenginput, jejakSaldoTerakhir,
+  LABEL_AKSI, IKON_AKSI,
+} from '../jejak.js'
 import { IDR, DAYS, MO, fmtDate } from '../format.js'
 import { showToast } from '../toast.js'
 import { exportRiwayatCSV } from '../csv.js'
@@ -13,9 +18,37 @@ import { Icon } from '../components/Icon.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { SkeletonInput } from '../components/Skeleton.jsx'
 
+const tanggalRingkas = (d) => { const dt = new Date(d+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' · '+DAYS[dt.getDay()]; };
+
+// Siapa menyentuh hari ini, melakukan apa, jam berapa — urut dari pagi.
+// Dipakai dua tempat: di dalam detail entri, dan sebagai satu-satunya isi
+// baris untuk hari yang datanya sudah dihapus.
+function JejakHari({ list }) {
+  if (!list.length) return (
+    <div className="jejak-kosong">Tidak ada jejak untuk hari ini — biasanya karena datanya dibuat sebelum jejak dicatat.</div>
+  );
+  return (
+    <div className="jejak-list">
+      {list.map((j, i) => (
+        <div key={j.id ?? (j.waktu+'-'+i)} className={"jejak-row "+j.aksi}>
+          <span className="jejak-ikon"><Icon type={IKON_AKSI[j.aksi]||'clock'} size={12}/></span>
+          <div className="jejak-isi">
+            <div className="jejak-kepala">
+              <strong>{j.oleh}</strong>
+              <span className="jejak-aksi">{LABEL_AKSI[j.aksi]||j.aksi}</span>
+            </div>
+            <div className="jejak-teks">{ringkasJejak(j)}</div>
+          </div>
+          <span className="jejak-jam">{jamJejak(j.waktu)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis }) {
   // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
   // jadi di sinilah detail lengkap ditarik — bukan saat login.
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
@@ -43,8 +76,23 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
         if (v.laku>0 || v.drop>0) map[d] = { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0, sisaKas:0 };
       }
     });
+    // Hari yang datanya sudah dihapus tetap disebut, cuma sebagai baris jejak.
+    // Kalau tidak, justru penghapusan — perbuatan yang paling ingin ditelusuri
+    // orang — jadi satu-satunya yang tidak meninggalkan bekas di layar.
+    Object.keys(jejak||{}).forEach(d => {
+      if (map[d]) return;
+      if (!(jejak[d]||[]).some(j => j.aksi === 'hapus')) return;
+      map[d] = { date:d, terhapus:true, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0, sisaKas:0 };
+    });
     return Object.values(map).sort((a,b)=>b.date.localeCompare(a.date));
-  }, [entries, voucherToko]);
+  }, [entries, voucherToko, jejak]);
+
+  // Nama penginput cuma ditampilkan di baris ringkas kalau memang ada lebih
+  // dari satu orang yang pernah menginput — di warkop berpenjaga tunggal,
+  // mencantumkan nama yang sama di tiap baris cuma jadi derau. Jejak
+  // lengkapnya tetap ada di detail, apa pun jawabannya.
+  const banyakOrang = useMemo(() => banyakPenginput(jejak), [jejak]);
+  const jejakSaldo = useMemo(() => jejakSaldoTerakhir(jejak), [jejak]);
 
   const filteredEntries = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -57,6 +105,8 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       if (prodMatch) return true;
       const expMatch = (e.expenses||[]).some(x => (x.desc||'').toLowerCase().includes(q));
       if (expMatch) return true;
+      const orangMatch = (jejak?.[e.date]||[]).some(j => (j.oleh||'').toLowerCase().includes(q));
+      if (orangMatch) return true;
       const v = voucherForDate(e.date, voucherToko);
       if ((v.laku>0||v.drop>0) && ('voucher'.includes(q) || 'v2k'.includes(q))) return true;
       if (v.laku>0||v.drop>0) {
@@ -65,14 +115,18 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       }
       return false;
     });
-  }, [sortedEntries, searchQuery, voucherToko]);
+  }, [sortedEntries, searchQuery, voucherToko, jejak]);
 
   async function saveInitialSaldo(val) {
     const v = parseInt(val) || 0;
     setInitialSaldo(v);
     setEditingSaldo(false);
     try {
-      const hasil = await kirimAtauAntre({ type:'simpanSaldo', value:v });
+      // Saldo awal tidak melekat pada hari tertentu, jadi jejaknya dititipkan
+      // ke tanggal saat tombol ditekan — dicatat sekarang, bukan saat kiriman
+      // akhirnya lolos, supaya tetap benar walau antre semalaman.
+      const jejakSimpan = { ...tandaJejak(session, 'saldo', { nilai:v }), date: todayISO() };
+      const hasil = await kirimAtauAntre({ type:'simpanSaldo', value:v, jejak:jejakSimpan });
       tandaiTulis(hasil);
       showToast(hasil === 'diantre' ? 'Saldo awal disimpan di HP, terkirim nanti' : 'Saldo awal disimpan: '+IDR(v));
     } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
@@ -81,7 +135,8 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
   async function deleteEntry(date) {
     if(!confirm('Yakin hapus data tanggal '+fmtDate(date)+'?')) return;
     try {
-      const hasil = await kirimAtauAntre({ type:'hapusEntri', date });
+      const jejakHapus = tandaJejak(session, 'hapus', rincianHapus(entries[date]));
+      const hasil = await kirimAtauAntre({ type:'hapusEntri', date, jejak:jejakHapus });
       tandaiTulis(hasil);
       showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Entri dihapus');
     } catch(e) { showToast('Gagal: '+e.message); }
@@ -130,14 +185,23 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     const entryExisted = !!entries[date];
     const entryHasData = Object.values(accQty).some(v=>(v||0)>0) || accExpenses.length>0;
     const writeEntry = entryHasData || entryExisted;
+    // Dua tulisan, dua jejak — masing-masing hanya kalau memang ada yang
+    // berubah. Menekan Simpan Perubahan tanpa menyentuh apa pun tidak boleh
+    // meninggalkan baris "mengubah" yang sebenarnya tidak mengubah apa-apa.
+    const sebelum = entries[date] || null;
+    const jejakUbah = writeEntry && entriBerubah(sebelum, entry)
+      ? tandaJejak(session, 'ubah', rincianUbah(sebelum, entry))
+      : null;
+    const voucherBerubah = isVoucherDate ? rincianVoucher(voucherRows, voucherToko[date]) : null;
+    const jejakVoucher = voucherBerubah ? tandaJejak(session, 'voucher', voucherBerubah) : null;
     setEditSaving(true);
     try {
       // Edit MENGGANTI nilai, jadi tidak lewat antrean: mengirim ulang nanti
       // bisa menimpa perubahan yang lebih baru dari perangkat lain. Lebih baik
       // gagal terang-terangan dan diulang sendiri saat sinyal kembali.
       if (session) {
-        if (writeEntry) await dbSaveEntry(entry);
-        if (isVoucherDate) await dbSaveVoucherToko(date, voucherRows);
+        if (writeEntry) await dbSaveEntry(entry, jejakUbah);
+        if (isVoucherDate) await dbSaveVoucherToko(date, voucherRows, jejakVoucher);
       }
       if (writeEntry) setEntries(prev => ({ ...prev, [date]: entry }));
       if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku};}); next[date]=dayMap; return next; });
@@ -172,6 +236,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                 <>
                   <span className="val">{IDR(initialSaldo)}</span>
                   <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
+                  {/* Saldo awal satu-satunya angka yang tidak punya baris
+                      harinya sendiri, jadi jejaknya ditempel di sini. */}
+                  {jejakSaldo && <span className="info">diubah {jejakSaldo.oleh} · {tglJejak(jejakSaldo.waktu)}</span>}
                 </>
               )}
             </div>
@@ -197,13 +264,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                 <input
                   className="search-input"
                   type="text"
-                  placeholder="Cari tanggal, hari, produk, toko, atau pengeluaran…"
+                  placeholder="Cari tanggal, produk, toko, pengeluaran, atau nama…"
                   value={searchQuery}
                   onChange={e=>setSearchQuery(e.target.value)}
                 />
                 {searchQuery && <button className="search-clear" onClick={()=>setSearchQuery('')} title="Hapus">×</button>}
               </div>
-              <button className="btn-export-icon" onClick={()=>exportRiwayatCSV(entries, voucherToko)} title="Export CSV"><Icon type="download" size={16}/></button>
+              <button className="btn-export-icon" onClick={()=>exportRiwayatCSV(entries, voucherToko, jejak)} title="Export CSV"><Icon type="download" size={16}/></button>
             </div>
           )}
           {searchQuery && (
@@ -216,6 +283,18 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
           ) : filteredEntries.length===0 ? (
             <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
           ) : filteredEntries.map((e) => {
+            const jejakHari = jejak?.[e.date] || [];
+            // Hari yang datanya sudah dihapus: tidak ada uang untuk ditampilkan,
+            // yang tersisa cuma catatan siapa yang menghapusnya.
+            if (e.terhapus) return (
+              <div key={e.date} className="history-item terhapus">
+                <div className="history-item-header">
+                  <span className="history-date">{tanggalRingkas(e.date)}</span>
+                  <span className="pill">Data dihapus</span>
+                </div>
+                <JejakHari list={jejakHari}/>
+              </div>
+            );
             const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
             const { expItems, cashItems, expGross, cashGross, voucher: v,
                     totalPengeluaran: totalExp, totalGaji: totalGajiRow,
@@ -233,7 +312,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
             return (
               <div key={e.date} className={"history-item "+kasClass} onClick={()=>{ if(isEditing) return; setOpenDetail(isOpen?null:e.date); }}>
                 <div className="history-item-header">
-                  <span className="history-date">{(() => { const dt = new Date(e.date+'T00:00:00'); return dt.getDate()+' '+MO[dt.getMonth()]+' · '+DAYS[dt.getDay()]; })()}</span>
+                  <span className="history-date">{tanggalRingkas(e.date)}</span>
                   <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
                 </div>
                 {(sold.length>0 || v.laku>0 || v.drop>0) && (
@@ -247,6 +326,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                   <div className="history-money">
                     {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>−{IDR(expGross)} keluar</span>}
                     {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
+                  </div>
+                )}
+                {banyakOrang && jejakHari.length>0 && (
+                  <div className="history-orang">
+                    {pelakuHari(jejakHari).map(o => (
+                      <span key={o.nama} className="pill orang"><Icon type="user" size={10}/> {o.nama}{o.jumlah>1 ? ' ×'+o.jumlah : ''}</span>
+                    ))}
                   </div>
                 )}
                 {isOpen && isEditing && (
@@ -382,6 +468,8 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                       <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Cash Masuk</div>
                       {cashItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Cash Masuk'}</span><span style={{color:"var(--green)",fontWeight:600}}>+{IDR(x.amount)}</span></div>))}
                     </>}
+                    <div className="detail-section-label" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="clock" size={12}/> Jejak Input</div>
+                    <JejakHari list={jejakHari}/>
                     <div style={{display:"flex",gap:8,marginTop:14}}>
                       <button className="btn btn-primary" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();startEdit(e);}}><Icon type="pencil" size={14}/> Edit</button>
                       <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus</button>

@@ -5,6 +5,7 @@ import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, accumulateEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
+import { tandaJejak, rincianTambah } from '../jejak.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
@@ -85,12 +86,16 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     if (!hasQty && !hasExp && !hasCash) { bunyi('gagal'); showToast('Belum ada input!'); return; }
     setSaving(true);
     const input = { quantities, expenses, cashIns };
+    // Siapa & jam berapa dicatat SEKARANG, ikut menumpang kirimannya. Kalau
+    // sinyal baru datang besok pagi, jejaknya tetap atas nama orang ini dan
+    // jam ini — bukan jam kirimannya akhirnya lolos.
+    const jejak = tandaJejak(session, 'tambah', rincianTambah(input));
     try {
       // Tebak hasilnya untuk layar: entri lokal dipakai kalau detailnya sudah
       // ada. Angka pasti menyusul dari server / saat antrean terkirim.
       const dasar = hasDetail(existingEntry) ? existingEntry : null;
       const tebakan = accumulateEntry(dasar, selectedDate, input);
-      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:selectedDate, input });
+      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:selectedDate, input, jejak });
       tandaiTulis(hasil);
       setEntries(prev => ({ ...prev, [selectedDate]: tebakan }));
       // Terkirim dapat kilau selebar layar; yang baru mengantre di HP dapat
