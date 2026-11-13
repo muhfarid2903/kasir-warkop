@@ -4,8 +4,8 @@ import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
 import LembarHapus from '../components/LembarHapus.jsx'
 import LaporanBulanan from '../components/LaporanBulanan.jsx'
 import {
-  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN, rekapPerBulan,
+  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, tarifVoucher,
+  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
@@ -572,12 +572,12 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                             <div className="toko-info">
                               <div className="toko-main" style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 <Icon type="store" size={12}/> <span>{t.name}</span>
-                                {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(V2K.gaji)}</>}
+                                {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(tarifVoucher(e.date).gaji)}</>}
                                 {!hasLaku && hasDrop && <span style={{color:"var(--text3)"}}> · drop saja, belum laku</span>}
                               </div>
                               {hasDrop && <div className="toko-sub"><Icon type="package" size={11}/> Drop {t.drop} voucher ke toko{dropNote}</div>}
                             </div>
-                            <span className="detail-item-value">{hasLaku ? IDR(t.laku*V2K.gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
+                            <span className="detail-item-value">{hasLaku ? IDR(t.laku*tarifVoucher(e.date).gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
                           </div>
                         );
                       })}
@@ -588,7 +588,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     </>}
                     {(setorItems.length>0 || v.kePemilik>0) && <>
                       <div className="detail-section-label" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="wallet" size={12}/> Ke kas pemilik</div>
-                      {tokoBreakdown.filter(t=>t.kePemilik && t.laku>0).map(t=>(<div key={'vp'+t.id} className="detail-row"><span className="detail-item-name">Setoran voucher {t.name} ({t.laku})</span><span className="detail-item-value">{IDR(t.laku*V2K_SETORAN)}</span></div>))}
+                      {tokoBreakdown.filter(t=>t.kePemilik && t.laku>0).map(t=>(<div key={'vp'+t.id} className="detail-row"><span className="detail-item-name">Setoran voucher {t.name} ({t.laku})</span><span className="detail-item-value">{IDR(t.laku*tarifVoucher(e.date).setoran)}</span></div>))}
                       {setorItems.map((x,xi)=>(<div key={'sp'+xi} className="detail-row"><span className="detail-item-name">{x.desc||'Setor ke pemilik'}</span><span className="detail-item-value">{IDR(x.amount)}</span></div>))}
                     </>}
                     {cocokHari && <>

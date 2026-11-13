@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { kirimAtauAntre } from '../outbox.js'
 import {
-  TOKO, VOUCHER_TOKO_CUTOFF, V2K, V2K_SETORAN,
+  TOKO, VOUCHER_TOKO_CUTOFF, tarifVoucher, tokoTampil,
   getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore, infoToko,
 } from '../model.js'
 import { tandaJejak, rincianVoucher } from '../jejak.js'
@@ -97,6 +97,9 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
     setVoucherSaving(false);
   }
 
+  // Tarif yang berlaku di tanggal terpilih (lihat TARIF_VOUCHER di model.js).
+  const tarif = tarifVoucher(selectedDate);
+
   return (
     <>
           <div style={{marginBottom:8}}></div>
@@ -113,7 +116,7 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
           )}
           {voucherInfoOpen && (
             <div className="voucher-info" style={{margin:"10px 0 0"}}>
-              <strong>Drop</strong> = titip stok ke toko · <strong>Laku</strong> = laporan setoran toko. Harga jual {IDR(V2K.price)} (toko ambil komisi {IDR(V2K.komisi_toko)}, setor ke kas {IDR(V2K_SETORAN)}) · Gaji Jaya {IDR(V2K.gaji)}/voucher laku.
+              <strong>Drop</strong> = titip stok ke toko · <strong>Laku</strong> = laporan setoran toko. Harga jual {IDR(tarif.harga)} (toko ambil komisi {IDR(tarif.komisi)}, setor ke kas {IDR(tarif.setoran)}) · Gaji Jaya {IDR(tarif.gaji)}/voucher laku.
             </div>
           )}
           <div style={{marginBottom:18}}></div>
@@ -135,13 +138,13 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
                   <div className="voucher-day-summary">
                     <span className="seg">Total drop <strong>{dayDrop}</strong></span>
                     <span className="seg">Total laku <strong>{dayLaku}</strong></span>
-                    <span className="seg gaji">Gaji Jaya <strong>{IDR(dayLaku*V2K.gaji)}</strong></span>
-                    {dayLaku-dayLakuPemilik > 0 && <span className="seg setoran">Masuk kas toko <strong>{IDR((dayLaku-dayLakuPemilik)*V2K_SETORAN)}</strong></span>}
-                    {dayLakuPemilik > 0 && <span className="seg pemilik">Ke pemilik <strong>{IDR(dayLakuPemilik*V2K_SETORAN)}</strong></span>}
+                    <span className="seg gaji">Gaji Jaya <strong>{IDR(dayLaku*tarif.gaji)}</strong></span>
+                    {dayLaku-dayLakuPemilik > 0 && <span className="seg setoran">Masuk kas toko <strong>{IDR((dayLaku-dayLakuPemilik)*tarif.setoran)}</strong></span>}
+                    {dayLakuPemilik > 0 && <span className="seg pemilik">Ke pemilik <strong>{IDR(dayLakuPemilik*tarif.setoran)}</strong></span>}
                   </div>
                 )}
 
-                {TOKO.map(t => {
+                {tokoTampil(selectedDate, voucherToko).map(t => {
                   const sBefore = stockBefore[t.id];
                   const stokAwal = (sBefore.drop||0) - (sBefore.laku||0);
                   const draft = voucherDraft[t.id] || { drop:'0', laku:'0' };
@@ -198,9 +201,9 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
                             ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
                             : <>
                                 <span className={"seg "+(fitur?.kePemilik && draft.kePemilik ? "pemilik" : "setoran")}>
-                                  {fitur?.kePemilik && draft.kePemilik ? 'Ke pemilik' : 'Masuk kas toko'} <strong>{IDR(dLaku*V2K_SETORAN)}</strong>
+                                  {fitur?.kePemilik && draft.kePemilik ? 'Ke pemilik' : 'Masuk kas toko'} <strong>{IDR(dLaku*tarif.setoran)}</strong>
                                 </span>
-                                <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
+                                <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*tarif.gaji)}</strong></span>
                               </>
                           }
                         </div>

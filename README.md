@@ -112,6 +112,19 @@ Daftar berkas yang disimpan dibuat saat build oleh plugin kecil di
 `vite.config.js` — nama berkas hasil build ber-hash, jadi tidak bisa ditulis
 tangan.
 
+## Mengubah harga, tarif, atau daftar toko
+
+Semuanya di `src/model.js`, lalu deploy seperti biasa.
+
+- **Tarif voucher berubah** (harga, komisi toko, gaji per voucher): **tambah**
+  baris baru di `TARIF_VOUCHER` dengan tanggal mulai berlakunya. Jangan ubah
+  baris lama — riwayat dan Kas Toko sebelum tanggal itu tetap memakai tarif lama.
+- **Toko berhenti**: beri `aktif: false` di `TOKO`. Jangan dihapus — stok dan
+  setoran lamanya masih dihitung dari daftar itu. Toko tidak aktif yang masih
+  punya stok tetap tampil sampai stoknya habis.
+- **Toko baru**: tambah baris di `TOKO` dengan `id` baru yang tidak pernah
+  dipakai sebelumnya.
+
 ## Kunci Supabase
 
 Ada di `.env`, dibaca `src/db.js`. Yang dipakai anon key — memang untuk dipublikasikan, yang
