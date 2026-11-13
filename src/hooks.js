@@ -368,10 +368,22 @@ export function useTodayISO() {
 }
 
 // === Tema gelap/terang ===
+// Pertama kali dibuka: ikut setelan terang/gelap HP. Begitu orangnya menekan
+// tombol tema, pilihannya disimpan dan menang seterusnya. Sengaja tidak
+// disimpan otomatis saat app dibuka — kalau begitu, setelan HP cuma berlaku
+// sekali seumur pemasangan.
+const temaSistem = () => {
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch(e) { return 'light'; }
+};
+
 export function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('theme') || 'light'; } catch(e) { return 'light'; }
+  const [theme, setThemeState] = useState(() => {
+    try { return localStorage.getItem('theme') || temaSistem(); } catch(e) { return temaSistem(); }
   });
+  const setTheme = useCallback((t) => {
+    try { localStorage.setItem('theme', t); } catch(e) {}
+    setThemeState(t);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -380,7 +392,6 @@ export function useTheme() {
     // dua aplikasi yang ditempel.
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#121110' : '#F5F5F7');
-    try { localStorage.setItem('theme', theme); } catch(e) {}
   }, [theme]);
 
   return [theme, setTheme];

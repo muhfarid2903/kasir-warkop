@@ -24,8 +24,12 @@
     // (nilai :root di CSS) sebelum useEffect menyetelnya ke terang — kelihatan
     // seperti kedipan tiap app dibuka.
     (function () {
-      var tema = 'light';
-      try { tema = localStorage.getItem('theme') || 'light'; } catch (e) {}
+      // Pilihan yang tersimpan menang; kalau belum pernah memilih, ikut
+      // setelan terang/gelap HP (sama dengan useTheme di src/hooks.js).
+      var sistem = 'light';
+      try { if (window.matchMedia('(prefers-color-scheme: dark)').matches) sistem = 'dark'; } catch (e) {}
+      var tema = sistem;
+      try { tema = localStorage.getItem('theme') || sistem; } catch (e) {}
       document.documentElement.setAttribute('data-theme', tema);
       // Bilah status HP ikut warna app, bukan putih sendirian di atas layar
       // gelap. Disetel di sini juga (bukan cuma di useTheme) supaya tidak ada

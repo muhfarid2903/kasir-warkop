@@ -33,7 +33,7 @@ export default class ErrorBoundary extends Component {
               terkirim tetap menunggu di HP dan akan menyusul.
             </p>
             <button className="btn-save" onClick={() => window.location.reload()}>Muat Ulang</button>
-            <div style={{marginTop:16,fontSize:11,color:"var(--text3)",fontFamily:"'JetBrains Mono',monospace",wordBreak:"break-word"}}>
+            <div style={{marginTop:16,fontSize:12,color:"var(--text3)",fontFamily:"'JetBrains Mono',monospace",wordBreak:"break-word"}}>
               {String(this.state.error?.message || this.state.error)}
             </div>
           </div>

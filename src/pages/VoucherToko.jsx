@@ -209,7 +209,7 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
                         <span className="seg gaji">Gaji periode <strong>{IDR(range.gaji)}</strong></span>
                         <span className="seg setoran">Penjualan <strong>{IDR(range.penjualan)}</strong></span>
                       </div>
-                      <div style={{fontSize:11,color:"var(--text3)",marginBottom:8}}>
+                      <div style={{fontSize:12,color:"var(--text3)",marginBottom:8}}>
                         Sisa stok per toko (kumulatif sampai {fmtDate(p.end)}):
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
