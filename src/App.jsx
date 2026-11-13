@@ -14,6 +14,7 @@ import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
 import PasswordBaru from './pages/PasswordBaru.jsx'
 import LembarGagal from './components/LembarGagal.jsx'
+import Bantuan from './components/Bantuan.jsx'
 import { usePasang, mintaPasang, LembarPasang } from './components/PasangDiHP.jsx'
 import HariIni from './pages/HariIni.jsx'
 import VoucherToko from './pages/VoucherToko.jsx'
@@ -74,6 +75,7 @@ function App() {
   const [lembarGagal, setLembarGagal] = useState(false);
   const { terpasang } = usePasang();
   const [lembarPasang, setLembarPasang] = useState(false);
+  const [lembarBantuan, setLembarBantuan] = useState(false);
   const pasang = async () => { if (!(await mintaPasang())) setLembarPasang(true); };
 
   // Cadangan: paket gratis Supabase tidak punya cadangan otomatis, jadi
@@ -243,6 +245,9 @@ function App() {
               <Icon type="download" size={16}/> Pasang di HP
             </button>
           )}
+          <button className="nav-btn" onClick={()=>setLembarBantuan(true)}>
+            <Icon type="help" size={16}/> Bantuan
+          </button>
           <button className="nav-btn" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>
             <Icon type={theme==='dark'?'sun':'moon'} size={16}/> Mode {theme==='dark'?'terang':'gelap'}
           </button>
@@ -306,6 +311,9 @@ function App() {
                       <Icon type="download" size={15}/> Pasang di HP
                     </button>
                   )}
+                  <button role="menuitem" onClick={()=>{ setMenuAkun(false); setLembarBantuan(true); }}>
+                    <Icon type="help" size={15}/> Bantuan
+                  </button>
                   <button role="menuitem" onClick={()=>{ setTheme(theme==='dark'?'light':'dark'); setMenuAkun(false); }}>
                     <Icon type={theme==='dark'?'sun':'moon'} size={15}/> Mode {theme==='dark'?'terang':'gelap'}
                   </button>
@@ -378,6 +386,7 @@ function App() {
 
       {lembarGagal && <LembarGagal gagal={gagal} onTutup={()=>setLembarGagal(false)}/>}
       {lembarPasang && <LembarPasang onTutup={()=>setLembarPasang(false)}/>}
+      {lembarBantuan && <Bantuan onTutup={()=>setLembarBantuan(false)}/>}
 
       {/* Tab bar bawah — hanya tampil di HP (CSS menyembunyikannya di atas
           900px, di mana sidebar yang dipakai). shortLabel ada di NAV_ITEMS

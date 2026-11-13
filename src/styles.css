@@ -1730,3 +1730,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .header-akun .tanda-cadangan{position:absolute;top:-3px;right:-3px;margin:0;border:2px solid var(--bg2)}
 .ket-cadangan{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--orange)}
 .versi-app{padding:6px 12px 2px;font-size:11px;color:var(--text3);letter-spacing:.02em}
+/* Lembar Bantuan */
+.bantuan-isi{display:flex;flex-direction:column;gap:14px}
+.bantuan-isi h3{font-size:14px;font-weight:700;margin:0 0 3px;color:var(--text)}
+.bantuan-isi p{font-size:13.5px;line-height:1.55;color:var(--text2);margin:0}

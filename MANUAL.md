@@ -17,6 +17,7 @@ URL: **https://kasir.balanglompo.com**
 8. [Tips & Praktik Terbaik](#8-tips--praktik-terbaik)
 9. [Troubleshooting](#9-troubleshooting)
 10. [Pasang di HP](#10-pasang-di-hp)
+11. [Cadangan](#11-cadangan)
 
 ---
 
@@ -77,9 +78,16 @@ Tujuannya: gaji Jaya keluar bersamaan dengan uang masuk dari toko, jadi tidak pe
 
 ### Login pertama kali
 1. Buka https://kasir.balanglompo.com
-2. Klik **Daftar** kalau belum punya akun, isi email & password (min 6 karakter)
-3. Cek email untuk konfirmasi akun
-4. Login dengan akun yang sudah dikonfirmasi
+2. Masuk dengan email & password yang diberikan pemilik
+
+Pendaftaran sendiri tidak ada: akun baru dibuat pemilik lewat Supabase Dashboard → Authentication → Add user.
+
+### Peran akun
+- **Pemilik** — semua fitur.
+- **Karyawan (kasir)** — input, voucher, edit, dan cocokkan kas. Tidak bisa menghapus satu hari dan tidak bisa mengubah Saldo Awal.
+
+### Navigasi di HP
+Empat halaman ada di **tab bar bawah** (Hari Ini · Voucher · Gajian · Riwayat). Menu akun ada di **lingkaran inisial** pojok kanan atas: Unduh cadangan, Pasang di HP, Bantuan, Mode terang/gelap, Logout, dan versi app. Di komputer, isi yang sama ada di sidebar kiri.
 
 ### Set Saldo Awal
 Saldo awal = uang kas yang sudah ada sebelum Anda mulai pakai aplikasi. Anchor titik nol untuk semua perhitungan ke depan.
@@ -88,10 +96,10 @@ Saldo awal = uang kas yang sudah ada sebelum Anda mulai pakai aplikasi. Anchor t
 2. Di bar **Saldo Awal** paling atas, klik ikon pensil
 3. Masukkan jumlah → **Simpan**
 
-> Saldo awal otomatis ikut ke perhitungan Kas Saat Ini.
+> Saldo awal otomatis ikut ke perhitungan Kas Toko.
 
 ### Mode Tema
-Di sidebar (paling bawah), klik **Mode terang** / **Mode gelap** untuk ganti tema.
+Pertama kali dibuka, app mengikuti setelan terang/gelap HP. Untuk mengganti: menu akun → **Mode terang** / **Mode gelap** (pilihan ini diingat).
 
 ### Bunyi
 Tiap ketukan dan ketikan ada bunyinya, supaya jelas kapan kopi benar-benar
@@ -112,7 +120,7 @@ dinyalakan lagi.
 Tempat utama mencatat aktivitas harian: penjualan, pengeluaran, dan cash masuk.
 
 ### Layout
-- **Kas Saat Ini** (hero besar) — total kas warkop sekarang, dengan delta hari ini di bawahnya
+- **Kas Toko** (angka besar) — uang di laci warkop sekarang, dengan perubahan hari ini di bawahnya
 - **Banner Gajian** — muncul kalau mendekati / tepat di hari gajian (lihat di bawah)
 - **Date picker** — tanggal yang sedang diinput (default hari ini); kalau sudah ada data muncul "Sudah tercatat: …"
 - **Kartu produk** — input jumlah laku per produk
@@ -284,6 +292,11 @@ Daftar semua hari yang ada datanya, urut dari terbaru ke terlama.
 - **Search + Export CSV** (icon download) — sejajar di atas list
 - **List entri** — urut terbaru ke terlama
 
+### Harian dan Bulanan
+Di atas Riwayat ada pilihan **Harian | Bulanan**. Bulanan berisi grafik untung/rugi enam bulan, rincian per bulan (penjualan, setoran voucher, gaji, pengeluaran, ke pemilik), lima pengeluaran terbesar, dan keadaan tiap toko voucher.
+
+Di tampilan Harian, hari dikelompokkan per bulan dengan subtotalnya; chip **Semua · Ada kopi · Voucher · Pengeluaran · Dihapus** menyaring daftarnya.
+
 ### Pencarian
 Ketik di kotak search untuk filter:
 - Tanggal (cth: `2026-04-15` atau `15 Apr`)
@@ -361,7 +374,7 @@ Isi file:
 
 ### Rutinitas harian
 **Pagi (buka warkop):**
-- Cek **Kas Saat Ini** di Hari Ini — pastikan match dengan uang fisik
+- **Cocokkan kas** di Hari Ini — hitung laci, catat hasilnya
 
 **Sepanjang hari:**
 - Input penjualan saat ada waktu (boleh dibatch, akumulasi otomatis)
@@ -378,7 +391,7 @@ Isi file:
 - Cek stok berjalan tiap minggu lewat Rekap Periode — kalau sisa terlalu banyak di toko tertentu, kurangi drop-nya
 
 ### Mendekati gajian
-H-2 sebelum tanggal 14 / 28, banner countdown muncul di Hari Ini & kartu hero di Gajian jadi "urgent" (animasi pulsing). Cek total Gajiku & pastikan kas cukup.
+H-2 sebelum tanggal 14 / 28, banner countdown muncul di Hari Ini & kartu di Gajian jadi "urgent". Gaji Jaya **dibayar harian** dari laci — angka gajian adalah rekap dua mingguan, bukan jumlah yang harus disiapkan sekaligus.
 
 ### Cash Masuk
 Pakai untuk uang masuk yang **bukan dari penjualan hari itu** (misal pelanggan bayar hutang minggu lalu). Jangan dimasukkan ke "jumlah laku produk" karena akan menambah gaji Jaya yang sebenarnya tidak ada.
@@ -388,7 +401,10 @@ Pakai untuk uang masuk yang **bukan dari penjualan hari itu** (misal pelanggan b
 ## 9. Troubleshooting
 
 ### Status berubah jadi "Offline"
-Koneksi internet putus. Badge "Offline" muncul di header. Data yang sudah disimpan tetap aman di server. Refresh halaman setelah internet kembali.
+Koneksi internet putus. Badge "Offline" atau "N tertunda" muncul di header. Input tetap bisa disimpan — masuk antrean di HP dan terkirim sendiri saat sinyal kembali; tidak perlu refresh. Kalau app dibuka tanpa sinyal, angka Kas Toko tampil redup dengan keterangan "Angka per …".
+
+### Badge merah "N gagal terkirim"
+Server menolak kiriman itu (bukan karena sinyal). Ketuk badgenya: terlihat isi kirimannya dan alasannya, dengan pilihan **Coba lagi** atau **Buang**.
 
 ### Tombol "Simpan Voucher" error
 Tabel `voucher_toko` belum dibuat di Supabase. Jalankan migrasi:
@@ -416,7 +432,7 @@ Tiga kemungkinan, urut dari yang paling sering:
 - **Terlanjur menghapus satu hari**: ketuk **Urungkan** di pemberitahuan sesudah hapus
 - **Voucher**: buka Voucher Toko, pilih tanggal yang salah, edit angka drop/laku → simpan (akan menimpa data lama)
 
-### Kas Saat Ini tidak match dengan uang fisik
+### Kas Toko tidak sama dengan uang di laci
 1. Cek apakah ada transaksi yang belum diinput
 2. Periksa Riwayat 3–7 hari terakhir untuk angka yang janggal
 3. Cek apakah **Saldo Awal** sudah benar (menu Riwayat)
@@ -466,10 +482,13 @@ tidak ada input yang hilang di tengah jalan.
 
 ---
 
+## 11. Cadangan
+Menu akun → **Unduh cadangan** menyimpan seluruh data ke satu berkas. Simpan berkasnya di tempat lain (misalnya Drive pribadi). Pemilik melihat titik oranye di avatar kalau cadangan terakhir dari HP itu lebih dari 30 hari. Cara memulihkan ada di README.
+
 ## Kontak & Bantuan
 - Repo source: https://github.com/muhfarid2903/kasir-warkop
 - Untuk request fitur / report bug: hubungi admin
 
 ---
 
-*Dokumen ini di-update 19 Mei 2026 mengikuti perubahan UI Steve Jobs treatment, rename term (Cash Masuk, Awal/Akhir Bulan), penambahan toko Nahrul, dan migrasi Saldo Awal ke menu Riwayat.*
+*Dokumen ini di-update 14 November 2026: kas toko vs kas pemilik, setor ke pemilik, cocokkan kas, Batalkan/Urungkan, laporan bulanan, peran akun, cadangan, lupa password, dan pemasangan di HP.*
