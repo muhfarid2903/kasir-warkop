@@ -35,6 +35,7 @@ anon key Supabase ada di `.env`.
 ```bash
 npm run lint          # ESLint (aturan bawaan + aturan hook React)
 npm test              # tes rumus uang + antrean offline
+npm run uji:asap      # Playwright: masuk → simpan → Riwayat → edit → hapus (database tiruan)
 npm run build         # hasil ke dist/ — selalu database asli
 npm run build:tiruan  # build berisi database tiruan, untuk dicoba lewat preview
 npm run preview       # cek hasil build sebelum push
