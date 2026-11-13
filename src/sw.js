@@ -27,7 +27,8 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  // Sengaja tanpa skipWaiting/clients.claim: halaman yang SEDANG dipakai
+  // Sengaja tanpa skipWaiting otomatis (hanya kalau diminta, lihat listener
+  // "message" di bawah) dan tanpa clients.claim: halaman yang SEDANG dipakai
   // tetap dilayani versi lamanya sampai ditutup. Menukar berkas di tengah
   // sesi bisa membuat JS baru bertemu HTML lama — di app kasir, layar yang
   // separuh rusak lebih berbahaya daripada versi yang telat satu buka.
@@ -37,6 +38,12 @@ self.addEventListener('activate', (e) => {
       nama.filter(n => n.startsWith('warkop-') && n !== CACHE).map(n => caches.delete(n))
     );
   })());
+});
+
+// Satu-satunya jalan versi baru mengambil alih lebih awal: orangnya sendiri
+// menekan "Muat ulang" di pita versi baru (src/main.jsx).
+self.addEventListener('message', (e) => {
+  if (e.data === 'pakaiVersiBaru') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (e) => {

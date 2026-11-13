@@ -26,6 +26,14 @@ let aktif = (() => {
 
 export function suaraAktif() { return aktif; }
 
+// Getar singkat untuk dua momen: kopi bertambah dan entri tersimpan. Di warung
+// yang ramai getar di tangan lebih terasa daripada bunyi. Ikut saklar bunyi —
+// yang mendiamkan app tidak mau HP-nya bergetar juga.
+export function getar(pola = 10) {
+  if (!aktif) return;
+  try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(pola); } catch (e) {}
+}
+
 export function setSuaraAktif(nyala) {
   aktif = !!nyala;
   try { localStorage.setItem(KUNCI, aktif ? 'nyala' : 'mati'); } catch (e) {}

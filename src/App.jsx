@@ -83,6 +83,9 @@ function App() {
   }, [menuAkun]);
 
   const handleNav = (id) => {
+    // Halaman baru dibuka dari atas. Dulu ia mewarisi posisi gulir halaman
+    // sebelumnya, dan Voucher terbuka dengan pemilih tanggal tertutup header.
+    if (id !== page) window.scrollTo(0, 0);
     setPage(id);
     if (typeof window !== 'undefined' && window.innerWidth < 900) setSidebarOpen(false);
   };

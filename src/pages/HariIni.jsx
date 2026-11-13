@@ -7,13 +7,13 @@ import {
 } from '../model.js'
 import { tandaJejak, rincianTambah, tglJejak } from '../jejak.js'
 import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tanggalDrafLain } from '../draf.js'
-import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
+import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 import { rayakan, kilat, denyut } from '../fx.js'
-import { bunyi } from '../sfx.js'
+import { bunyi, getar } from '../sfx.js'
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
@@ -128,6 +128,7 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
       // nada konfirmasi saja — bedanya harus kedengaran tanpa membaca toast.
       if (hasil === 'diantre') bunyi('enter');
       else { bunyi('simpan'); kilat(); }
+      getar([12, 60, 18]);
       denyut(simpanRef.current, 'sukses', 900);
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — disimpan di HP, terkirim otomatis nanti'
@@ -137,7 +138,7 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
       // kiriman berjalan tetap tinggal.
       setDraf(d => d.tanggal === tanggalSimpan ? { tanggal: d.tanggal, ...kurangiDraf(d, input) } : d);
       if (draf.tanggal !== tanggalSimpan) hapusDraf(tanggalSimpan);
-    } catch(e) { bunyi('gagal'); showToast('Gagal menyimpan: '+e.message); }
+    } catch(e) { bunyi('gagal'); showToast('Belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setSaving(false);
   }
 

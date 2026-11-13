@@ -10,7 +10,7 @@ import {
   ringkasJejak, jamJejak, tglJejak, pelakuHari, banyakPenginput, jejakSaldoTerakhir,
   LABEL_AKSI, IKON_AKSI,
 } from '../jejak.js'
-import { IDR, DAYS, MO, fmtDate } from '../format.js'
+import { IDR, DAYS, MO, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
@@ -129,7 +129,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       const hasil = await kirimAtauAntre({ type:'simpanSaldo', value:v, jejak:jejakSimpan });
       tandaiTulis(hasil);
       showToast(hasil === 'diantre' ? 'Saldo awal disimpan di HP, terkirim nanti' : 'Saldo awal disimpan: '+IDR(v));
-    } catch(e) { showToast('Gagal simpan saldo: '+e.message); }
+    } catch(e) { showToast('Saldo awal belum tersimpan: '+pesanGalat(e), 'gagal'); }
   }
 
   async function deleteEntry(date) {
@@ -139,7 +139,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       const hasil = await kirimAtauAntre({ type:'hapusEntri', date, jejak:jejakHapus });
       tandaiTulis(hasil);
       showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Entri dihapus');
-    } catch(e) { showToast('Gagal: '+e.message); }
+    } catch(e) { showToast('Belum terhapus: '+pesanGalat(e), 'gagal'); }
   }
 
   // === Edit entri (mengganti nilai, bukan menambah) ===
@@ -211,7 +211,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku};}); next[date]=dayMap; return next; });
       showToast('Perubahan disimpan · '+fmtDate(date));
       setEditingDate(null);
-    } catch(e) { showToast('Gagal menyimpan: '+e.message); }
+    } catch(e) { showToast('Perubahan belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setEditSaving(false);
   }
 

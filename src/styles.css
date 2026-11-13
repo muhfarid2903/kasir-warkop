@@ -49,7 +49,7 @@ body::before{
 @keyframes aurora{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(10px,-10px) rotate(1deg)}}
 
 .header{
-  background:linear-gradient(180deg,rgba(20,20,20,.82),rgba(10,10,10,.62));
+  background:linear-gradient(180deg,rgba(20,20,20,.97),rgba(14,13,12,.95));
   backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
   border-bottom:1px solid var(--border);
   padding:10px 20px;display:flex;align-items:center;gap:12px;
@@ -629,7 +629,7 @@ body::before{
 .info-toggle:hover{border-color:var(--accent-border);color:var(--text2)}
 .info-toggle.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
 .toko-card{
-  background:linear-gradient(180deg,var(--bg2),rgba(20,20,20,.5));
+  background:var(--bg2);
   border:1px solid var(--border);border-radius:var(--radius-lg);
   padding:14px 18px;margin-bottom:10px;
   animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;
@@ -789,13 +789,19 @@ body::before{
 .toast{
   position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(14px);
   background:var(--grad-warm);color:#0B1413;font-family:inherit;font-size:13px;font-weight:700;
-  padding:13px 26px;border-radius:32px;opacity:0;
+  padding:12px 22px;border-radius:22px;opacity:0;
   transition:opacity .3s,transform .3s cubic-bezier(.34,1.56,.64,1);
-  pointer-events:none;z-index:999;white-space:nowrap;
+  pointer-events:none;z-index:999;
+  /* Dulu nowrap: pesan panjang lebih lebar dari layar HP dan terpotong di
+     kedua sisi. Sekarang membungkus di dalam lebar layar. */
+  width:max-content;max-width:calc(100vw - 24px);text-align:center;line-height:1.4;
   box-shadow:0 12px 40px rgba(91,211,199,.4),0 2px 8px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.3);
   letter-spacing:-.1px;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Galat: merah, bertahan sampai diketuk (lihat src/toast.js). */
+.toast.gagal{background:var(--red);color:#fff;box-shadow:0 12px 32px rgba(0,0,0,.3);pointer-events:auto;cursor:pointer}
+.toast.gagal::after{content:'  ·  ketuk untuk menutup';font-weight:500;opacity:.8}
 
 /* Keadaan kosong satu halaman penuh (Riwayat). Sengaja dipakai HANYA untuk
    itu — kelasnya pernah bertabrakan dengan .toko-input-group.empty di
@@ -981,7 +987,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .summary-item.gaji-box .summary-value{color:var(--accent-deep)}
 [data-theme="light"] body{background-image:none}
 [data-theme="light"] body::before{opacity:0}
-[data-theme="light"] .header{background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.72))}
+[data-theme="light"] .header{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.95))}
 [data-theme="light"] .header::after{background:linear-gradient(90deg,transparent,rgba(0,0,0,.08) 25%,rgba(0,0,0,.08) 75%,transparent)}
 [data-theme="light"] .sidebar{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(248,248,250,.8));box-shadow:6px 0 32px rgba(0,0,0,.05)}
 [data-theme="light"] .sidebar-user,
@@ -1139,8 +1145,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   .history-gaji{font-size:15px}
   .btn-export-icon{width:36px;height:36px}
 
-  /* Toast: padding bawah lebih kecil tanpa mobile-nav */
-  .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px));font-size:12px;padding:11px 22px}
+  .toast{font-size:12.5px;padding:11px 18px}
 
   /* Mobile nav: touch target lebih besar */
   .mobile-nav-btn{padding:9px 18px;font-size:11px;min-width:80px}
@@ -1483,7 +1488,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
    menunggu disentuh. Angka ini yang paling sering dipandangi; sapuannya bikin
    layar terasa hidup tanpa ada yang berkedip. */
 .kas-hero::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:0;
   background:linear-gradient(105deg,
     transparent 40%,rgba(var(--accent-rgb),.16) 48%,rgba(255,255,255,.09) 52%,transparent 62%);
   background-size:280% 100%;background-position:190% 0;
@@ -1493,10 +1498,14 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   -webkit-mask-image:radial-gradient(ellipse 62% 72% at 50% 50%,#000 25%,transparent 100%);
   mask-image:radial-gradient(ellipse 62% 72% at 50% 50%,#000 25%,transparent 100%);
 }
+/* Cahayanya hanya ada selama melintas. Dulu ia parkir di -70% sepanjang
+   sisa siklus — masih di dalam kotak — dan terlihat sebagai noda persegi
+   pucat di kiri angka. */
 @keyframes fxSapuan{
-  0%{background-position:190% 0}
-  24%{background-position:-70% 0}
-  100%{background-position:-70% 0}
+  0%{background-position:190% 0;opacity:1}
+  24%{background-position:-70% 0;opacity:1}
+  26%{opacity:0}
+  100%{background-position:-70% 0;opacity:0}
 }
 [data-theme="light"] .kas-hero::after{
   background:linear-gradient(105deg,transparent 40%,rgba(var(--accent-rgb),.10) 50%,transparent 62%);
@@ -1601,3 +1610,32 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .kas-hero.basi::after{display:none}
 .kas-hero-value.kosong{letter-spacing:0}
 .kas-basi{color:var(--orange);font-weight:600;font-style:normal}
+
+/* === Isi halaman tidak melar di layar lebar ===
+   Dulu kartu produk selebar ±550px di desktop. Halaman ini dipakai seperti
+   HP; di layar lebar cukup satu kolom yang nyaman dibaca. */
+.page-cinema{max-width:760px;margin-inline:auto}
+
+/* Toast di HP duduk di atas tombol Simpan dan tab bar, bukan menimpanya. */
+@media(max-width:900px){
+  .toast{bottom:calc(140px + env(safe-area-inset-bottom,20px))}
+}
+
+/* Pita versi baru: menetap sampai diketuk, tidak lagi toast 2,6 detik. */
+.pita-versi{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:998;
+  bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+  width:max-content;max-width:calc(100vw - 24px);
+  padding:10px 12px 10px 16px;border-radius:14px;
+  background:var(--bg2);color:var(--text);border:1px solid var(--accent-border);
+  box-shadow:var(--shadow);font-size:13px;font-weight:600;
+}
+.pita-versi button{
+  font:inherit;font-weight:700;min-height:36px;padding:0 14px;border-radius:10px;border:0;cursor:pointer;
+  background:var(--grad-warm);color:#0B1413;
+}
+[data-theme="light"] .pita-versi button{color:#fff}
+@media(max-width:900px){
+  .pita-versi{bottom:calc(140px + env(safe-area-inset-bottom,20px))}
+}
