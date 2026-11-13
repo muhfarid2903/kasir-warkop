@@ -420,3 +420,25 @@ export function computePaydayInfo(entries, voucherToko, now) {
   if (!show||!period) return null;
   return { show, period, totalGaji: periodGaji(entries, voucherToko, period), daysLeft:show==='today'?0:(period.payday-day), month };
 }
+
+// === Rekap per bulan ===
+// Jumlah tiga angka (dan penjualan/pengeluaran) per 'YYYY-MM' dari daftar
+// baris Riwayat. Baris "terhapus" (cuma jejak) dilewati. Dipakai kepala bulan
+// di Riwayat.
+export function rekapPerBulan(baris, voucherToko) {
+  const out = {}
+  ;(baris || []).forEach(e => {
+    if (!e || e.terhapus) return
+    const k = e.date.slice(0, 7)
+    const t = entryDayTotals(e, voucherToko)
+    const r = out[k] || (out[k] = { hari: 0, penjualan: 0, gaji: 0, pengeluaran: 0, hasil: 0, kePemilik: 0, kasToko: 0 })
+    r.hari++
+    r.penjualan += t.totalPenjualan
+    r.gaji += t.totalGaji
+    r.pengeluaran += t.expGross
+    r.hasil += t.hasil
+    r.kePemilik += t.kePemilik
+    r.kasToko += t.sisaKas
+  })
+  return out
+}

@@ -242,3 +242,20 @@ export function ringkasKiriman(op) {
     default:            return op?.type || 'kiriman'
   }
 }
+
+// Peran akun: 'pemilik' atau 'kasir', dari app_metadata.peran (diisi lewat
+// SQL, tidak bisa diubah pengguna sendiri — lihat peran_migration.sql). Akun
+// tanpa peran dianggap kasir, sama dengan aturan di database.
+export function peranPengguna(session) {
+  const p = session?.user?.app_metadata?.peran
+  return p === 'pemilik' ? 'pemilik' : 'kasir'
+}
+
+// Apakah yang sedang masuk adalah Jaya sendiri? Dipakai label "Gajiku" vs
+// "Gaji Jaya": pemilik yang membaca "Gajiku" untuk gaji orang lain itu janggal.
+// Peran kasir yang eksplisit menang; tanpa itu, dilihat dari namanya.
+export function akunJaya(session) {
+  if (session?.user?.app_metadata?.peran === 'kasir') return true
+  if (session?.user?.app_metadata?.peran === 'pemilik') return false
+  return /jaya/i.test(namaPengguna(session)) || /jaya/i.test(session?.user?.email || '')
+}

@@ -1,6 +1,10 @@
 *{margin:0;padding:0;box-sizing:border-box}
 /* === Mode gelap (bawaan :root): kayu gelap hangat, aksen teal === */
+/* Angka memakai Inter dengan angka tabular (font-variant-numeric di body),
+   bukan JetBrains Mono: angka uang besar jadi tidak melebar seperti layar
+   terminal, dan nol tidak bertitik (dulu "0" terlihat seperti ikon saklar). */
 :root{
+  --font-angka:'Inter',-apple-system,sans-serif;
   --bg:#121110;--bg2:#1B1917;--bg3:#262321;--bg4:#332F2B;
   --border:rgba(242,240,236,.08);--border2:rgba(242,240,236,.18);
   --text:#F2F0EC;--text2:#BDB8B0;--text3:#958F87;
@@ -21,9 +25,8 @@
 }
 html,body,#root{height:100%}
 html{transition:background-color .35s ease}
-body,.header,.sidebar,.mobile-nav,.card,.history-item,.gajian-card,.stat-card,
-.qty-display,.expense-input,.expense-amount,.form-input,.date-input,.pill,
-.theme-toggle,.nav-btn,.mobile-nav-btn,.summary-item,.gajian-stat,.day-total{
+body,.header,.sidebar,.card,.history-item,.gajian-card,
+.qty-display,.expense-input,.expense-amount,.form-input,.pill,.nav-btn,.gajian-stat{
   transition:background-color .35s ease,color .35s ease,border-color .35s ease;
 }
 body{
@@ -59,7 +62,6 @@ body::before{
   font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.header-page-sub{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.02em;margin-top:1px}
 .header::after{
   content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
   background:linear-gradient(90deg,transparent,var(--accent-border) 25%,var(--accent-border) 75%,transparent);
@@ -70,16 +72,9 @@ body::before{
   font-size:22px;flex-shrink:0;position:relative;
   box-shadow:0 6px 24px rgba(0,0,0,.28);
 }
-.header-title{
-  font-size:20px;font-weight:700;letter-spacing:-.6px;
-  background:linear-gradient(180deg,var(--text),var(--accent3));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.header-sub{font-size:12px;color:var(--text3);margin-top:1px;font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 
 .sync-badge{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid transparent}
-.sync-online{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
 .sync-offline{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
 .sync-dot{width:7px;height:7px;border-radius:50%}
 .sync-dot.online{background:var(--green);animation:pulse 2s infinite}
@@ -126,7 +121,7 @@ body::before{
   background:linear-gradient(180deg,var(--text),var(--accent3));
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
 }
-.sidebar-brand-sub{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.02em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-brand-sub{font-size:12px;color:var(--text3);font-family:var(--font-angka);letter-spacing:.02em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-close{
   width:32px;height:32px;border-radius:9px;
   border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--text2);
@@ -181,7 +176,7 @@ body::before{
 }
 .sidebar-user-email{
   min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:.01em;
+  font-family:var(--font-angka);font-size:12px;color:var(--text3);letter-spacing:.01em;
 }
 
 /* Backdrop for mobile overlay */
@@ -203,33 +198,7 @@ body::before{
 .sidebar-toggle:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
 .sidebar-toggle:active{transform:scale(.96)}
 
-.content{flex:1;padding:28px 32px;overflow-x:hidden}
-.page-title{
-  font-size:28px;font-weight:700;margin-bottom:6px;letter-spacing:-.7px;
-  color:var(--text);line-height:1.15;
-}
-.page-sub{color:var(--text3);font-size:14px;margin-bottom:28px;letter-spacing:-.1px}
-
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
-.stat-card{
-  background:linear-gradient(180deg,var(--bg2),rgba(20,20,20,.6));
-  border:1px solid var(--border);border-radius:var(--radius);padding:20px;
-  position:relative;overflow:hidden;backdrop-filter:blur(6px);
-}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border2) 50%,transparent)}
-.stat-card.highlight{border-color:var(--accent-border)}
-.stat-card.highlight::before{background:linear-gradient(90deg,transparent,var(--accent) 50%,transparent);height:1.5px}
-.stat-card.warn{border-color:var(--red-border)}
-.stat-card.warn::before{background:linear-gradient(90deg,transparent,var(--red) 50%,transparent);height:1.5px}
-.stat-card.kas{border-color:var(--green-border)}
-.stat-card.kas::before{background:linear-gradient(90deg,transparent,var(--green) 50%,transparent);height:1.5px}
-.stat-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.stat-value{font-size:26px;font-weight:500;font-family:'JetBrains Mono',monospace}
-.stat-value.green{color:var(--accent)}.stat-value.blue{color:var(--blue)}
-.stat-value.orange{color:var(--orange)}.stat-value.red{color:var(--red)}
-
-.section-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.section-title .dot{width:8px;height:8px;border-radius:50%}
+.content{flex:1;padding:28px 32px;overflow-x:hidden;overflow-x:clip}  /* clip, bukan hidden: hidden menjadikan .content wadah gulir sendiri dan kepala bulan Riwayat (sticky) tidak bisa menempel */
 
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:11px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
 .btn-primary{background:var(--grad-warm);color:#0B1413;box-shadow:0 4px 14px rgba(91,211,199,.32),inset 0 1px 0 rgba(255,255,255,.3)}
@@ -274,7 +243,7 @@ body::before{
 }
 .product-info{flex:1;min-width:0}
 .product-name{font-size:14px;font-weight:600;letter-spacing:-.2px}
-.product-meta{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.product-meta{font-size:12px;color:var(--text3);font-family:var(--font-angka);margin-top:3px}
 .qty-control{
   display:flex;align-items:center;
   border:1px solid var(--border);border-radius:13px;overflow:hidden;
@@ -293,7 +262,7 @@ body::before{
 .qty-btn:active{color:var(--accent);transform:scale(.88)}
 .qty-display{
   width:50px;height:42px;text-align:center;
-  font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
+  font-family:var(--font-angka);font-size:15px;font-weight:500;
   color:var(--accent);border:none;background:var(--bg2);
   border-left:1px solid var(--border);border-right:1px solid var(--border);
   -moz-appearance:textfield;appearance:textfield;outline:none;
@@ -310,7 +279,7 @@ body::before{
 .expense-input::placeholder{color:var(--text3)}
 .expense-amount{
   width:130px;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
-  border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;
+  border-radius:10px;color:var(--text);font-family:var(--font-angka);font-size:13px;
   text-align:right;outline:none;transition:all .2s;flex-shrink:0;
 }
 .expense-amount:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
@@ -322,12 +291,6 @@ body::before{
   flex-shrink:0;transition:all .15s;font-family:inherit;
 }
 .del-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
-.add-expense-btn{
-  font-family:inherit;font-size:13px;font-weight:600;color:var(--accent);
-  background:var(--accent-bg);border:1px dashed var(--accent-border);
-  border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;transition:all .2s;
-}
-.add-expense-btn:hover{background:rgba(91,211,199,.15);border-color:var(--accent)}
 
 .card{
   background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
@@ -351,36 +314,8 @@ body::before{
   text-shadow:0 0 24px rgba(91,211,199,.3);
 }
 .card-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--accent-border),transparent 80%)}
-
-.date-row{display:flex;align-items:center;gap:10px}
-.date-input{
-  font-family:'JetBrains Mono',monospace;font-size:14px;
-  border:1px solid var(--border);background:var(--bg3);color:var(--text);
-  padding:11px 14px;border-radius:10px;flex:1;cursor:pointer;outline:none;transition:all .2s;
-}
-.date-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-
-.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.summary-item{background:var(--bg3);border-radius:12px;padding:16px 18px;border:1px solid transparent;transition:all .2s}
-.summary-item:hover{border-color:var(--border2)}
-.summary-item.gaji-box{
-  background:linear-gradient(135deg,rgba(91,211,199,.1),rgba(91,211,199,.03));
-  grid-column:span 2;border:1px solid var(--accent-border);
-}
-.summary-item.gaji-box .summary-value{font-size:24px;font-weight:700;color:var(--accent)}
-.summary-item.kas-box{background:var(--green-bg);grid-column:span 2;border:1px solid var(--green-border)}
-.summary-item.kas-box .summary-value{font-size:22px;font-weight:700;color:var(--green)}
-.summary-item.outbox{background:var(--red-bg);border:1px solid var(--red-border)}
-.summary-item.outbox .summary-value{color:var(--red)}
 .summary-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.summary-value{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:var(--text)}
-
-.day-total{
-  margin-top:14px;padding:14px 16px;background:var(--bg3);
-  border-radius:10px;border:1px solid var(--border);
-  font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);line-height:1.9;
-}
-.day-total strong{color:var(--accent);font-weight:700}
+.summary-value{font-family:var(--font-angka);font-size:16px;font-weight:500;color:var(--text)}
 
 .payday-banner{
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
@@ -392,8 +327,8 @@ body::before{
 .payday-banner.upcoming{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent)}
 .payday-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative}
 .payday-main .label{font-size:14px;font-weight:700}
-.payday-main .sub{font-size:12px;font-weight:500;color:var(--text2);font-family:'JetBrains Mono',monospace;letter-spacing:.01em}
-.payday-amount{font-size:20px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;position:relative}
+.payday-main .sub{font-size:12px;font-weight:500;color:var(--text2);font-family:var(--font-angka);letter-spacing:.01em}
+.payday-amount{font-size:20px;font-weight:600;font-family:var(--font-angka);white-space:nowrap;position:relative}
 .payday-banner.today .payday-amount{color:var(--green)}
 .payday-banner.upcoming .payday-amount{color:var(--accent)}
 @media(max-width:600px){
@@ -402,11 +337,6 @@ body::before{
   .payday-main .sub{font-size:12px}
   .payday-amount{font-size:17px}
 }
-
-.sync-status{text-align:center;font-size:12px;font-family:'JetBrains Mono',monospace;padding:10px;margin-top:10px;border-radius:10px}
-.sync-status.syncing{color:var(--accent);background:var(--accent-bg)}
-.sync-status.success{color:var(--green);background:var(--green-bg)}
-.sync-status.error{color:var(--red);background:var(--red-bg)}
 
 .history-item{
   background:linear-gradient(180deg,rgba(20,20,20,.9),rgba(14,14,14,.75));
@@ -425,12 +355,11 @@ body::before{
 .history-item:hover{border-color:var(--accent-border);transform:translateY(-1px);box-shadow:var(--shadow-glow)}
 .history-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
 .history-date{font-size:13px;font-weight:600;padding-top:2px}
-.history-gaji{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:var(--text2);letter-spacing:-.2px}
+.history-gaji{font-family:var(--font-angka);font-size:17px;font-weight:700;color:var(--text2);letter-spacing:-.2px}
 .history-gaji.pos{color:var(--green)}
 .history-gaji.neg{color:var(--red)}
 .history-pills{display:flex;gap:6px;flex-wrap:wrap}
-.history-money{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.riwayat-meta{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin:0 0 12px;padding-left:4px;letter-spacing:.02em}
+.riwayat-meta{font-size:12px;color:var(--text3);font-family:var(--font-angka);margin:0 0 12px;padding-left:4px;letter-spacing:.02em}
 .riwayat-search-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
 .btn-export-icon{
   flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
@@ -441,7 +370,7 @@ body::before{
 .btn-export-icon:hover{background:rgba(155,217,142,.18);transform:translateY(-1px)}
 .pill{
   font-size:12px;padding:4px 12px;border-radius:20px;
-  background:var(--bg3);color:var(--text2);font-family:'JetBrains Mono',monospace;
+  background:var(--bg3);color:var(--text2);font-family:var(--font-angka);
   font-weight:400;border:1px solid var(--border);
 }
 .history-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);animation:fadeUp .25s ease}
@@ -451,7 +380,7 @@ body::before{
 }
 .summary-row{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
-  padding:5px 0;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text2);
+  padding:5px 0;font-size:13px;font-family:var(--font-angka);color:var(--text2);
 }
 .summary-row .summary-value{font-weight:600;white-space:nowrap}
 .summary-row.add .summary-value{color:var(--text)}
@@ -471,7 +400,7 @@ body::before{
 }
 .detail-section-label.red{color:var(--red)}
 .detail-section-label.green{color:var(--green)}
-.detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:'JetBrains Mono',monospace}
+.detail-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:13px;font-family:var(--font-angka)}
 .detail-row.total{font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
 .detail-row .detail-item-name{color:var(--text2)}
 .detail-row .detail-item-value{color:var(--text);font-weight:600}
@@ -484,7 +413,6 @@ body::before{
 /* Jejak input: siapa menyentuh hari ini, jam berapa. Sengaja sekecil catatan
    kaki — yang dicari orang tetap angkanya; nama penginput dibaca cuma kalau
    ada yang perlu ditelusuri. */
-.history-orang{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .pill.orang{display:inline-flex;align-items:center;gap:5px;background:transparent;color:var(--text3);border-style:dashed}
 .jejak-list{display:flex;flex-direction:column}
 .jejak-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -503,7 +431,7 @@ body::before{
 .jejak-kepala strong{color:var(--text);font-weight:600}
 .jejak-aksi{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
 .jejak-teks{font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;overflow-wrap:anywhere}
-.jejak-jam{flex-shrink:0;margin-top:3px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3)}
+.jejak-jam{flex-shrink:0;margin-top:3px;font-family:var(--font-angka);font-size:12px;color:var(--text3)}
 .jejak-kosong{font-size:12px;color:var(--text3);font-style:italic;padding:4px 0 2px}
 /* Hari yang datanya sudah dihapus: masih disebut, tapi tidak berlagak seperti
    baris yang bisa dibuka — tidak ada lagi isinya selain jejak ini. */
@@ -525,12 +453,10 @@ body::before{
 .gajian-period-label{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
 .gajian-total-box{text-align:right}
 .gajian-total-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;font-weight:700}
-.gajian-total-value{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:var(--accent);line-height:1.05;margin-top:2px;letter-spacing:-.5px}
-.gajian-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
-.gajian-stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.gajian-total-value{font-family:var(--font-angka);font-size:34px;font-weight:500;color:var(--accent);line-height:1.05;margin-top:2px;letter-spacing:-.5px}
 .gajian-stat{background:var(--bg3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
 .gajian-stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
-.gajian-stat-value{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;margin-top:4px}
+.gajian-stat-value{font-family:var(--font-angka);font-size:13px;font-weight:500;margin-top:4px}
 /* Saldo Awal: inline bar di Riwayat */
 .saldo-awal-bar{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -539,13 +465,13 @@ body::before{
   font-size:12.5px;color:var(--text2);
 }
 .saldo-awal-bar > .lbl{font-weight:600;color:var(--text2);display:inline-flex;align-items:center;gap:6px}
-.saldo-awal-bar > .val{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.2px}
+.saldo-awal-bar > .val{color:var(--accent);font-family:var(--font-angka);font-size:15px;font-weight:700;letter-spacing:-.2px}
 .saldo-awal-bar > .info{color:var(--text3);font-size:12px;flex:1;min-width:0}
 .gajian-day-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
 .gajian-day-row:last-child{border-bottom:none}
 .gajian-day-date{color:var(--text2);font-size:13px;font-weight:500;line-height:1.3}
-.gajian-day-date .day-name{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:6px;letter-spacing:.02em}
-.gajian-day-amount{font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text);font-size:14px;white-space:nowrap}
+.gajian-day-date .day-name{font-size:12px;color:var(--text3);font-family:var(--font-angka);margin-left:6px;letter-spacing:.02em}
+.gajian-day-amount{font-family:var(--font-angka);font-weight:500;color:var(--text);font-size:14px;white-space:nowrap}
 .gajian-empty-state{
   text-align:center;padding:28px 12px;
   color:var(--text3);font-size:13px;font-style:italic;
@@ -581,7 +507,7 @@ body::before{
   color:var(--accent);text-transform:uppercase;margin-bottom:2px;
 }
 .gajian-hero-amount-value{
-  font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:500;
+  font-family:var(--font-angka);font-size:48px;font-weight:500;
   color:var(--accent);line-height:1.05;letter-spacing:-1px;
 }
 .gajian-hero-progress{position:relative}
@@ -595,11 +521,9 @@ body::before{
 }
 .gajian-hero-progress-meta{
   display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;
-  margin-top:8px;font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  margin-top:8px;font-size:12px;color:var(--text3);font-family:var(--font-angka);
 }
 .gajian-hero-progress-meta strong{color:var(--text);font-weight:600}
-.gajian-hero-progress-meta .proj{color:var(--accent)}
-.gajian-hero-progress-meta .proj strong{color:var(--accent)}
 
 /* === Voucher Toko: Jobs treatment === */
 .voucher-info{
@@ -609,7 +533,6 @@ body::before{
   animation:fadeUp .25s ease;
 }
 .voucher-info strong{color:var(--text2);font-weight:600}
-.voucher-date-row{display:flex;align-items:center;gap:8px}
 .date-display-btn{
   flex:1;display:inline-flex;align-items:center;gap:10px;
   padding:12px 16px;border-radius:11px;
@@ -646,7 +569,7 @@ body::before{
   display:inline-flex;align-items:center;gap:8px;
 }
 .toko-stok-pill{
-  font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  font-family:var(--font-angka);font-size:12.5px;
   padding:5px 13px;border-radius:99px;
   background:var(--bg3);color:var(--text2);border:1px solid var(--border);
   display:inline-flex;align-items:center;gap:4px;
@@ -676,7 +599,7 @@ body::before{
 .toko-input-group.laku label{color:var(--green)}
 .toko-input-group input{
   background:transparent;border:none;outline:none;padding:0;
-  font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--text);
+  font-family:var(--font-angka);font-size:18px;font-weight:600;color:var(--text);
   width:100%;letter-spacing:-.5px;transition:color .15s;
 }
 .toko-input-group input::placeholder{color:var(--text3);opacity:.4}
@@ -685,7 +608,7 @@ body::before{
 .toko-footer{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 14px;
   margin-top:12px;padding-top:11px;border-top:1px dashed var(--border2);
-  font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:var(--text3);font-family:var(--font-angka);
 }
 .toko-footer .seg{display:inline-flex;align-items:baseline;gap:5px}
 .toko-footer .seg strong{color:var(--text);font-weight:600}
@@ -755,13 +678,13 @@ body::before{
 .user-menu-divider{height:1px;background:var(--border);margin:4px 8px}
 .user-menu-email{
   font-size:12px;color:var(--text3);padding:8px 12px 4px;
-  font-family:'JetBrains Mono',monospace;letter-spacing:.01em;
+  font-family:var(--font-angka);letter-spacing:.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
 
 .voucher-day-summary{
   display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;
-  margin:0 4px 14px;font-size:13px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  margin:0 4px 14px;font-size:13px;color:var(--text3);font-family:var(--font-angka);
 }
 .voucher-day-summary .seg{display:inline-flex;align-items:baseline;gap:5px}
 .voucher-day-summary .seg strong{color:var(--text);font-weight:600}
@@ -809,20 +732,6 @@ body::before{
 .empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
 .empty-icon{font-size:48px;margin-bottom:16px}
 
-.mobile-nav{display:none!important}
-.mobile-nav::before{
-  content:'';position:absolute;left:0;right:0;top:-1px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--accent-border) 30%,var(--accent-border) 70%,transparent);
-}
-.mobile-nav-inner{display:flex;justify-content:space-around}
-.mobile-nav-btn{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  background:none;border:none;color:var(--text3);
-  font-family:inherit;font-size:12px;font-weight:600;
-  padding:8px 16px;cursor:pointer;border-radius:12px;transition:all .2s cubic-bezier(.4,0,.2,1);
-}
-.mobile-nav-btn.active{color:var(--accent);background:linear-gradient(180deg,rgba(91,211,199,.12),rgba(91,211,199,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-
 table{width:100%;border-collapse:collapse}
 th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);border-bottom:1px solid var(--border)}
 td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border)}
@@ -841,16 +750,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
 input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8) sepia(.5) hue-rotate(350deg) saturate(2);opacity:.6;cursor:pointer}
 input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 
-.theme-toggle{
-  width:38px;height:38px;border-radius:11px;
-  border:1px solid var(--border);
-  background:rgba(255,255,255,.02);color:var(--text2);
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:16px;transition:all .3s cubic-bezier(.4,0,.2,1);
-}
-.theme-toggle:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);transform:rotate(-12deg) scale(1.05)}
-.theme-toggle:active{transform:rotate(-12deg) scale(.95)}
-
 .kas-hero{
   text-align:center;padding:32px 20px 22px;margin:0 0 22px;position:relative;
   animation:fadeUp .5s cubic-bezier(.4,0,.2,1) both;
@@ -865,7 +764,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   font-family:'Inter',sans-serif;
 }
 .kas-hero-value{
-  font-family:'JetBrains Mono',monospace;
+  font-family:var(--font-angka);
   font-size:clamp(48px,8.5vw,84px);
   font-weight:500;letter-spacing:-2px;line-height:.95;
   background:linear-gradient(180deg,var(--text) 35%,var(--accent) 100%);
@@ -879,11 +778,10 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 .kas-hero-delta{
   margin-top:20px;font-size:13px;color:var(--text3);
-  font-family:'JetBrains Mono',monospace;
+  font-family:var(--font-angka);
 }
 .kas-hero-delta .pos{color:var(--green);font-weight:700}
 .kas-hero-delta .neg{color:var(--red);font-weight:700}
-.kas-hero-delta .delim{margin:0 12px;opacity:.4}
 @media(max-width:600px){
   .kas-hero{padding:24px 12px 18px;margin-bottom:16px}
   .kas-hero-value{font-size:clamp(40px,11vw,60px);letter-spacing:-1.5px}
@@ -899,9 +797,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .date-inline{
   display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;
 }
-.date-inline .date-input{
-  padding:9px 14px;font-size:13px;min-width:170px;flex:0 0 auto;border-radius:11px;
-}
 .date-inline .date-display-btn{flex:0 0 auto;min-width:170px;padding:9px 14px;font-size:13px;border-radius:11px}
 .date-hint{
   font-size:12.5px;color:var(--text3);display:inline-flex;align-items:center;gap:7px;
@@ -911,15 +806,13 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .inline-summary{
   display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;
   margin-top:18px;padding-top:16px;border-top:1px dashed var(--border2);
-  font-size:13px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  font-size:13px;color:var(--text3);font-family:var(--font-angka);
 }
 .inline-summary .seg{display:inline-flex;align-items:baseline;gap:6px}
 .inline-summary .seg strong{color:var(--text);font-weight:600}
-.inline-summary .spacer{flex:1;min-width:8px}
 .inline-summary .seg.profit{margin-left:auto}
 .inline-summary .seg.profit strong{color:var(--green);font-size:16px;font-weight:700}
 .inline-summary .seg.profit.neg strong{color:var(--red)}
-.add-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .add-pill{
   display:inline-flex;align-items:center;gap:7px;
   padding:9px 16px;border-radius:99px;font-family:inherit;font-size:13px;
@@ -929,10 +822,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 .add-pill:hover{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 .add-pill.green:hover{border-color:var(--green);color:var(--green);background:var(--green-bg)}
-.catatan-empty{
-  font-size:12.5px;color:var(--text3);font-style:italic;text-align:center;
-  padding:18px 0 6px;line-height:1.6;
-}
 .catatan-section{margin-top:18px}
 .catatan-section-label{
   font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -940,7 +829,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 @media(max-width:600px){
   .date-inline{gap:10px;margin-bottom:14px}
-  .date-inline .date-input{padding:8px 12px;font-size:12.5px;min-width:0;width:100%}
   .date-inline .date-display-btn{padding:10px 12px;font-size:13px;min-width:0;width:100%}
   .date-hint{font-size:12px;flex-basis:100%}
   .inline-summary{font-size:12px;gap:4px 12px;margin-top:14px;padding-top:14px}
@@ -971,7 +859,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   --tabbar-bg:linear-gradient(180deg,rgba(255,255,255,.97),rgba(250,250,252,1));
   --tabbar-shadow:0 -6px 24px rgba(0,0,0,.07);
 }
-[data-theme="light"] .header-title,
 [data-theme="light"] .sidebar-brand-title{background:none;-webkit-text-fill-color:var(--text);color:var(--text)}
 [data-theme="light"] .card-title{text-shadow:none}
 [data-theme="light"] .gajian-total-value{color:var(--accent-deep)}
@@ -980,14 +867,11 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .gajian-hero-amount-label,
 [data-theme="light"] .gajian-hero-amount-value{color:var(--accent-deep)}
 [data-theme="light"] .gajian-hero-progress-bar{background:rgba(0,0,0,.06)}
-[data-theme="light"] .gajian-hero-progress-meta .proj,
-[data-theme="light"] .gajian-hero-progress-meta .proj strong{color:var(--accent-deep)}
 [data-theme="light"] .history-gaji.pos,
 [data-theme="light"] .summary-row.total .summary-value.pos{color:var(--green)}
 [data-theme="light"] .history-gaji.neg,
 [data-theme="light"] .summary-row.total .summary-value.neg{color:var(--red)}
 [data-theme="light"] .history-summary{background:#F5F5F7}
-[data-theme="light"] .summary-item.gaji-box .summary-value{color:var(--accent-deep)}
 [data-theme="light"] body{background-image:none}
 [data-theme="light"] body::before{opacity:0}
 [data-theme="light"] .header{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.95))}
@@ -997,7 +881,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .sidebar-toggle,
 [data-theme="light"] .sidebar-close{background:#F0F0F3}
 [data-theme="light"] .sidebar-backdrop{background:rgba(0,0,0,.28)}
-[data-theme="light"] .mobile-nav{background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.95))}
 [data-theme="light"] .card,
 [data-theme="light"] .history-item,
 [data-theme="light"] .gajian-card{background:#FFFFFF}
@@ -1006,21 +889,17 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 [data-theme="light"] .produk-kartu-bawah .angka{color:#D2D2D7}
 [data-theme="light"] .produk-kartu-bawah .kurang,
 [data-theme="light"] .chip-kurang{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.10)}
-[data-theme="light"] .stat-card{background:#FFFFFF}
 [data-theme="light"] .nav-btn:hover{background:rgba(0,0,0,.05);color:var(--text)}
 [data-theme="light"] .nav-btn.active{background:rgba(var(--accent-rgb),.10);box-shadow:none}
-[data-theme="light"] .mobile-nav-btn.active{background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(var(--accent-rgb),.03))}
 [data-theme="light"] .qty-display{background:#F0F0F3}
 [data-theme="light"] .expense-input,
 [data-theme="light"] .expense-amount,
-[data-theme="light"] .form-input,
-[data-theme="light"] .date-input{background:#F0F0F3}
+[data-theme="light"] .form-input{background:#F0F0F3}
 [data-theme="light"] .pill{background:#F0F0F3}
 [data-theme="light"] .pill.orang{background:transparent}
 [data-theme="light"] td{border-bottom-color:var(--border)}
 [data-theme="light"] tr:hover td{background:rgba(0,0,0,.03)}
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator{filter:saturate(0) brightness(.55);opacity:.55}
-[data-theme="light"] .theme-toggle{background:#F0F0F3}
 [data-theme="light"] .btn-ghost{background:#F0F0F3;color:var(--text2)}
 [data-theme="light"] .btn-ghost:hover{background:#E4E4E9;color:var(--text);border-color:var(--border2)}
 [data-theme="light"] .btn-danger:hover{background:rgba(255,59,48,.14);border-color:rgba(255,59,48,.34)}
@@ -1047,7 +926,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .sk-line{height:12px;margin:6px 0}
 .sk-line.lg{height:18px}
 .sk-line.xl{height:34px;border-radius:10px}
-.sk-block{height:80px;border-radius:14px;margin-bottom:10px}
 .sk-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
 .sk-circle{width:44px;height:44px;border-radius:13px;flex-shrink:0}
 [data-theme="light"] .sk{background:linear-gradient(90deg,#F0F0F3 0%,#E2E2E8 50%,#F0F0F3 100%);background-size:200% 100%}
@@ -1068,45 +946,32 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
 }
 .search-clear:hover{background:var(--bg4);color:var(--text)}
-.search-meta{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:14px;padding-left:4px}
+.search-meta{font-size:12px;color:var(--text3);font-family:var(--font-angka);margin-bottom:14px;padding-left:4px}
 
 /* === Animated number === */
 .num-anim{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
 /* === Responsive: tablet & mobile === */
 @media(max-width:900px){
-  .stats-row{grid-template-columns:repeat(2,1fr)}
   .sidebar{width:min(288px,86vw)}
-  .mobile-nav{display:none}
   .content{padding:20px 16px}
 }
 @media(max-width:600px){
   /* Header lebih compact */
   .header{padding:8px 12px;gap:8px;min-height:54px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   .header-page-title{font-size:14px}
-  .header-page-sub{display:none}
   .header-right{gap:6px}
   .sidebar-toggle{width:34px;height:34px;border-radius:9px}
-  .theme-toggle{width:34px;height:34px;font-size:14px;border-radius:9px}
   .sync-badge{padding:4px 9px;font-size:12px}
 
   /* Content & cards padding */
   .content{padding:14px 12px 28px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   .card,.history-item,.gajian-card{padding:16px;border-radius:12px;margin-bottom:12px}
   .card-title{margin-bottom:12px;font-size:12px}
-  .page-title{font-size:22px}
-  .page-sub{margin-bottom:18px;font-size:13px}
 
   /* Posisi Kas: angka responsive, padding lebih kecil */
 
   /* Stats / summary */
-  .stats-row{grid-template-columns:1fr;gap:10px}
-  .summary-grid{grid-template-columns:1fr;gap:8px}
-  .summary-item.gaji-box,.summary-item.kas-box{grid-column:span 1}
-  .summary-item{padding:14px 16px}
-  .summary-item.gaji-box .summary-value,.summary-item.kas-box .summary-value{font-size:20px}
-  .gajian-stats{grid-template-columns:1fr;gap:8px}
-  .gajian-stats2{grid-template-columns:1fr;gap:8px}
 
   /* Product row: qty-control compact */
   .product-row{padding:12px 0;gap:10px}
@@ -1117,8 +982,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   .qty-display{width:42px;height:38px;font-size:14px}
 
   /* Date input row: stack on mobile */
-  .date-row{gap:8px}
-  .date-input{padding:10px 12px;font-size:13px}
 
   /* Pengeluaran row tetap horizontal tapi jumlah lebih kecil */
   .expense-row{gap:6px}
@@ -1151,7 +1014,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   .toast{font-size:12.5px;padding:11px 18px}
 
   /* Mobile nav: touch target lebih besar */
-  .mobile-nav-btn{padding:9px 18px;font-size:12px;min-width:80px}
 
   /* Search */
   .search-input{font-size:14px;padding:11px 14px 11px 38px}
@@ -1270,11 +1132,11 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .produk-kartu.ada-isi .produk-kartu-atas{color:var(--accent)}
 .produk-kartu-nama{flex:1;min-width:0}
 .produk-kartu-nama .nama{font-size:12.5px;font-weight:600;letter-spacing:-.2px;line-height:1.25;color:var(--text)}
-.produk-kartu-nama .harga{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.produk-kartu-nama .harga{font-size:12px;color:var(--text3);font-family:var(--font-angka);margin-top:2px}
 
 .produk-kartu-bawah{display:flex;align-items:flex-end;justify-content:space-between;margin-top:9px}
 .produk-kartu-bawah .angka{
-  font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;
+  font-family:var(--font-angka);font-size:34px;font-weight:500;
   line-height:1;letter-spacing:-1px;color:var(--bg4);transition:color .2s;
 }
 .produk-kartu.ada-isi .angka{color:var(--accent)}
@@ -1298,7 +1160,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 .chip:active{transform:scale(.98)}
 .chip.ada-isi{background:rgba(var(--accent-rgb),.10);border-color:rgba(var(--accent-rgb),.30);color:var(--accent)}
-.chip-angka{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent)}
+.chip-angka{font-family:var(--font-angka);font-size:13px;color:var(--accent)}
 /* Muncul hanya setelah chip punya isi — supaya chip kosong tetap ringkas */
 .chip-kurang{
   width:28px;height:28px;margin:0 -6px 0 1px;border-radius:8px;flex-shrink:0;
@@ -1332,7 +1194,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 
 .simpan-sticky{margin-top:18px}
-.simpan-total{font-family:'JetBrains Mono',monospace;font-weight:500;opacity:.85}
+.simpan-total{font-family:var(--font-angka);font-weight:500;opacity:.85}
 /* Belum ada yang diinput: redup, tapi TIDAK di-disable — menekannya tetap
    memunculkan toast "Belum ada input!" yang menjelaskan kenapa. */
 .btn-save.kosong{
@@ -1706,7 +1568,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .tombol-000{
   position:absolute;right:4px;top:50%;transform:translateY(-50%);
   min-width:40px;height:32px;padding:0 6px;border-radius:8px;cursor:pointer;
-  font:600 12px/1 'JetBrains Mono',monospace;color:var(--text2);
+  font:600 12px/1 var(--font-angka);color:var(--text2);
   background:var(--bg2);border:1px solid var(--border);
 }
 .tombol-000::after{content:'';position:absolute;inset:-6px -4px}
@@ -1772,7 +1634,7 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .kartu-tercatat{display:flex;flex-direction:column;gap:4px;margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--bg2);border:1px solid var(--border)}
 .kartu-tercatat .pengeluaran-label{margin-bottom:4px}
 .tercatat-baris{display:flex;align-items:baseline;gap:10px;font-size:13px;line-height:1.4}
-.tercatat-jam{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3)}
+.tercatat-jam{flex-shrink:0;font-family:var(--font-angka);font-size:12px;color:var(--text3)}
 .tercatat-isi{flex:1;min-width:0;color:var(--text2);overflow-wrap:anywhere}
 .tercatat-isi strong{color:var(--text);font-weight:600;margin-right:4px}
 .tercatat-oleh{flex-shrink:0;font-size:12px;color:var(--text3)}
@@ -1788,3 +1650,51 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .password-lihat:hover{color:var(--text)}
 .login-galat{padding:10px 12px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:10px;font-size:13px;margin-bottom:12px}
 .login-tautan{display:block;margin:14px auto 0;min-height:40px;padding:0 10px;border:0;background:none;cursor:pointer;font:600 13px/1 'Inter',sans-serif;color:var(--accent)}
+
+/* === Hierarki Hari Ini di HP (RENCANA 4.6) ===
+   Dulu angka kas + banner gajian + pemilih tanggal memakan ±55% layar
+   pertama, dan yang dikerjakan baru mulai di bawahnya. Angkanya tetap yang
+   paling besar di layar, tapi tidak lagi menghabiskan setengahnya. */
+@media(max-width:600px){
+  .kas-hero{padding:10px 8px 8px;margin-bottom:12px}
+  .kas-hero::before{display:none}
+  .kas-hero-label{margin-bottom:4px}
+  .kas-hero-value{font-size:clamp(34px,10vw,42px);letter-spacing:-1px}
+  .kas-hero-delta{margin-top:6px}
+  /* Banner gajian satu baris tipis */
+  .payday-banner{flex-wrap:nowrap;padding:8px 12px;margin-bottom:12px}
+  .payday-main{gap:8px}
+  .payday-main .label{white-space:nowrap;font-size:13px}
+  .payday-main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .payday-amount{font-size:15px}
+  .cocok-bar{margin:-4px 0 12px}
+}
+
+/* === Riwayat per bulan (RENCANA 4.7) === */
+.saring-row{display:flex;gap:8px;overflow-x:auto;margin:0 0 14px;padding-bottom:2px;scrollbar-width:none}
+.saring-row::-webkit-scrollbar{display:none}
+.saring-row .chip{flex:0 0 auto;min-height:40px}
+.kepala-bulan{
+  position:sticky;top:60px;z-index:5;
+  display:flex;flex-direction:column;gap:2px;
+  margin:6px -4px 10px;padding:8px 4px;
+  background:var(--bg);border-bottom:1px solid var(--border);
+}
+.kepala-bulan-nama{font-size:15px;font-weight:700;color:var(--text)}
+.kepala-bulan-angka{font-size:12.5px;color:var(--text2)}
+.kepala-bulan-angka .pos{color:var(--green)}
+.kepala-bulan-angka .neg{color:var(--red)}
+@media(max-width:600px){ .kepala-bulan{top:54px} }
+.history-buka{
+  display:flex;flex-direction:column;gap:8px;width:100%;
+  padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;
+}
+.history-buka:disabled{cursor:default}
+.history-buka:focus-visible{outline:2px solid var(--accent);outline-offset:6px;border-radius:8px}
+.history-buka .history-item-header{margin-bottom:0;width:100%}
+.history-buka .history-pills:empty{display:none}
+.history-item{cursor:default}
+.tampil-lagi{
+  display:block;width:100%;min-height:48px;margin:6px 0 16px;border-radius:12px;cursor:pointer;
+  font:600 13.5px/1 'Inter',sans-serif;color:var(--accent);background:var(--bg2);border:1px dashed var(--accent-border);
+}
