@@ -5,7 +5,7 @@ import LembarHapus from '../components/LembarHapus.jsx'
 import LaporanBulanan from '../components/LaporanBulanan.jsx'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF,
-  voucherForDate, tokoMelebihiStok, buildEntry, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
+  voucherForDate, tokoMelebihiStok, buildEntry, hargaProduk, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
@@ -412,8 +412,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                 {isOpen && isEditing && (
                   <div className="history-detail" onClick={ev=>ev.stopPropagation()}>
                     {(() => {
-                      const editProducts = PRODUCTS.filter(p => !(p.id==='v2k' && e.date >= VOUCHER_TOKO_CUTOFF));
-                      let eSales=0, eGaji=0; editProducts.forEach(p=>{const q=editQty[p.id]||0; eSales+=q*p.price; eGaji+=q*p.gaji;});
+                      const editProducts = PRODUCTS.filter(p => !(p.id==='v2k' && e.date >= VOUCHER_TOKO_CUTOFF) && (p.aktif !== false || (editQty[p.id]||0) > 0));
+                      // Harga yang berlaku DI TANGGAL ITU, bukan harga hari ini.
+                      let eSales=0, eGaji=0; editProducts.forEach(p=>{const q=editQty[p.id]||0; const h=hargaProduk(p, e.date); eSales+=q*h.price; eGaji+=q*h.gaji;});
                       const eExp = editExpenses.reduce((s,x)=>s+(x.amount||0),0);
                       const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
                       const eSisa = eSales - eGaji - (eExp - eCash);   // hasil usaha; setoran ke pemilik tidak mengurangi
@@ -429,7 +430,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                             <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
                             <div className="product-info">
                               <div className="product-name">{p.name}</div>
-                              <div className="product-meta">{IDR(p.price)}</div>
+                              <div className="product-meta">{IDR(hargaProduk(p, e.date).price)}</div>
                             </div>
                             <div className="qty-control">
                               <button className="qty-btn" onClick={()=>changeEditQty(p.id,-1)}>−</button>

@@ -1,7 +1,7 @@
 import { Icon } from '../Icon.jsx'
 import { ProductIcon } from '../ProductIcon.jsx'
 import { IDR } from '../../format.js'
-import { tarifVoucher } from '../../model.js'
+import { tarifVoucher, hargaProduk } from '../../model.js'
 import { JejakHari } from './JejakHari.jsx'
 
 // Rincian satu hari di Riwayat (bukan mode edit): tiga angka, rincian gaji
@@ -35,7 +35,7 @@ export function DetailHari({ e, totals, sold, tokoBreakdown, hitungHari, jejakHa
       </div>
       {(sold.length>0 || tokoBreakdown.length>0) && <>
         <div className="detail-section-label">Rincian Gaji</div>
-        {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name" style={{display:"inline-flex",alignItems:"center",gap:6}}><ProductIcon type={p.id} size={13}/>{p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*p.gaji)}</span></div>))}
+        {sold.map(p=>(<div key={p.id} className="detail-row"><span className="detail-item-name" style={{display:"inline-flex",alignItems:"center",gap:6}}><ProductIcon type={p.id} size={13}/>{p.name} ×{e.quantities[p.id]}</span><span className="detail-item-value">{IDR(e.quantities[p.id]*hargaProduk(p, e.date).gaji)}</span></div>))}
         {tokoBreakdown.map(t => {
           const hasLaku = t.laku>0, hasDrop = t.drop>0;
           let dropNote = '';

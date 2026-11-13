@@ -247,9 +247,28 @@ export function gabungRingkasan(lama, ringkasan) {
 
 // === Hitungan satu hari ===
 
-export function productTotals(quantities) {
+// Harga & gaji satu produk yang berlaku di tanggal itu. p.price/p.gaji adalah
+// harga AWAL; p.riwayat (opsional, dari Pengaturan) berisi perubahan harga
+// yang berlaku mulai tanggalnya. Dengan begini mengubah harga tidak mengubah
+// hari-hari sebelumnya — termasuk saat hari lama diedit di Riwayat.
+export function hargaProduk(p, tanggal) {
+  let h = { price: p.price, gaji: p.gaji }
+  if (tanggal && Array.isArray(p.riwayat)) {
+    let sejak = ''
+    p.riwayat.forEach(r => { if (r.sejak <= tanggal && r.sejak >= sejak) { sejak = r.sejak; h = { price: r.price, gaji: r.gaji } } })
+  }
+  return h
+}
+
+// `tanggal` menentukan harga yang dipakai (lihat hargaProduk). Tanpa tanggal:
+// harga awal — hanya untuk pemanggil lama yang belum peduli tanggal.
+export function productTotals(quantities, tanggal) {
   let totalQty=0, totalSales=0, totalGaji=0;
-  PRODUCTS.forEach(p => { const q=quantities?.[p.id]||0; totalQty+=q; totalSales+=q*p.price; totalGaji+=q*p.gaji; });
+  PRODUCTS.forEach(p => {
+    const q=quantities?.[p.id]||0; if (!q) return;
+    const h = hargaProduk(p, tanggal);
+    totalQty+=q; totalSales+=q*h.price; totalGaji+=q*h.gaji;
+  });
   return { totalQty, totalSales, totalGaji };
 }
 
@@ -271,8 +290,8 @@ const jumlahkan = (xs) => (xs || []).reduce((s,e) => s+(e.amount||0), 0);
 // Ringkasan form "Hari Ini" sebelum disimpan (tiap jenis baris masih terpisah).
 // hasil = untung/rugi usaha; sisaKas = yang tersisa di kas toko sesudah
 // setoran ke pemilik.
-export function draftTotals(quantities, expenses, cashIns, setors) {
-  const { totalQty, totalSales, totalGaji } = productTotals(quantities);
+export function draftTotals(quantities, expenses, cashIns, setors, tanggal) {
+  const { totalQty, totalSales, totalGaji } = productTotals(quantities, tanggal);
   const totalExpense = jumlahkan(expenses);
   const totalCashIn = jumlahkan(cashIns);
   const totalSetor = jumlahkan(setors);
@@ -285,7 +304,7 @@ export function draftTotals(quantities, expenses, cashIns, setors) {
 // ke pemilik − cash masuk. Artinya kolom ini, baris ringkas, fungsi server
 // tambah_entri, dan rumus kas tidak berubah sedikit pun oleh adanya 'setor'.
 export function buildEntry(date, quantities, expenseList) {
-  const { totalSales, totalGaji } = productTotals(quantities);
+  const { totalSales, totalGaji } = productTotals(quantities, date);
   const { expGross, cashGross, setorGross } = splitExpenses(expenseList);
   const totalPengeluaran = expGross + setorGross - cashGross;
   return {
@@ -585,4 +604,102 @@ export function rekapPeriode(entries, voucherToko, periode, tahun, bulan, sekara
     persen: berjalan ? Math.min(100, Math.round(hariKe / panjang * 100)) : 100,
     baris, limpahan,
   }
+}
+
+// === Katalog: produk, toko, tarif, tampilan Hari Ini (RENCANA 5.2) ===
+// Nilai di atas (PRODUCTS, TOKO, TARIF_VOUCHER, …) adalah BAWAAN. Pemilik bisa
+// mengubahnya lewat halaman Pengaturan; hasilnya disimpan di config
+// key 'katalog' dan dipasang ke larik-larik itu DI TEMPAT (aturKatalog), jadi
+// semua fungsi di berkas ini langsung memakainya tanpa diubah satu per satu.
+
+const salinDalam = (x) => JSON.parse(JSON.stringify(x))
+let versiKatalogSekarang = 0
+export function versiKatalog() { return versiKatalogSekarang }
+
+export function katalogSekarang() {
+  return salinDalam({
+    produk: PRODUCTS, toko: TOKO, tarif: TARIF_VOUCHER,
+    utama: PRODUK_UTAMA, sekunder: PRODUK_SEKUNDER, preset: PRESET_PENGELUARAN,
+  })
+}
+
+const isiUlang = (larik, baru) => { larik.splice(0, larik.length, ...baru) }
+
+// Pasang katalog. Yang tidak lolos periksaKatalog tidak dipasang (false) —
+// katalog rusak di database tidak boleh membuat hitungan uang ngawur.
+export function aturKatalog(k) {
+  if (!k || periksaKatalog(k).length) return false
+  isiUlang(PRODUCTS, salinDalam(k.produk))
+  isiUlang(TOKO, salinDalam(k.toko))
+  isiUlang(TARIF_VOUCHER, salinDalam(k.tarif))
+  isiUlang(PRODUK_UTAMA, salinDalam(k.utama || []))
+  isiUlang(PRODUK_SEKUNDER, salinDalam(k.sekunder || []))
+  isiUlang(PRESET_PENGELUARAN, salinDalam(k.preset || []))
+  versiKatalogSekarang++
+  return true
+}
+
+const TGL = /^\d{4}-\d{2}-\d{2}$/
+const bulat = (n) => Number.isInteger(n)
+
+// Daftar masalah (kosong = sah). `lama` = katalog yang sedang berlaku; yang
+// sudah ada TIDAK BOLEH hilang atau diubah ke belakang, karena riwayat dan
+// stok dihitung di atasnya: id produk/toko tetap ada (cukup dinonaktifkan),
+// harga awal & perubahan harga yang sudah dicatat tetap, tarif lama tetap.
+export function periksaKatalog(k, lama = null) {
+  const m = []
+  if (!k || !Array.isArray(k.produk) || !Array.isArray(k.toko) || !Array.isArray(k.tarif)) return ['Bentuk pengaturan tidak dikenal']
+  const idP = new Set()
+  k.produk.forEach((p, i) => {
+    const nama = p?.name || ('produk ke-' + (i + 1))
+    if (!p?.id || !/^[a-z0-9]+$/.test(p.id)) m.push(nama + ': kode produk tidak sah')
+    else if (idP.has(p.id)) m.push(nama + ': kode produk ganda'); else idP.add(p.id)
+    if (!String(p?.name || '').trim()) m.push('Ada produk tanpa nama')
+    if (!bulat(p?.price) || p.price <= 0) m.push(nama + ': harga harus lebih dari 0')
+    if (!bulat(p?.gaji) || p.gaji < 0 || p.gaji >= p.price) m.push(nama + ': gaji harus 0 atau lebih, dan kurang dari harga')
+    ;(p?.riwayat || []).forEach(r => {
+      if (!TGL.test(r?.sejak || '')) m.push(nama + ': tanggal berlaku tidak sah')
+      if (!bulat(r?.price) || r.price <= 0) m.push(nama + ': harga baru harus lebih dari 0')
+      if (!bulat(r?.gaji) || r.gaji < 0 || r.gaji >= r.price) m.push(nama + ': gaji baru harus kurang dari harganya')
+    })
+  })
+  if (!k.produk.some(p => p.aktif !== false)) m.push('Minimal satu produk harus aktif')
+  const idT = new Set()
+  k.toko.forEach((t, i) => {
+    if (!t?.id || !/^[a-z0-9]+$/.test(t.id)) m.push('Toko ke-' + (i + 1) + ': kode tidak sah')
+    else if (idT.has(t.id)) m.push((t.name || t.id) + ': kode toko ganda'); else idT.add(t.id)
+    if (!String(t?.name || '').trim()) m.push('Ada toko tanpa nama')
+  })
+  if (!k.tarif.length) m.push('Tarif voucher tidak boleh kosong')
+  k.tarif.forEach(t => {
+    if (!TGL.test(t?.sejak || '')) m.push('Tarif voucher: tanggal berlaku tidak sah')
+    if (!bulat(t?.harga) || t.harga <= 0) m.push('Tarif voucher: harga harus lebih dari 0')
+    if (!bulat(t?.komisi) || t.komisi < 0 || t.komisi >= t.harga) m.push('Tarif voucher: komisi toko harus kurang dari harga')
+    if (!bulat(t?.gaji) || t.gaji < 0) m.push('Tarif voucher: gaji tidak sah')
+  })
+  ;(k.utama || []).forEach(id => { if (!idP.has(id)) m.push('Kartu besar menunjuk produk yang tidak ada') })
+  if ((k.utama || []).length > 2) m.push('Kartu besar paling banyak dua produk')
+  ;(k.sekunder || []).forEach(id => { if (!idP.has(id)) m.push('Chip menunjuk produk yang tidak ada') })
+  if ((k.preset || []).some(x => typeof x !== 'string' || !x.trim())) m.push('Ada pilihan pengeluaran yang kosong')
+
+  if (lama) {
+    const sama = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    lama.produk.forEach(p => {
+      const b = k.produk.find(x => x.id === p.id)
+      if (!b) { m.push(p.name + ' tidak boleh dihapus — nonaktifkan saja'); return }
+      if (b.price !== p.price || b.gaji !== p.gaji) m.push(p.name + ': harga awal tidak boleh diubah — tambahkan harga baru dengan tanggal berlakunya')
+      ;(p.riwayat || []).forEach(r => { if (!(b.riwayat || []).some(x => sama(x, r))) m.push(p.name + ': perubahan harga yang sudah dicatat tidak boleh diubah') })
+    })
+    lama.toko.forEach(t => { if (!k.toko.some(x => x.id === t.id)) m.push(t.name + ' tidak boleh dihapus — nonaktifkan saja') })
+    lama.tarif.forEach(t => { if (!k.tarif.some(x => sama(x, t))) m.push('Tarif voucher yang sudah dicatat tidak boleh diubah') })
+  }
+  return [...new Set(m)]
+}
+
+// Kode untuk produk/toko baru dari namanya: huruf kecil & angka, unik.
+export function kodeBaru(nama, terpakai) {
+  const dasar = String(nama || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'baru'
+  let k = dasar, n = 2
+  while (terpakai.includes(k)) k = dasar + n++
+  return k
 }

@@ -156,6 +156,9 @@ export function ringkasJejak(j) {
       return bagian.join(' · ') || 'tidak ada isinya'
     }
     case 'ubah': {
+      // Perubahan yang bukan angka hari itu (Pengaturan, perapian data) cukup
+      // menyebut catatannya.
+      if (r.catatan && !r.sebelum) return r.catatan
       const a = r.sebelum || {}, b = r.sesudah || {}
       const ubah = []
       const banding = (label, x, y) => { if ((x || 0) !== (y || 0)) ubah.push(label + ' ' + IDR(x || 0) + ' → ' + IDR(y || 0)) }

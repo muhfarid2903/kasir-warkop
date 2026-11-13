@@ -117,16 +117,22 @@ tangan.
 
 ## Mengubah harga, tarif, atau daftar toko
 
-Semuanya di `src/model.js`, lalu deploy seperti biasa.
+Lewat app: menu akun → **Pengaturan** (khusus pemilik; server juga menolak
+akun lain). Hasilnya disimpan di `config` key `katalog` dan sampai ke semua HP
+lewat realtime; HP juga menyimpannya supaya tetap berlaku tanpa sinyal.
 
-- **Tarif voucher berubah** (harga, komisi toko, gaji per voucher): **tambah**
-  baris baru di `TARIF_VOUCHER` dengan tanggal mulai berlakunya. Jangan ubah
-  baris lama — riwayat dan Kas Toko sebelum tanggal itu tetap memakai tarif lama.
-- **Toko berhenti**: beri `aktif: false` di `TOKO`. Jangan dihapus — stok dan
-  setoran lamanya masih dihitung dari daftar itu. Toko tidak aktif yang masih
-  punya stok tetap tampil sampai stoknya habis.
-- **Toko baru**: tambah baris di `TOKO` dengan `id` baru yang tidak pernah
-  dipakai sebelumnya.
+- **Harga produk / tarif voucher** selalu berlaku **mulai tanggal tertentu**
+  (bawaan: besok). Hari sebelumnya — termasuk saat diedit di Riwayat — tetap
+  memakai harga lamanya, jadi Kas lama tidak bergeser.
+- **Produk & toko** tidak bisa dihapus, hanya dinonaktifkan: stok dan riwayat
+  lamanya tetap dihitung.
+- Pemeriksanya (`periksaKatalog` di `model.js`, bertes) menolak perubahan yang
+  akan mengubah masa lalu: harga awal diubah, perubahan harga yang sudah
+  dicatat diubah, tarif lama diubah, produk/toko dihapus.
+
+Nilai bawaan (dipakai sebelum Pengaturan pertama kali disimpan) tetap di
+`src/model.js`: `PRODUCTS`, `TOKO`, `TARIF_VOUCHER`, `PRODUK_UTAMA`,
+`PRESET_PENGELUARAN`.
 
 ## Cadangan & pemulihan
 

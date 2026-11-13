@@ -275,6 +275,18 @@ export async function saveSaldoAwal(value, jejak) {
   catatJejak(jejak?.date || todayISO(), jejak)
 }
 
+// === Katalog ===
+
+export async function loadKatalog() {
+  return bacaan(() => muat().config.katalog || null)
+}
+
+export async function simpanKatalog(katalog, jejak) {
+  await tulisan(() => { wajibPemilik('config'); return ubah(db => { db.config.katalog = salin(katalog) }) })
+  siarkan({ tabel: 'config', jenis: 'katalog', value: salin(katalog) })
+  catatJejak(jejak?.date || todayISO(), jejak)
+}
+
 // === Entries ===
 
 const ringkas = (e) => ({ date: e.date, totalPenjualan: e.totalPenjualan || 0, gaji: e.gaji || 0, totalPengeluaran: e.totalPengeluaran || 0 })
@@ -429,10 +441,11 @@ export function isNetworkError(e) {
 
 const pendengarStatus = new Set()
 
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onHitung, onStatus }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onKatalog, onVoucher, onJejak, onHitung, onStatus }) {
   const f = (ev) => {
     if (gangguan.putus) return            // kanal yang mati tidak menerima apa pun
     if (ev.tabel === 'entries') onEntry?.(ev.jenis === 'delete' ? { type: 'delete', date: ev.date } : { type: 'upsert', entry: ev.entry })
+    else if (ev.tabel === 'config' && ev.jenis === 'katalog') onKatalog?.(ev.value)
     else if (ev.tabel === 'config') onSaldoAwal?.(Number(ev.value) || 0)
     else if (ev.tabel === 'voucher_toko') onVoucher?.({ type: ev.jenis, date: ev.date, tokoId: ev.tokoId, cell: ev.cell })
     else if (ev.tabel === 'jejak') onJejak?.(ev.jejak)

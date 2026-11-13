@@ -1722,3 +1722,21 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .bantuan-isi{display:flex;flex-direction:column;gap:14px}
 .bantuan-isi h3{font-size:14px;font-weight:700;margin:0 0 3px;color:var(--text)}
 .bantuan-isi p{font-size:13.5px;line-height:1.55;color:var(--text2);margin:0}
+
+/* === Pengaturan (RENCANA 5.2) === */
+.pengaturan{display:flex;flex-direction:column;gap:14px}
+.atur-baris{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border)}
+.atur-baris:last-of-type{border-bottom:0}
+.atur-baris.nonaktif{opacity:.55}
+.atur-kepala{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:14px}
+.atur-angka{font-size:13px;color:var(--text2)}
+.atur-ket{font-size:12.5px;color:var(--text3);margin:0}
+.atur-aksi{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.atur-aksi .chip{flex:0 0 auto;min-height:40px}
+.atur-cek{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);min-height:40px;cursor:pointer}
+.atur-cek input{width:18px;height:18px;accent-color:var(--accent)}
+.atur-nama{flex:1;min-width:140px}
+.atur-form{display:flex;flex-direction:column;gap:10px;margin:8px 0;padding:12px;border-radius:12px;background:var(--bg3);border:1px solid var(--border)}
+.atur-form label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--text2)}
+.atur-form .atur-form{margin:0;padding:0;border:0;background:none}
+.atur-simpan .btn-save{flex:1}
