@@ -61,7 +61,6 @@ function App() {
     pending, tandaiTulis,
     dataPer, dataKosong,
     hitungKas, setHitungKas, fitur,
-    pastikanJejak,
     versiKatalog, katalogDisimpan,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
@@ -353,8 +352,6 @@ function App() {
          <div className="page-cinema" key={page}>
           {page==="input" && (
             <HariIni
-              bukaVoucher={()=>handleNav('voucher')}
-              jejak={jejak} pastikanJejak={pastikanJejak}
               hariIni={hariIni} dataPer={dataPer} dataKosong={dataKosong}
               fitur={fitur} hitungKas={hitungKas} setHitungKas={setHitungKas}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}

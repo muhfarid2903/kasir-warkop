@@ -625,6 +625,20 @@ export function katalogSekarang() {
 
 const isiUlang = (larik, baru) => { larik.splice(0, larik.length, ...baru) }
 
+// Pilihan cepat pengeluaran dari teks bebas: koma, titik koma, atau baris
+// baru sebagai pemisah. Dipakai saat mengetik di Pengaturan DAN saat katalog
+// dipasang — katalog yang terlanjur tersimpan sebagai satu teks
+// "Susu;Air;Gelas" tetap tampil sebagai chip terpisah.
+export function pisahPreset(daftar) {
+  const out = []
+  ;(Array.isArray(daftar) ? daftar : [daftar]).forEach(x => {
+    String(x || '').split(/[,;\n]/).map(s => s.trim()).filter(Boolean).forEach(s => {
+      if (!out.some(o => o.toLowerCase() === s.toLowerCase())) out.push(s)
+    })
+  })
+  return out.slice(0, 8)
+}
+
 // Pasang katalog. Yang tidak lolos periksaKatalog tidak dipasang (false) —
 // katalog rusak di database tidak boleh membuat hitungan uang ngawur.
 export function aturKatalog(k) {
@@ -634,7 +648,7 @@ export function aturKatalog(k) {
   isiUlang(TARIF_VOUCHER, salinDalam(k.tarif))
   isiUlang(PRODUK_UTAMA, salinDalam(k.utama || []))
   isiUlang(PRODUK_SEKUNDER, salinDalam(k.sekunder || []))
-  isiUlang(PRESET_PENGELUARAN, salinDalam(k.preset || []))
+  isiUlang(PRESET_PENGELUARAN, pisahPreset(k.preset || []))
   versiKatalogSekarang++
   return true
 }

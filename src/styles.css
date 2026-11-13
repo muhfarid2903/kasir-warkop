@@ -1593,14 +1593,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .toko-setor-terakhir.lama{color:var(--orange);font-weight:600}
 
 /* === Hari Ini saat kopi libur === */
-.kartu-voucher-hari{
-  display:flex;flex-direction:column;gap:10px;margin-bottom:14px;padding:14px 16px;
-  border-radius:var(--radius-lg);background:var(--bg2);border:1px solid var(--accent-border);
-}
-.kvh-kepala{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:600;font-size:14px}
-.kvh-kepala > span{display:inline-flex;align-items:center;gap:7px}
-.kvh-kepala .chip{flex:0 0 auto;min-height:40px}
-.kvh-kosong{font-size:13px;color:var(--text3)}
 .lipat-kopi{margin-top:18px}
 .lipat-kopi-tombol{
   display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:0 14px;cursor:pointer;
@@ -1618,14 +1610,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 }
 .toast.gagal.beraksi::after{content:none}
 
-/* Kartu "Tercatat hari ini" — satu baris per simpan, dari jejak. */
-.kartu-tercatat{display:flex;flex-direction:column;gap:4px;margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--bg2);border:1px solid var(--border)}
-.kartu-tercatat .pengeluaran-label{margin-bottom:4px}
-.tercatat-baris{display:flex;align-items:baseline;gap:10px;font-size:13px;line-height:1.4}
-.tercatat-jam{flex-shrink:0;font-family:var(--font-angka);font-size:12px;color:var(--text3)}
-.tercatat-isi{flex:1;min-width:0;color:var(--text2);overflow-wrap:anywhere}
-.tercatat-isi strong{color:var(--text);font-weight:600;margin-right:4px}
-.tercatat-oleh{flex-shrink:0;font-size:12px;color:var(--text3)}
 
 /* === Layar masuk === */
 .password-wrap{position:relative}

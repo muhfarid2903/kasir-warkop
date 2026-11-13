@@ -30,7 +30,7 @@ test('masuk, simpan 2 kopi, lihat di Riwayat, edit, hapus', async ({ page }) => 
 
   await page.getByRole('button', { name: /^Simpan/ }).click()
   await expect(page.locator('#toast')).toContainText(/Tersimpan|Ditambahkan/)
-  await expect(page.locator('.kartu-tercatat')).toContainText('2 Kopi Lain')
+  await expect(page.locator('.date-hint')).toContainText('Kopi Lain ×2')
 
   // Riwayat: baris hari ini memuat kopinya
   await page.locator('.tab-btn', { hasText: 'Riwayat' }).click()

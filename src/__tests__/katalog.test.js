@@ -88,3 +88,21 @@ describe('kodeBaru', () => {
     expect(kodeBaru('!!!', [])).toBe('baru')
   })
 })
+
+import { pisahPreset, PRESET_PENGELUARAN } from '../model.js'
+describe('pilihan cepat pengeluaran', () => {
+  it('koma, titik koma, dan baris baru sama-sama pemisah', () => {
+    expect(pisahPreset('Susu, Air;Gelas\nSedotan')).toEqual(['Susu', 'Air', 'Gelas', 'Sedotan'])
+  })
+  it('teks yang sedang diketik ("Susu, ") tidak menghasilkan chip kosong', () => {
+    expect(pisahPreset('Susu, ')).toEqual(['Susu'])
+  })
+  it('katalog lama berisi satu teks "Susu;Air;…" tampil sebagai chip terpisah', () => {
+    const k = katalogSekarang(); k.preset = ['Susu;Air;Gelas;Sedotan;Gas;Kopi']
+    expect(aturKatalog(k)).toBe(true)
+    expect([...PRESET_PENGELUARAN]).toEqual(['Susu', 'Air', 'Gelas', 'Sedotan', 'Gas', 'Kopi'])
+  })
+  it('paling banyak 8, tanpa duplikat', () => {
+    expect(pisahPreset('a,b,c,d,e,f,g,h,i,A')).toEqual(['a','b','c','d','e','f','g','h'])
+  })
+})
