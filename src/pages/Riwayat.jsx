@@ -18,6 +18,7 @@ import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
 import { Icon } from '../components/Icon.jsx'
 import { InputNominal } from '../components/InputNominal.jsx'
+import { DaftarNominal } from '../components/DaftarNominal.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { SkeletonInput } from '../components/Skeleton.jsx'
 
@@ -208,14 +209,8 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
   function changeEditQty(id, d) { setEditQty(prev => ({...prev, [id]: Math.max(0,(prev[id]||0)+d)})); }
   function setEditQtyVal(id, val) { setEditQty(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
   function addEditExpense(){ setEditExpenses(prev=>[...prev,{desc:'',amount:0}]); }
-  function removeEditExpense(i){ setEditExpenses(prev=>prev.filter((_,idx)=>idx!==i)); }
-  function updateEditExpense(i,field,val){ setEditExpenses(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function addEditCashIn(){ setEditCashIns(prev=>[...prev,{desc:'',amount:0}]); }
-  function removeEditCashIn(i){ setEditCashIns(prev=>prev.filter((_,idx)=>idx!==i)); }
-  function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function addEditSetor(){ setEditSetors(prev=>[...prev,{desc:'',amount:0}]); }
-  function removeEditSetor(i){ setEditSetors(prev=>prev.filter((_,idx)=>idx!==i)); }
-  function updateEditSetor(i,field,val){ setEditSetors(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function setEditVoucherVal(tokoId, field, val) { setEditVoucher(prev => ({...prev, [tokoId]: {...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val}})); }
 
   async function saveEdit() {
@@ -496,31 +491,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                           })}
                         </>}
                         <div className="detail-section-label red" style={{marginTop:12}}>Pengeluaran</div>
-                        {editExpenses.map((x,i)=>(
-                          <div key={i} className="expense-row">
-                            <input className="expense-input" type="text" placeholder="Keterangan…" value={x.desc} onChange={ev=>updateEditExpense(i,'desc',ev.target.value)}/>
-                            <InputNominal value={x.amount} onChange={v=>updateEditExpense(i,'amount',v)}/>
-                            <button className="del-btn" onClick={()=>removeEditExpense(i)}>×</button>
-                          </div>
-                        ))}
+                        <DaftarNominal rows={editExpenses} onChange={setEditExpenses}/>
                         <button className="add-pill" onClick={addEditExpense} style={{marginTop:6}}><Icon type="trending-down" size={14}/> Tambah Pengeluaran</button>
                         <div className="detail-section-label green" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Cash Masuk</div>
-                        {editCashIns.map((x,i)=>(
-                          <div key={i} className="expense-row">
-                            <input className="expense-input" type="text" placeholder="Cth: bayar hutang…" value={x.desc} onChange={ev=>updateEditCashIn(i,'desc',ev.target.value)}/>
-                            <InputNominal value={x.amount} onChange={v=>updateEditCashIn(i,'amount',v)}/>
-                            <button className="del-btn" onClick={()=>removeEditCashIn(i)}>×</button>
-                          </div>
-                        ))}
+                        <DaftarNominal rows={editCashIns} onChange={setEditCashIns} placeholder="Cth: bayar hutang…"/>
                         <button className="add-pill green" onClick={addEditCashIn} style={{marginTop:6}}><Icon type="banknote" size={14}/> Tambah Cash Masuk</button>
                         <div className="detail-section-label" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="wallet" size={12}/> Setor ke pemilik</div>
-                        {editSetors.map((x,i)=>(
-                          <div key={i} className="expense-row">
-                            <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={x.desc} onChange={ev=>updateEditSetor(i,'desc',ev.target.value)}/>
-                            <InputNominal value={x.amount} onChange={v=>updateEditSetor(i,'amount',v)}/>
-                            <button className="del-btn" onClick={()=>removeEditSetor(i)}>×</button>
-                          </div>
-                        ))}
+                        <DaftarNominal rows={editSetors} onChange={setEditSetors} placeholder="Cth: setor ke kas pemilik…"/>
                         <button className="add-pill" onClick={addEditSetor} style={{marginTop:6}}><Icon type="wallet" size={14}/> Tambah Setor ke pemilik</button>
                         <div className="inline-summary" style={{marginTop:14}}>
                           <span className="seg">Penjualan <strong>{IDR(eSales)}</strong></span>
