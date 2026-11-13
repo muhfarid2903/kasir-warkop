@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { simpanKatalog } from '../db.js'
-import { katalogSekarang, periksaKatalog, kodeBaru, hargaProduk, tarifVoucher, dateToISO } from '../model.js'
+import { katalogSekarang, periksaKatalog, kodeBaru, hargaProduk, tarifVoucher, dateToISO, pisahPreset } from '../model.js'
 import { tandaJejak } from '../jejak.js'
 import { IDR, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
@@ -46,6 +46,11 @@ export default function Pengaturan({ session, hariIni, versiKatalog, katalogDisi
   const [buka, setBuka] = useState(null);       // 'harga:<id>' | 'tarif' | 'produkBaru' | 'tokoBaru'
   const [namaBaru, setNamaBaru] = useState('');
   const [sibuk, setSibuk] = useState(false);
+  // Teks mentah kolom pilihan cepat. Dulu tiap ketikan langsung dipecah dan
+  // dirapikan ulang, sehingga koma yang baru diketik langsung hilang — tidak
+  // bisa mengetik "Susu, Air". Sekarang teksnya dibiarkan apa adanya; yang
+  // dipecah hanya salinan untuk disimpan.
+  const [presetTeks, setPresetTeks] = useState(() => (lama.preset || []).join(', '));
   const masalah = periksaKatalog(k, lama);
   const berubah = JSON.stringify(k) !== JSON.stringify(lama);
 
@@ -170,10 +175,11 @@ export default function Pengaturan({ session, hariIni, versiKatalog, katalogDisi
 
       <section className="laporan-kartu">
         <div className="laporan-judul"><Icon type="trending-down" size={15}/> Pilihan cepat pengeluaran</div>
-        <input className="form-input" value={(k.preset || []).join(', ')}
-          onChange={e => setK(x => ({ ...x, preset: e.target.value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 8) }))}
+        <input className="form-input" value={presetTeks}
+          onChange={e => { const t = e.target.value; setPresetTeks(t); setK(x => ({ ...x, preset: pisahPreset(t) })); }}
           aria-label="Pilihan cepat pengeluaran, pisahkan dengan koma"/>
-        <p className="atur-ket">Pisahkan dengan koma, paling banyak 8. Tampil sebagai chip di Hari Ini.</p>
+        <p className="atur-ket">Pisahkan dengan koma atau titik koma, paling banyak 8. Tampil sebagai chip di Hari Ini:</p>
+        <div className="chip-row">{(k.preset || []).map(x => <span key={x} className="chip" style={{flex:'0 0 auto'}}>{x}</span>)}</div>
       </section>
 
       {masalah.length > 0 && berubah && (
@@ -183,7 +189,7 @@ export default function Pengaturan({ session, hariIni, versiKatalog, katalogDisi
         <button type="button" className="btn-save" disabled={!berubah || masalah.length > 0 || sibuk} onClick={simpan}>
           {sibuk ? 'Menyimpan…' : berubah ? 'Simpan pengaturan' : 'Belum ada perubahan'}
         </button>
-        {berubah && <button type="button" className="btn btn-ghost" onClick={() => { setK(lama); setBuka(null); }}>Batalkan perubahan</button>}
+        {berubah && <button type="button" className="btn btn-ghost" onClick={() => { setK(lama); setPresetTeks((lama.preset || []).join(', ')); setBuka(null); }}>Batalkan perubahan</button>}
       </div>
     </div>
   );

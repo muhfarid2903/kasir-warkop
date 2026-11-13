@@ -6,7 +6,7 @@ import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, hargaProduk, accumulateEntry, tambahRingkas, kurangiEntri, entriKosong, computeKasSummary, computePaydayInfo, hasDetail, kopiSedangLibur,
 } from '../model.js'
-import { tandaJejak, rincianTambah, rincianUbah, tglJejak, ringkasJejak, jamJejak, LABEL_AKSI, khususPemilikTersembunyi } from '../jejak.js'
+import { tandaJejak, rincianTambah, rincianUbah, tglJejak, khususPemilikTersembunyi } from '../jejak.js'
 import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafLain } from '../draf.js'
 import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
@@ -25,7 +25,7 @@ const jamSaja = (w) => { const d = new Date(w); return isNaN(d) ? '' : String(d.
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
-export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, dataPer, dataKosong, fitur, hitungKas, setHitungKas, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
+export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas, setHitungKas, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
   // Draf milik SATU tanggal. Berganti tanggal = berganti draf; draf tanggal
   // lama tetap tersimpan di HP di bawah tanggalnya (lihat src/draf.js).
   const [draf, setDraf] = useState(() => ({ tanggal: selectedDate, ...bacaDraf(selectedDate) }));
@@ -54,8 +54,6 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
   const simpanRef = useRef(null);
 
   const existingEntry = entries[selectedDate] || null;
-
-  useEffect(() => { pastikanJejak?.(); }, [pastikanJejak]);
 
   // Muat awal cuma menarik kolom angka. Tanggal yang sedang dilihat butuh
   // quantities & expenses-nya, jadi diambil satu baris saat tanggal berganti.
@@ -168,33 +166,11 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
     setSaving(false);
   }
 
-  // Kopi libur sementara (keputusan pemilik, Okt 2026): yang dikerjakan di
-  // sini hampir hanya voucher, jadi kartu kopi dilipat ke bawah dan ringkasan
-  // voucher hari itu naik. Tidak ada saklar yang harus diingat — begitu ada
-  // penjualan kopi tersimpan, tata letaknya kembali sendiri.
+  // Kopi libur (14 hari tanpa penjualan produk): kartu kopi dilipat ke bawah.
+  // Tidak ada saklar yang harus diingat — begitu ada penjualan kopi
+  // tersimpan, tata letaknya kembali sendiri. (Kartu "Tercatat hari ini" dan
+  // "Voucher hari ini" dibuang atas permintaan pemilik, 14 Nov 2026.)
   const libur = kopiSedangLibur(entries, hariIni);
-  // Apa saja yang sudah tercatat di tanggal ini, satu baris per simpan.
-  // Diambil dari jejak; dulu yang tersisa sesudah Simpan cuma satu kalimat
-  // "Sudah tercatat …" yang bahkan tidak menyebut pengeluaran.
-  const tercatat = (jejak?.[selectedDate] || []).slice(-6);
-  const vHari = voucherForDate(selectedDate, voucherToko);
-  const kartuVoucher = (
-    <div className="kartu-voucher-hari">
-      <div className="kvh-kepala">
-        <span><Icon type="signal" size={15}/> Voucher {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)}</span>
-        <button type="button" className="chip" onClick={bukaVoucher}>Isi di Voucher Toko →</button>
-      </div>
-      {(vHari.drop > 0 || vHari.laku > 0) ? (
-        <div className="voucher-day-summary" style={{margin:0}}>
-          <span className="seg">Drop <strong>{vHari.drop}</strong></span>
-          <span className="seg">Laku <strong>{vHari.laku}</strong></span>
-          {vHari.kePemilik > 0 && <span className="seg pemilik">Ke pemilik <strong>{IDR(vHari.kePemilik)}</strong></span>}
-          {vHari.masukKas > 0 && <span className="seg setoran">Masuk kas toko <strong>{IDR(vHari.masukKas)}</strong></span>}
-          <span className="seg gaji">Gaji Jaya <strong>{IDR(vHari.gaji)}</strong></span>
-        </div>
-      ) : <div className="kvh-kosong">Belum ada drop atau laku.</div>}
-    </div>
-  );
 
   const blokProduk = (() => {
             // Produk nonaktif (Pengaturan) disembunyikan — kecuali yang sudah
@@ -461,21 +437,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
             )}
           </div>
 
-          {tercatat.length > 0 && (
-            <div className="kartu-tercatat">
-              <div className="pengeluaran-label">Tercatat {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)}</div>
-              {tercatat.map((j, i) => (
-                <div key={j.id ?? i} className="tercatat-baris">
-                  <span className="tercatat-jam">{jamJejak(j.waktu)}</span>
-                  <span className="tercatat-isi"><strong>{LABEL_AKSI[j.aksi] || j.aksi}</strong> {ringkasJejak(j)}</span>
-                  <span className="tercatat-oleh">{j.oleh}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {!libur && blokProduk}
-          {libur && kartuVoucher}
 
           {/* Pengeluaran naik ke sini: dipakai 89% hari, dulu terkubur di
               bawah delapan baris produk. Chip-nya dari keterangan yang paling
