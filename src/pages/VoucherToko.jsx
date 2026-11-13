@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { kirimAtauAntre } from '../outbox.js'
 import {
   TOKO, VOUCHER_TOKO_CUTOFF, tarifVoucher, tokoTampil,
-  getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore, infoToko,
+  getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore, infoToko, tokoMelebihiStok,
 } from '../model.js'
 import { tandaJejak, rincianVoucher } from '../jejak.js'
 import { IDR, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
+import { laporkanGagalSimpan } from '../galat.js'
 import { Icon } from '../components/Icon.jsx'
 import { PilihTanggal } from '../components/PilihTanggal.jsx'
 
@@ -60,7 +61,6 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
 
   async function saveVoucherTokoDay() {
     if (selectedDate < VOUCHER_TOKO_CUTOFF) { showToast('Voucher Toko hanya untuk 1 Mei 2026 dan setelahnya'); return; }
-    const stockBefore = voucherStockBefore(selectedDate, voucherToko);
     const rows = TOKO.map(t => {
       const d = voucherDraft[t.id] || { drop:'0', laku:'0' };
       const laku = parseInt(d.laku)||0;
@@ -68,8 +68,8 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
       return { tokoId: t.id, drop: parseInt(d.drop)||0, laku, kePemilik: !!(fitur?.kePemilik && laku > 0 && d.kePemilik) };
     });
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
-    const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
-    if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
+    const [lewat] = tokoMelebihiStok(selectedDate, rows, voucherToko);
+    if (lewat) { const t = TOKO.find(x=>x.id===lewat); showToast('Laku '+(t?t.name:lewat)+' melebihi stok — perbaiki dulu', 'gagal'); return; }
     // Yang dikirim HANYA toko yang benar-benar berubah. Dulu kelima toko
     // dikirim tiap kali; dari antrean offline itu bisa menimpa perubahan HP
     // lain di toko yang tidak disentuh di sini.
@@ -93,7 +93,7 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — voucher disimpan di HP, terkirim otomatis nanti'
         : 'Voucher tersimpan · '+fmtDate(selectedDate));
-    } catch(e) { showToast('Voucher belum tersimpan: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { laporkanGagalSimpan(e, 'simpan-voucher'); showToast('Voucher belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setVoucherSaving(false);
   }
 
@@ -123,15 +123,16 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
 
           {selectedDate >= VOUCHER_TOKO_CUTOFF && (() => {
             const stockBefore = voucherStockBefore(selectedDate, voucherToko);
-            let dayDrop=0, dayLaku=0, dayLakuPemilik=0, anyOverLaku=false;
-            TOKO.forEach(t => {
+            let dayDrop=0, dayLaku=0, dayLakuPemilik=0;
+            const barisDraf = TOKO.map(t => {
               const d = voucherDraft[t.id]||{drop:'0',laku:'0'};
               const dDrop = parseInt(d.drop)||0, dLaku = parseInt(d.laku)||0;
               dayDrop += dDrop; dayLaku += dLaku;
               if (fitur?.kePemilik && d.kePemilik) dayLakuPemilik += dLaku;
-              const sB = stockBefore[t.id]; const stokAwal = (sB.drop||0) - (sB.laku||0);
-              if (dLaku > stokAwal + dDrop) anyOverLaku = true;
+              return { tokoId: t.id, drop: dDrop, laku: dLaku };
             });
+            const lewatStok = new Set(tokoMelebihiStok(selectedDate, barisDraf, voucherToko));
+            const anyOverLaku = lewatStok.size > 0;
             return (
               <>
                 {(dayDrop>0 || dayLaku>0) && (
@@ -151,7 +152,7 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
                   const dDrop = parseInt(draft.drop)||0;
                   const dLaku = parseInt(draft.laku)||0;
                   const stokAkhir = stokAwal + dDrop - dLaku;
-                  const overLaku = dLaku > (stokAwal + dDrop);
+                  const overLaku = lewatStok.has(t.id);
                   const hasAction = dDrop>0 || dLaku>0;
                   const pillClass = overLaku ? 'over' : (stokAkhir > stokAwal ? 'up' : (stokAkhir < stokAwal ? 'down' : ''));
                   const info = infoToko(t.id, selectedDate, voucherToko);

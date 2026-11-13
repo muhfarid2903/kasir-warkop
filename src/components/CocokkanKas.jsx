@@ -4,6 +4,7 @@ import { kirimAtauAntre, idKiriman } from '../outbox.js'
 import { tandaJejak, rincianTambah, namaPengguna } from '../jejak.js'
 import { IDR, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
+import { laporkanGagalSimpan } from '../galat.js'
 import { bunyi } from '../sfx.js'
 import { Icon } from './Icon.jsx'
 import { InputNominal } from './InputNominal.jsx'
@@ -39,6 +40,7 @@ export default function CocokkanKas({ session, sistem, hariIni, onTutup, onTerca
       setHasil(baris);
     } catch (e) {
       bunyi('gagal');
+      laporkanGagalSimpan(e, 'cocokkan-kas');
       showToast('Belum tercatat: ' + pesanGalat(e), 'gagal');
     }
     setSibuk(false);

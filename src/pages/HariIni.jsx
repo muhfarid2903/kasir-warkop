@@ -11,8 +11,10 @@ import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafL
 import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
+import { laporkanGagalSimpan } from '../galat.js'
 import { Icon } from '../components/Icon.jsx'
-import { InputNominal, BATAS_YAKIN } from '../components/InputNominal.jsx'
+import { BATAS_YAKIN } from '../components/InputNominal.jsx'
+import { DaftarNominal } from '../components/DaftarNominal.jsx'
 import { PilihTanggal } from '../components/PilihTanggal.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
@@ -109,18 +111,10 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
   // desc diisi lewat chip preset supaya keterangan yang itu-itu saja tidak
   // perlu diketik ulang; kursor langsung mendarat di kolom nominal.
   function addExpense(desc='') { setExpenses(prev => [...prev, {desc, amount:0}]); }
-  function removeExpense(i) { setExpenses(prev => prev.filter((_,idx)=>idx!==i)); }
-  // Nominal tidak pernah negatif — arah uangnya sudah ditentukan bloknya
-  // (Pengeluaran / Cash Masuk), jadi tanda minus di sini selalu salah ketik.
-  function updateExpense(i, field, val) { setExpenses(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
   function addCashIn() { setCashIns(prev => [...prev, {desc:'',amount:0}]); }
   // Uang yang pindah dari kas toko ke kas pemilik. Bukan biaya: tidak
   // mengurangi hasil usaha, hanya mengurangi kas toko.
   function addSetor() { setSetors(prev => [...prev, {desc:'',amount:0}]); }
-  function removeSetor(i) { setSetors(prev => prev.filter((_,idx)=>idx!==i)); }
-  function updateSetor(i, field, val) { setSetors(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
-  function removeCashIn(i) { setCashIns(prev => prev.filter((_,idx)=>idx!==i)); }
-  function updateCashIn(i, field, val) { setCashIns(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
 
   async function saveEntry() {
     const hasQty = PRODUCTS.some(p => (quantities[p.id]||0) > 0);
@@ -170,7 +164,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
       // kiriman berjalan tetap tinggal.
       setDraf(d => d.tanggal === tanggalSimpan ? { tanggal: d.tanggal, ...kurangiDraf(d, input) } : d);
       if (draf.tanggal !== tanggalSimpan) hapusDraf(tanggalSimpan);
-    } catch(e) { bunyi('gagal'); showToast('Belum tersimpan: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { bunyi('gagal'); laporkanGagalSimpan(e, 'simpan-hari-ini'); showToast('Belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setSaving(false);
   }
 
@@ -361,6 +355,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
       showToast('Dibatalkan · isinya kembali ke draf');
     } catch (e) {
       bunyi('gagal');
+      laporkanGagalSimpan(e, 'batalkan');
       showToast('Belum bisa dibatalkan: '+pesanGalat(e)+' — ubah lewat Riwayat', 'gagal');
     }
   }
@@ -492,13 +487,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
               <button className="chip samar" onClick={()=>addExpense('')}>+ Lain</button>
             </div>
 
-            {expenses.map((exp, i) => (
-              <div key={'e'+i} className="expense-row">
-                <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
-                <InputNominal autoFocus={exp.desc!=='' && !exp.amount} value={exp.amount} onChange={v=>updateExpense(i,'amount',v)}/>
-                <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
-              </div>
-            ))}
+            <DaftarNominal rows={expenses} onChange={setExpenses} fokusPreset/>
           </div>
 
           {/* Cash Masuk keluar dari blok Pengeluaran: uangnya masuk, bukan
@@ -518,26 +507,14 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
             {cashIns.length>0 && (
               <div className="catatan-section">
                 <div className="catatan-section-label green"><Icon type="banknote" size={11}/> Cash Masuk</div>
-                {cashIns.map((exp, i) => (
-                  <div key={'c'+i} className="expense-row">
-                    <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
-                    <InputNominal value={exp.amount} onChange={v=>updateCashIn(i,'amount',v)}/>
-                    <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
-                  </div>
-                ))}
+                <DaftarNominal rows={cashIns} onChange={setCashIns} placeholder="Cth: Pak Budi bayar hutang…"/>
               </div>
             )}
 
             {setors.length>0 && (
               <div className="catatan-section">
                 <div className="catatan-section-label"><Icon type="wallet" size={11}/> Setor ke pemilik</div>
-                {setors.map((exp, i) => (
-                  <div key={'s'+i} className="expense-row">
-                    <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={exp.desc} onChange={e=>updateSetor(i,'desc',e.target.value)}/>
-                    <InputNominal value={exp.amount} onChange={v=>updateSetor(i,'amount',v)}/>
-                    <button className="del-btn" onClick={()=>removeSetor(i)}>×</button>
-                  </div>
-                ))}
+                <DaftarNominal rows={setors} onChange={setSetors} placeholder="Cth: setor ke kas pemilik…"/>
               </div>
             )}
           </div>

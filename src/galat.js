@@ -34,3 +34,15 @@ export function pasangPelaporGalat() {
     laporkanGalat(r, 'promise')
   })
 }
+
+// Simpan yang ditolak server karena sebab SELAIN sinyal atau izin — mis.
+// fungsi database yang tidak cocok dengan tipe kolom. Toast-nya hanya terlihat
+// di HP kasir; laporan ini yang membuat pemilik ikut tahu.
+export function laporkanGagalSimpan(e, tempat) {
+  const m = String(e?.message || e || '')
+  const kode = String(e?.code || '')
+  if (/fetch|network|load failed|timeout/i.test(m)) return       // sinyal
+  if (kode === '42501' || /row-level security/i.test(m)) return  // memang tidak diizinkan
+  if (kode.startsWith('PGRST30') || /jwt/i.test(m)) return       // sesi
+  laporkanGalat(Object.assign(new Error('[' + tempat + '] ' + m + (kode ? ' (kode ' + kode + ')' : '')), { stack: e?.stack || '' }), tempat)
+}

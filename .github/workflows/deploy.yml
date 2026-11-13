@@ -51,6 +51,12 @@ jobs:
       # hasilnya sempat ter-deploy.
       - run: npm test
 
+      # Uji asap di browser sungguhan, di atas database tiruan (tidak
+      # menyentuh Supabase): masuk → simpan → Riwayat → edit → hapus. Kalau
+      # alur utama kasir patah, deploy berhenti di sini.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run uji:asap
+
       - run: npm run build
 
       # Build tiruan (VITE_DB=tiruan) tidak boleh sampai ke kasir: isinya data

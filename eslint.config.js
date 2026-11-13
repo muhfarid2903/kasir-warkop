@@ -7,7 +7,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 // aturan gaya — repo ini tidak memakai Prettier, dan perdebatan titik koma
 // bukan yang menjaga uang kasir tetap benar.
 export default [
-  { ignores: ['dist/', 'node_modules/', '.vite/', 'build-twa/'] },
+  { ignores: ['dist/', 'node_modules/', '.vite/', 'build-twa/', 'test-results/', 'playwright-report/'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,mjs}'],
@@ -31,7 +31,7 @@ export default [
   },
   {
     // Berkas yang jalan di Node (konfigurasi build) atau di service worker.
-    files: ['vite.config.js', 'vitest.config.js', 'eslint.config.js', 'scripts/**/*.mjs'],
+    files: ['vite.config.js', 'vitest.config.js', 'eslint.config.js', 'playwright.config.js', 'scripts/**/*.mjs', 'e2e/**'],
     languageOptions: { globals: { ...globals.node } },
   },
   {

@@ -35,6 +35,7 @@ anon key Supabase ada di `.env`.
 ```bash
 npm run lint          # ESLint (aturan bawaan + aturan hook React)
 npm test              # tes rumus uang + antrean offline
+npm run uji:asap      # Playwright: masuk → simpan → Riwayat → edit → hapus (database tiruan)
 npm run build         # hasil ke dist/ — selalu database asli
 npm run build:tiruan  # build berisi database tiruan, untuk dicoba lewat preview
 npm run preview       # cek hasil build sebelum push
@@ -187,6 +188,10 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
 - `galat_migration.sql` — tabel `galat`: error di HP kasir ikut tercatat di
   server (maks. 5 per sesi). Lihat dengan
   `select waktu, oleh, versi, pesan from public.galat order by waktu desc limit 20;`
+- `jejak_server_migration.sql` — edit, hapus, voucher, dan Saldo Awal ditulis
+  bersama jejaknya dalam satu transaksi di server (tanpa ini: cara lama, jejak
+  ditulis terpisah). Hapus yang ditolak aturan peran kini tampil sebagai
+  penolakan, bukan keberhasilan palsu.
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
 - `public/manifest.webmanifest` — identitas app saat dipasang di layar utama
