@@ -5,6 +5,7 @@ import {
   saveVoucherToko as dbSaveVoucherToko,
   saveSaldoAwal as dbSaveSaldoAwal,
 } from './db.js'
+import { laporkanGagalSimpan } from './galat.js'
 
 // Antrean kiriman yang belum sampai ke server. WiFi warkop sering putus di
 // tengah simpan; tanpa ini kasir harus menunggu sinyal lalu menekan Simpan
@@ -109,6 +110,7 @@ export async function flushOutbox() {
       } catch (e) {
         if (cobaLagiNanti(e)) break
         antrean.shift(); simpan()
+        laporkanGagalSimpan(e, 'antrean-' + op.type)
         gagal.push({ op, pesan: e?.message || String(e), waktu: new Date().toISOString() })
         simpanGagal()
         ditolak++

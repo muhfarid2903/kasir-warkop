@@ -11,6 +11,7 @@ import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafL
 import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
+import { laporkanGagalSimpan } from '../galat.js'
 import { Icon } from '../components/Icon.jsx'
 import { BATAS_YAKIN } from '../components/InputNominal.jsx'
 import { DaftarNominal } from '../components/DaftarNominal.jsx'
@@ -163,7 +164,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
       // kiriman berjalan tetap tinggal.
       setDraf(d => d.tanggal === tanggalSimpan ? { tanggal: d.tanggal, ...kurangiDraf(d, input) } : d);
       if (draf.tanggal !== tanggalSimpan) hapusDraf(tanggalSimpan);
-    } catch(e) { bunyi('gagal'); showToast('Belum tersimpan: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { bunyi('gagal'); laporkanGagalSimpan(e, 'simpan-hari-ini'); showToast('Belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setSaving(false);
   }
 
@@ -354,6 +355,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
       showToast('Dibatalkan · isinya kembali ke draf');
     } catch (e) {
       bunyi('gagal');
+      laporkanGagalSimpan(e, 'batalkan');
       showToast('Belum bisa dibatalkan: '+pesanGalat(e)+' — ubah lewat Riwayat', 'gagal');
     }
   }

@@ -14,6 +14,7 @@ import {
 } from '../jejak.js'
 import { IDR, DAYS, MO, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
+import { laporkanGagalSimpan } from '../galat.js'
 import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
 import { Icon } from '../components/Icon.jsx'
@@ -136,7 +137,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       const hasil = await kirimAtauAntre({ type:'simpanSaldo', value:v, jejak:jejakSimpan });
       tandaiTulis(hasil);
       showToast(hasil === 'diantre' ? 'Saldo awal disimpan di HP, terkirim nanti' : 'Saldo awal disimpan: '+IDR(v));
-    } catch(e) { showToast('Saldo awal belum tersimpan: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { laporkanGagalSimpan(e, 'saldo-awal'); showToast('Saldo awal belum tersimpan: '+pesanGalat(e), 'gagal'); }
   }
 
   const [akanHapus, setAkanHapus] = useState(null);   // tanggal yang sedang dikonfirmasi
@@ -154,7 +155,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       setEntries(prev => { const n = { ...prev }; delete n[date]; return n; });
       showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Data '+fmtDate(date)+' dihapus', 'info',
         { label: 'Urungkan', fn: () => urungkanHapus({ id: idOp, hasil, salinan }) });
-    } catch(e) { showToast('Belum terhapus: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { laporkanGagalSimpan(e, 'hapus'); showToast('Belum terhapus: '+pesanGalat(e), 'gagal'); }
   }
 
   async function urungkanHapus({ id, hasil, salinan }) {
@@ -236,7 +237,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku,kePemilik:r.kePemilik};}); next[date]=dayMap; return next; });
       showToast('Perubahan disimpan · '+fmtDate(date));
       setEditingDate(null);
-    } catch(e) { showToast('Perubahan belum tersimpan: '+pesanGalat(e), 'gagal'); }
+    } catch(e) { laporkanGagalSimpan(e, 'edit'); showToast('Perubahan belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setEditSaving(false);
   }
 

@@ -22,6 +22,8 @@ vi.mock('../db.js', () => ({
   },
 }))
 
+vi.mock('../galat.js', () => ({ laporkanGagalSimpan: () => {} }))
+
 const { kirimAtauAntre, flushOutbox, outboxSize, clearOutbox, onOutboxChange, onGagalChange, daftarGagal, cobaLagiGagal, buangGagal, isGalatSesi } = await import('../outbox.js')
 
 beforeEach(() => {

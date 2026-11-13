@@ -59,6 +59,7 @@ vi.mock('../db.js', () => ({
   },
   deleteEntry: async () => {}, saveVoucherToko: async () => {}, saveSaldoAwal: async () => {},
 }))
+vi.mock('../galat.js', () => ({ laporkanGagalSimpan: () => {} }))
 const { kirimAtauAntre, flushOutbox, outboxSize, clearOutbox, idKiriman } = await import('../outbox.js')
 
 beforeEach(() => { server.kopi = 0; server.diterima = new Set(); server.hilangBalasan = 0; server.online = true; clearOutbox() })

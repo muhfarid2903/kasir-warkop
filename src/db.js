@@ -84,6 +84,21 @@ function belumAda(error, nama) {
     || (nama && m.includes(nama) && /does not exist|could not find/i.test(m))
 }
 
+// === Fungsi database (jejak_server_migration.sql) ===
+// Tulisan + jejaknya dalam satu transaksi di server. Fungsi yang belum ada
+// (migrasinya belum dijalankan) dicatat sekali, lalu jalur lama dipakai.
+const rpcTidakAda = new Set()
+const fungsiTidakAda = (error) => error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''))
+
+// true = sudah ditangani lewat fungsi server; false = pakai jalur lama.
+async function lewatFungsi(nama, args) {
+  if (rpcTidakAda.has(nama)) return false
+  const { error } = await sb.rpc(nama, args)
+  if (!error) return true
+  if (fungsiTidakAda(error)) { rpcTidakAda.add(nama); return false }
+  throw error
+}
+
 // === Auth ===
 
 export async function getSession() {
@@ -144,6 +159,8 @@ export async function loadSaldoAwal() {
 
 export async function saveSaldoAwal(value, jejak) {
   if (!sb) return
+  const tanggal = jejak?.date || todayISO()
+  if (await lewatFungsi('simpan_saldo', { p_nilai: value, p_tanggal: tanggal, p_jejak: jejak || null })) return
   const { error } = await sb.from('config').upsert({ key: 'saldo_awal', value }, { onConflict: 'key' })
   if (error) throw error
   // Saldo awal tidak punya tanggalnya sendiri; dititipkan ke tanggal saat
@@ -187,6 +204,7 @@ export async function loadEntryDetail(date) {
 
 export async function saveEntry(entry, jejak) {
   if (!sb) return
+  if (await lewatFungsi('ganti_entri', { p_entry: entryToRow(entry), p_jejak: jejak || null })) return
   const { error } = await sb.from('entries').upsert(entryToRow(entry), { onConflict: 'date' })
   if (error) throw error
   await catatJejak(entry.date, jejak)
@@ -230,8 +248,17 @@ export async function commitEntryAddition(date, input, jejak, opId) {
 
 export async function deleteEntry(date, jejak) {
   if (!sb) return
-  const { error } = await sb.from('entries').delete().eq('date', date)
+  if (await lewatFungsi('hapus_entri', { p_date: date, p_jejak: jejak || null })) return
+  // DELETE yang ditolak RLS tidak menimbulkan galat — cuma menghapus nol
+  // baris. Diminta mengembalikan baris yang terhapus supaya ketahuan; kalau
+  // nol padahal barisnya masih ada, itu penolakan, bukan keberhasilan.
+  const { data, error } = await sb.from('entries').delete().eq('date', date).select('date')
   if (error) throw error
+  if (!data || data.length === 0) {
+    const { data: masih } = await sb.from('entries').select('date').eq('date', date).maybeSingle()
+    if (masih) { const e = new Error('new row violates row-level security policy for table "entries"'); e.code = '42501'; throw e }
+    return
+  }
   await catatJejak(date, jejak)
 }
 
@@ -270,6 +297,7 @@ export async function saveVoucherToko(date, rows, jejak) {
     laku_qty: r.laku,
     ...(denganKePemilik ? { ke_pemilik: !!r.kePemilik } : {}),
   }))
+  if (kePemilikAda && await lewatFungsi('simpan_voucher', { p_date: date, p_rows: bentuk(true).map(({ date: _d, ...r }) => r), p_jejak: jejak || null })) return
   let { error } = await sb.from('voucher_toko').upsert(bentuk(kePemilikAda), { onConflict: 'date,toko_id' })
   if (error && kePemilikAda && belumAda(error, 'ke_pemilik')) {
     kePemilikAda = false
