@@ -300,16 +300,40 @@ export async function deleteEntry(date, jejak) {
 // === Voucher toko ===
 
 export async function loadVoucherToko() {
-  return bacaan(() => salin(muat().voucher))
+  const r = await bacaan(() => salin(muat().voucher))
+  return { ...r, kePemilikAda: true }
 }
 
 export async function saveVoucherToko(date, rows, jejak) {
   await tulisan(() => ubah(db => {
     db.voucher[date] = db.voucher[date] || {}
-    rows.forEach(r => { db.voucher[date][r.tokoId] = { drop: r.drop, laku: r.laku } })
+    rows.forEach(r => { db.voucher[date][r.tokoId] = { drop: r.drop, laku: r.laku, kePemilik: !!r.kePemilik } })
   }))
-  rows.forEach(r => siarkan({ tabel: 'voucher_toko', jenis: 'upsert', date, tokoId: r.tokoId, cell: { drop: r.drop, laku: r.laku } }))
+  rows.forEach(r => siarkan({ tabel: 'voucher_toko', jenis: 'upsert', date, tokoId: r.tokoId, cell: { drop: r.drop, laku: r.laku, kePemilik: !!r.kePemilik } }))
   catatJejak(date, jejak)
+}
+
+// === Pencocokan kas ===
+
+export async function loadHitungKas() {
+  const r = await bacaan(() => {
+    const map = {}
+    ;(muat().hitungKas || []).forEach(h => { (map[h.date] = map[h.date] || []).push(h) })
+    return map
+  })
+  return { ...r, ada: true }
+}
+
+export async function simpanHitungKas({ date, oleh, sistem, fisik, catatan, waktu }) {
+  const baris = await tulisan(() => ubah(db => {
+    db.hitungKas = db.hitungKas || []
+    db.idHitung = (db.idHitung || 0) + 1
+    const h = { id: db.idHitung, date, waktu: waktu || new Date().toISOString(), oleh, sistem, fisik, selisih: fisik - sistem, catatan: catatan || '' }
+    db.hitungKas.push(h)
+    return h
+  }))
+  siarkan({ tabel: 'hitung_kas', jenis: 'insert', hitung: baris })
+  return baris
 }
 
 // === Jejak ===
@@ -348,13 +372,14 @@ export function isNetworkError(e) {
 
 const pendengarStatus = new Set()
 
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onStatus }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onHitung, onStatus }) {
   const f = (ev) => {
     if (gangguan.putus) return            // kanal yang mati tidak menerima apa pun
     if (ev.tabel === 'entries') onEntry?.(ev.jenis === 'delete' ? { type: 'delete', date: ev.date } : { type: 'upsert', entry: ev.entry })
     else if (ev.tabel === 'config') onSaldoAwal?.(Number(ev.value) || 0)
     else if (ev.tabel === 'voucher_toko') onVoucher?.({ type: ev.jenis, date: ev.date, tokoId: ev.tokoId, cell: ev.cell })
     else if (ev.tabel === 'jejak') onJejak?.(ev.jejak)
+    else if (ev.tabel === 'hitung_kas') onHitung?.(ev.hitung)
   }
   pendengarRealtime.add(f)
   const st = (s) => onStatus?.(s)

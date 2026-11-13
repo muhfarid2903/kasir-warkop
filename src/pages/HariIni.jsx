@@ -7,6 +7,7 @@ import {
 } from '../model.js'
 import { tandaJejak, rincianTambah, tglJejak } from '../jejak.js'
 import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tanggalDrafLain } from '../draf.js'
+import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
@@ -15,18 +16,23 @@ import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 import { rayakan, kilat, denyut } from '../fx.js'
 import { bunyi, getar } from '../sfx.js'
 
+const jamSaja = (w) => { const d = new Date(w); return isNaN(d) ? '' : String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0'); };
+
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
-export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
+export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas, setHitungKas, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
   // Draf milik SATU tanggal. Berganti tanggal = berganti draf; draf tanggal
   // lama tetap tersimpan di HP di bawah tanggalnya (lihat src/draf.js).
   const [draf, setDraf] = useState(() => ({ tanggal: selectedDate, ...bacaDraf(selectedDate) }));
   if (draf.tanggal !== selectedDate) setDraf({ tanggal: selectedDate, ...bacaDraf(selectedDate) });
-  const { quantities, expenses, cashIns } = draf;
+  // bacaDraf/drafKosong selalu mengisi setors, jadi tidak perlu "|| []".
+  const { quantities, expenses, cashIns, setors } = draf;
   const ubahBagian = (kunci) => (f) => setDraf(d => ({ ...d, [kunci]: typeof f === 'function' ? f(d[kunci]) : f }));
   const setQuantities = ubahBagian('quantities');
   const setExpenses = ubahBagian('expenses');
   const setCashIns = ubahBagian('cashIns');
+  const setSetors = ubahBagian('setors');
+  const [lembarCocok, setLembarCocok] = useState(false);
   // Tiap perubahan langsung ditulis ke HP — kalau Android mematikan app di
   // saku, ketukannya masih ada saat dibuka lagi.
   useEffect(() => { tulisDraf(draf.tanggal, draf); }, [draf]);
@@ -48,8 +54,8 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
   useEffect(() => { ensureDetail(selectedDate); }, [selectedDate, ensureDetail, adaDetail]);
 
   const inputTotals = useMemo(
-    () => draftTotals(quantities, expenses, cashIns),
-    [quantities, expenses, cashIns]
+    () => draftTotals(quantities, expenses, cashIns, setors),
+    [quantities, expenses, cashIns, setors]
   );
 
   // "Sekarang" diturunkan dari hariIni (useTodayISO), bukan new Date() di
@@ -99,6 +105,11 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
   // (Pengeluaran / Cash Masuk), jadi tanda minus di sini selalu salah ketik.
   function updateExpense(i, field, val) { setExpenses(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
   function addCashIn() { setCashIns(prev => [...prev, {desc:'',amount:0}]); }
+  // Uang yang pindah dari kas toko ke kas pemilik. Bukan biaya: tidak
+  // mengurangi hasil usaha, hanya mengurangi kas toko.
+  function addSetor() { setSetors(prev => [...prev, {desc:'',amount:0}]); }
+  function removeSetor(i) { setSetors(prev => prev.filter((_,idx)=>idx!==i)); }
+  function updateSetor(i, field, val) { setSetors(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
   function removeCashIn(i) { setCashIns(prev => prev.filter((_,idx)=>idx!==i)); }
   function updateCashIn(i, field, val) { setCashIns(prev => prev.map((e,idx) => idx===i ? {...e, [field]: field==='amount' ? Math.max(0, parseInt(val)||0) : val} : e)); }
 
@@ -106,10 +117,11 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
     const hasQty = PRODUCTS.some(p => (quantities[p.id]||0) > 0);
     const hasExp = expenses.some(e => (e.amount||0) > 0);
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
-    if (!hasQty && !hasExp && !hasCash) { bunyi('gagal'); showToast('Belum ada input!'); return; }
+    const hasSetor = setors.some(e => (e.amount||0) > 0);
+    if (!hasQty && !hasExp && !hasCash && !hasSetor) { bunyi('gagal'); showToast('Belum ada input!'); return; }
     setSaving(true);
     const tanggalSimpan = selectedDate;
-    const input = { quantities, expenses, cashIns };
+    const input = { quantities, expenses, cashIns, setors };
     // Siapa & jam berapa dicatat SEKARANG, ikut menumpang kirimannya. Kalau
     // sinyal baru datang besok pagi, jejaknya tetap atas nama orang ini dan
     // jam ini — bukan jam kirimannya akhirnya lolos.
@@ -148,7 +160,9 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
               redup dengan jamnya, atau "—" kalau belum pernah ada. Dulu yang
               tampil Rp0 — angka yang tampak benar padahal kosong. */}
           <div className={"kas-hero"+(dataPer||dataKosong?" basi":"")}>
-            <div className="kas-hero-label">Kas Saat Ini</div>
+            {/* "Kas Toko", bukan "Kas Saat Ini": angka ini uang di laci toko,
+                bukan seluruh uang usaha — setoran ke pemilik tidak ada di sini. */}
+            <div className="kas-hero-label">Kas Toko</div>
             {dataKosong
               ? <div className="kas-hero-value kosong">—</div>
               : <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>}
@@ -176,6 +190,34 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
             </div>
           )}
 
+          {/* Cocokkan kas: hanya kalau tabelnya sudah ada dan angkanya segar.
+              Mencocokkan dengan angka dari simpanan HP tidak ada artinya. */}
+          {fitur?.hitungKas && !dataPer && !dataKosong && (() => {
+            const terakhir = (hitungKas?.[hariIni] || []).slice(-1)[0];
+            return (
+              <div className="cocok-bar">
+                {terakhir
+                  ? <span className={"cocok-status "+(terakhir.selisih===0?'pas':'beda')}>
+                      <Icon type={terakhir.selisih===0?'check':'alert'} size={13}/>
+                      {terakhir.selisih===0 ? 'Cocok' : 'Selisih '+IDR(terakhir.selisih)} · {terakhir.oleh} {jamSaja(terakhir.waktu)}
+                    </span>
+                  : <span className="cocok-status">Belum dicocokkan hari ini</span>}
+                <button type="button" className="chip samar" onClick={()=>setLembarCocok(true)}>
+                  <Icon type="coins" size={13}/> Cocokkan kas
+                </button>
+              </div>
+            );
+          })()}
+
+          {lembarCocok && (
+            <CocokkanKas
+              session={session} sistem={kasSummary.kasSekarang} hariIni={hariIni}
+              tandaiTulis={tandaiTulis}
+              onTercatat={(h)=>setHitungKas(prev => ({ ...prev, [h.date]: [...(prev[h.date]||[]).filter(x=>x.id!==h.id), h] }))}
+              onTutup={()=>setLembarCocok(false)}
+            />
+          )}
+
           <div className="date-inline">
             <button type="button" className="date-display-btn" onClick={() => { const i = hariIniDateRef.current; if (!i) return; if (typeof i.showPicker === 'function') i.showPicker(); else i.focus(); }}>
               <Icon type="calendar" size={15}/>
@@ -195,6 +237,17 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
               return (
                 <span className="date-hint">
                   <Icon type="package" size={13}/> Sudah tercatat <strong>{summary}</strong>
+                </span>
+              );
+            })()}
+            {/* Gaji Jaya dibayar tiap hari dari laci, jadi angkanya perlu
+                terlihat di sini — dulu baru ada di Gajian atau Riwayat. */}
+            {(() => {
+              const g = (existingEntry?.gaji || 0) + voucherForDate(selectedDate, voucherToko).gaji;
+              if (!g) return null;
+              return (
+                <span className="gaji-hari">
+                  <Icon type="dollar" size={13}/> Gaji Jaya {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)} <strong>{IDR(g)}</strong>
                 </span>
               );
             })()}
@@ -320,11 +373,12 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
                   </div>
                 )}
 
-                {(inputTotals.totalQty>0 || inputTotals.totalExpense>0 || inputTotals.totalCashIn>0) && (
+                {(inputTotals.totalQty>0 || inputTotals.totalExpense>0 || inputTotals.totalCashIn>0 || inputTotals.totalSetor>0) && (
                   <div className="inline-summary" style={{marginTop:12}}>
                     <span className="seg">Penjualan <strong>{IDR(inputTotals.totalSales)}</strong></span>
                     <span className="seg">Gaji <strong>{IDR(inputTotals.totalGaji)}</strong></span>
-                    <span className={"seg profit"+(inputTotals.sisaKas<0?" neg":"")}>{inputTotals.sisaKas>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.sisaKas)}</strong></span>
+                    {inputTotals.totalSetor>0 && <span className="seg">Ke pemilik <strong>{IDR(inputTotals.totalSetor)}</strong></span>}
+                    <span className={"seg profit"+(inputTotals.hasil<0?" neg":"")}>{inputTotals.hasil>=0?'Untung':'Rugi'} <strong>{IDR(inputTotals.hasil)}</strong></span>
                   </div>
                 )}
               </>
@@ -362,6 +416,10 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
               <Icon type="banknote" size={13}/> + Cash Masuk
             </button>
 
+            <button className="chip samar" onClick={addSetor}>
+              <Icon type="wallet" size={13}/> + Setor ke pemilik
+            </button>
+
             {cashIns.length>0 && (
               <div className="catatan-section">
                 <div className="catatan-section-label green"><Icon type="banknote" size={11}/> Cash Masuk</div>
@@ -374,11 +432,24 @@ export default function HariIni({ hariIni, dataPer, dataKosong, selectedDate, se
                 ))}
               </div>
             )}
+
+            {setors.length>0 && (
+              <div className="catatan-section">
+                <div className="catatan-section-label"><Icon type="wallet" size={11}/> Setor ke pemilik</div>
+                {setors.map((exp, i) => (
+                  <div key={'s'+i} className="expense-row">
+                    <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={exp.desc} onChange={e=>updateSetor(i,'desc',e.target.value)}/>
+                    <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateSetor(i,'amount',e.target.value)}/>
+                    <button className="del-btn" onClick={()=>removeSetor(i)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
             ref={simpanRef}
-            className={"btn-save simpan-sticky"+((inputTotals.totalQty>0||inputTotals.totalExpense>0||inputTotals.totalCashIn>0)?"":" kosong")}
+            className={"btn-save simpan-sticky"+((inputTotals.totalQty>0||inputTotals.totalExpense>0||inputTotals.totalCashIn>0||inputTotals.totalSetor>0)?"":" kosong")}
             disabled={saving}
             onClick={saveEntry}
           >

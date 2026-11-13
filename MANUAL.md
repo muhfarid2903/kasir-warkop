@@ -42,10 +42,21 @@ Setiap bulan dibagi 2 periode:
 
 Tanggal 29–31 (kalau ada) otomatis masuk ke **Awal Bulan periode berikutnya** sebagai "Sisa dari [bulan]" (label oranye).
 
-### Rumus Sisa Kas
+### Kas Toko dan kas pemilik
+Ada dua tempat uang:
+- **Kas Toko** — uang di laci warkop. Inilah angka besar di Hari Ini.
+- **Kas pemilik** — di luar aplikasi. Setoran voucher yang langsung masuk ke pemilik tidak pernah ada di laci.
+
+Karena gaji Jaya dibayar **harian** dari laci, Kas Toko seharusnya selalu sama dengan uang fisik (lihat *Cocokkan kas*). Periode 1–14 dan 15–28 hanya rekap gaji, bukan tanggal pembayaran.
+
+### Tiga angka per hari
 ```
-Sisa Kas = Penjualan − Gaji Jaya − Pengeluaran + Cash Masuk
+Hasil (untung/rugi) = Penjualan − Gaji Jaya − Pengeluaran + Cash Masuk
+Ke pemilik          = setoran voucher bertanda "ke pemilik" + baris "Setor ke pemilik"
+Kas Toko berubah    = Hasil − Ke pemilik
 ```
+
+Uang yang pindah ke pemilik **bukan pengeluaran**: tidak mengurangi hasil, hanya mengurangi Kas Toko.
 
 `Cash Masuk` = uang masuk yang bukan dari penjualan hari itu (mis. pelanggan bayar hutang lama).
 
@@ -130,6 +141,24 @@ Catat uang masuk yang **bukan dari penjualan hari itu** — misal pelanggan baya
 
 > Jangan input ini ke jumlah laku produk — nanti gaji Jaya ikut nambah padahal sebenarnya tidak ada penjualan.
 
+### Setor ke pemilik
+Untuk uang yang dipindah dari laci ke pemilik di luar setoran voucher.
+
+1. Klik **+ Setor ke pemilik**
+2. Isi keterangan dan jumlahnya
+
+Kas Toko berkurang, tapi untung hari itu tidak.
+
+> Setoran voucher yang langsung ke pemilik **tidak** perlu dicatat di sini — tandai saja di kartu tokonya (menu Voucher Toko). Dulu ini dicatat sebagai pengeluaran "tf dadi 70"; sekarang tidak perlu lagi.
+
+### Cocokkan kas
+Di bawah angka Kas Toko ada tombol **Cocokkan kas**:
+1. Hitung uang di laci, tulis jumlahnya
+2. App menunjukkan cocok, laci kurang, atau laci lebih — hasilnya tercatat
+3. Kalau berselisih, selisihnya bisa langsung dicatat sebagai pengeluaran / cash masuk "Selisih kas", supaya Kas Toko kembali sama dengan laci
+
+Hari yang sudah dicocokkan diberi tanda di Riwayat.
+
 ### Simpan data
 Klik tombol **Simpan** di bawah.
 
@@ -155,6 +184,13 @@ Khusus untuk pencatatan voucher 2000 yang dititipkan ke 5 toko.
 - **Kartu per toko** — Dadi, Dio, H Rahim, Anci, Nahrul. Tiap kartu punya: Stok Awal · Drop hari ini · Laku hari ini · Stok Akhir
 - **Tombol Simpan Voucher Hari Ini**
 - **Rekap Periode** — di bawah, lihat ringkasan periode berjalan + sisa stok per toko
+
+### Setoran ke kas pemilik
+Begitu **Laku** diisi, di kartu toko muncul pilihan **Masuk ke kas pemilik**:
+- **Dicentang** — setorannya langsung ke pemilik, tidak masuk laci. Kas Toko hanya berkurang sebesar gaji Jaya.
+- **Tidak dicentang** — setorannya masuk laci toko.
+
+Pilihan awalnya mengikuti kebiasaan toko itu terakhir kali. Gaji Jaya sama saja apa pun pilihannya.
 
 ### Konsep "Drop" vs "Laku"
 
@@ -377,6 +413,7 @@ Tiga kemungkinan, urut dari yang paling sering:
 2. Periksa Riwayat 3–7 hari terakhir untuk angka yang janggal
 3. Cek apakah **Saldo Awal** sudah benar (menu Riwayat)
 4. Cek apakah ada voucher laku yang belum dicatat di Voucher Toko
+5. Cek apakah setoran voucher yang langsung ke pemilik sudah ditandai **Masuk ke kas pemilik**
 
 ### Lupa password
 Saat ini belum ada flow reset password di app. Hubungi admin (Muhammad Farid).

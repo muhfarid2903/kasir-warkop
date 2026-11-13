@@ -71,7 +71,17 @@ function entryToRow(e) {
 }
 
 function voucherCell(row) {
-  return { drop: Number(row.drop_qty) || 0, laku: Number(row.laku_qty) || 0 }
+  return { drop: Number(row.drop_qty) || 0, laku: Number(row.laku_qty) || 0, kePemilik: !!row.ke_pemilik }
+}
+
+// Kolom/tabel yang belum ada karena migrasinya belum dijalankan. Galat ini
+// berarti "fiturnya belum tersedia", bukan "data rusak".
+function belumAda(error, nama) {
+  if (!error) return false
+  const kode = String(error.code || '')
+  const m = String(error.message || '')
+  return kode === '42703' || kode === 'PGRST204' || kode === '42P01' || kode === 'PGRST205'
+    || (nama && m.includes(nama) && /does not exist|could not find/i.test(m))
 }
 
 // === Auth ===
@@ -208,31 +218,66 @@ export async function deleteEntry(date, jejak) {
 
 // Opsional: error dikembalikan apa adanya supaya pemanggil bisa mengabaikannya
 // kalau tabelnya memang belum ada di project Supabase yang lebih lama.
+// Apakah kolom ke_pemilik sudah ada (kas_pemilik_migration.sql)? Ditebak ya;
+// galat "kolom tidak ada" yang pertama mengubahnya.
+let kePemilikAda = true
+
 export async function loadVoucherToko() {
   // Kolom disebut satu per satu, bukan '*': updated_at tidak pernah dibaca app
   // tapi menyumbang 10,8 KB dari 26,3 KB yang ditarik tiap login.
-  const { data, error } = await sb.from('voucher_toko').select('date,toko_id,drop_qty,laku_qty')
-  if (error) return { data: null, error }
+  let { data, error } = await sb.from('voucher_toko').select(kePemilikAda ? 'date,toko_id,drop_qty,laku_qty,ke_pemilik' : 'date,toko_id,drop_qty,laku_qty')
+  if (error && kePemilikAda && belumAda(error, 'ke_pemilik')) {
+    kePemilikAda = false
+    ;({ data, error } = await sb.from('voucher_toko').select('date,toko_id,drop_qty,laku_qty'))
+  }
+  if (error) return { data: null, error, kePemilikAda }
   const map = {}
   ;(data || []).forEach(r => {
     if (!map[r.date]) map[r.date] = {}
     map[r.date][r.toko_id] = voucherCell(r)
   })
-  return { data: map, error: null }
+  return { data: map, error: null, kePemilikAda }
 }
 
-// rows berbentuk UI: [{ tokoId, drop, laku }] untuk satu tanggal.
+// rows berbentuk UI: [{ tokoId, drop, laku, kePemilik }] untuk satu tanggal.
 export async function saveVoucherToko(date, rows, jejak) {
   if (!sb) return
-  const payload = rows.map(r => ({
+  const bentuk = (denganKePemilik) => rows.map(r => ({
     date,
     toko_id: r.tokoId,
     drop_qty: r.drop,
     laku_qty: r.laku,
+    ...(denganKePemilik ? { ke_pemilik: !!r.kePemilik } : {}),
   }))
-  const { error } = await sb.from('voucher_toko').upsert(payload, { onConflict: 'date,toko_id' })
+  let { error } = await sb.from('voucher_toko').upsert(bentuk(kePemilikAda), { onConflict: 'date,toko_id' })
+  if (error && kePemilikAda && belumAda(error, 'ke_pemilik')) {
+    kePemilikAda = false
+    ;({ error } = await sb.from('voucher_toko').upsert(bentuk(false), { onConflict: 'date,toko_id' }))
+  }
   if (error) throw error
   await catatJejak(date, jejak)
+}
+
+// === Pencocokan kas (tabel hitung_kas, kas_pemilik_migration.sql) ===
+
+// { data: { [tanggal]: [baris…] }, error, ada } — ada=false berarti tabelnya
+// belum dibuat; tombol Cocokkan kas disembunyikan.
+export async function loadHitungKas() {
+  const { data, error } = await sb.from('hitung_kas').select('id,date,waktu,oleh,sistem,fisik,selisih,catatan').order('waktu', { ascending: true })
+  if (error) return { data: null, error, ada: !belumAda(error, 'hitung_kas') }
+  const map = {}
+  ;(data || []).forEach(r => { (map[r.date] = map[r.date] || []).push(rowToHitung(r)) })
+  return { data: map, error: null, ada: true }
+}
+
+function rowToHitung(r) {
+  return { id: r.id, date: r.date, waktu: r.waktu, oleh: r.oleh, sistem: Number(r.sistem) || 0, fisik: Number(r.fisik) || 0, selisih: Number(r.selisih ?? (r.fisik - r.sistem)) || 0, catatan: r.catatan || '' }
+}
+
+export async function simpanHitungKas({ date, oleh, sistem, fisik, catatan, waktu }) {
+  const { data, error } = await sb.from('hitung_kas').insert({ date, oleh, sistem, fisik, catatan: catatan || null, waktu }).select().single()
+  if (error) throw error
+  return rowToHitung(data)
 }
 
 // === Jejak input ===
@@ -306,7 +351,7 @@ export function isNetworkError(e) {
 // drop_qty, eventType) diterjemahkan di sini juga, supaya komponen cuma
 // menerima bentuk yang sudah dikenalnya.
 // Mengembalikan fungsi untuk berhenti berlangganan.
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onStatus }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onHitung, onStatus }) {
   if (!sb) return () => {}
   const ch = sb.channel('rt-entries')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
@@ -349,5 +394,13 @@ export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, on
     })
     .subscribe()
 
-  return () => { sb.removeChannel(ch); sb.removeChannel(chJejak) }
+  // Pencocokan kas juga di kanal sendiri, dengan alasan yang sama: tabelnya
+  // opsional.
+  const chHitung = sb.channel('rt-hitung-kas')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hitung_kas' }, payload => {
+      if (payload.new) onHitung?.(rowToHitung(payload.new))
+    })
+    .subscribe()
+
+  return () => { sb.removeChannel(ch); sb.removeChannel(chJejak); sb.removeChannel(chHitung) }
 }

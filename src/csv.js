@@ -25,8 +25,8 @@ export function exportRiwayatCSV(entries, voucherToko, jejak) {
   // Kolom penginput ditaruh paling belakang, bukan di sebelah tanggal: yang
   // dibuka orang pertama kali tetap angkanya. Hari dari sebelum jejak dicatat
   // selnya kosong — bukan diisi tebakan siapa pun.
-  let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Cash Masuk','Sisa Kas','Diinput Oleh']];
-  const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0 };
+  let rows = [['Tanggal','Hari', ...prodHeaders, 'Total Qty', ...tokoHeaders, 'Voucher Laku Total','Voucher Drop Total','Total Penjualan','Gaji','Pengeluaran (Detail)','Total Pengeluaran','Cash Masuk','Hasil','Ke Pemilik','Sisa Kas','Diinput Oleh']];
+  const totals = { prod: PRODUCTS.map(()=>0), toko: TOKO.flatMap(()=>[0,0]), vLaku:0, vDrop:0, sales:0, gaji:0, exp:0, cash:0, hasil:0, pemilik:0, sisa:0 };
   sortedDates.forEach(d => {
     const e = entries[d] || { date:d, quantities:{}, expenses:[], totalPenjualan:0, gaji:0, totalPengeluaran:0 };
     const dt = new Date(d+'T00:00:00');
@@ -37,9 +37,14 @@ export function exportRiwayatCSV(entries, voucherToko, jejak) {
       const r = (voucherToko?.[d]||{})[t.id] || { drop:0, laku:0 };
       tokoCells.push(r.drop||0, r.laku||0); vLakuTotal += r.laku||0; vDropTotal += r.drop||0;
     });
-    const { expGross, cashGross, totalPenjualan, totalGaji, sisaKas } = entryDayTotals(e, voucherToko);
-    const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[CASH MASUK] ':'')+(x.desc||(x.type==='cashin'?'Cash Masuk':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
-    rows.push([d, DAYS[dt.getDay()], ...prodQtys, totalQty, ...tokoCells, vLakuTotal, vDropTotal, totalPenjualan, totalGaji, expDetail, expGross, cashGross, sisaKas, ringkasPelaku(jejak?.[d])]);
+    // Total Pengeluaran = pengeluaran sungguhan saja; setoran ke pemilik
+    // punya kolomnya sendiri. Sisa Kas tetap berarti perubahan kas toko.
+    const { expGross, cashGross, totalPenjualan, totalGaji, hasil, kePemilik, sisaKas } = entryDayTotals(e, voucherToko);
+    const tanda = (x) => x.type==='cashin' ? '[CASH MASUK] ' : x.type==='setor' ? '[KE PEMILIK] ' : '';
+    const bawaan = (x) => x.type==='cashin' ? 'Cash Masuk' : x.type==='setor' ? 'Setor ke pemilik' : 'Pengeluaran';
+    const expDetail = (e.expenses||[]).map(x => tanda(x)+(x.desc||bawaan(x))+' '+Math.round(x.amount)).join('; ');
+    rows.push([d, DAYS[dt.getDay()], ...prodQtys, totalQty, ...tokoCells, vLakuTotal, vDropTotal, totalPenjualan, totalGaji, expDetail, expGross, cashGross, hasil, kePemilik, sisaKas, ringkasPelaku(jejak?.[d])]);
+    totals.hasil+=hasil; totals.pemilik+=kePemilik; totals.sisa+=sisaKas;
     prodQtys.forEach((q,i)=>totals.prod[i]+=q);
     tokoCells.forEach((c,i)=>totals.toko[i]+=c);
     totals.vLaku+=vLakuTotal; totals.vDrop+=vDropTotal;
@@ -47,8 +52,7 @@ export function exportRiwayatCSV(entries, voucherToko, jejak) {
     totals.exp+=expGross; totals.cash+=cashGross;
   });
   const totQty = totals.prod.reduce((s,q)=>s+q,0);
-  const totSisa = totals.sales - totals.gaji - (totals.exp - totals.cash);
-  rows.push(['TOTAL','', ...totals.prod, totQty, ...totals.toko, totals.vLaku, totals.vDrop, totals.sales, totals.gaji, '', totals.exp, totals.cash, totSisa, '']);
+  rows.push(['TOTAL','', ...totals.prod, totQty, ...totals.toko, totals.vLaku, totals.vDrop, totals.sales, totals.gaji, '', totals.exp, totals.cash, totals.hasil, totals.pemilik, totals.sisa, '']);
   // Escape sel + cegah formula injection (=,+,-,@) pada sel teks. Angka murni
   // (mis. Sisa Kas negatif) dibiarkan agar tetap dihitung sebagai angka di Excel.
   const csvCell = (c) => {
