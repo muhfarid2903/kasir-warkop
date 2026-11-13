@@ -5,7 +5,8 @@ import {
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
   loadJejak, subscribeRealtime,
 } from './db.js'
-import { flushOutbox, onOutboxChange, outboxSize } from './outbox.js'
+import { flushOutbox, onOutboxChange, outboxSize, onGagalChange } from './outbox.js'
+import { showToast } from './toast.js'
 import { hasDetail, todayISO, gabungRingkasan } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
@@ -239,8 +240,9 @@ export function useWarkopData(session) {
     let batal = false;
     const coba = async () => {
       if (batal || outboxSize() === 0) return;
-      const { terkirim, sisa } = await flushOutbox();
+      const { terkirim, sisa, ditolak } = await flushOutbox();
       if (batal) return;
+      if (ditolak > 0) showToast(ditolak+' kiriman ditolak server — ketuk "gagal terkirim" di atas');
       // Antrean habis: ambil angka pasti dari server, menggantikan tebakan
       // lokal yang dipasang saat input diantre.
       if (terkirim > 0 && sisa === 0) { setSyncStatus('online'); tarik(); }
@@ -327,6 +329,14 @@ export function useWarkopData(session) {
     pending, tandaiTulis,
     dataPer, dataKosong,
   };
+}
+
+// === Kiriman yang ditolak server ===
+// Daftarnya hidup di outbox.js (tersimpan di HP); ini cuma jendela ke sana.
+export function useKirimanGagal() {
+  const [gagal, setGagal] = useState([]);
+  useEffect(() => onGagalChange(setGagal), []);
+  return gagal;
 }
 
 // === Tanggal hari ini yang ikut berganti saat lewat tengah malam ===

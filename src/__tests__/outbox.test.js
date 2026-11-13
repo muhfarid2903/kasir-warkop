@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // db.js disulih: jaringannya bisa dimatikan sesuka hati, dan tidak ada
 // satu pun panggilan sungguhan ke Supabase.
-const keadaan = { online: true, tolakSaldo: false, terkirim: [] }
+const keadaan = { online: true, tolakSaldo: false, sesiHabis: false, terkirim: [] }
 
 class NetErr extends Error { constructor(){ super('Failed to fetch') } }
-const cekJaringan = () => { if (!keadaan.online) throw new NetErr() }
+const cekJaringan = () => {
+  if (!keadaan.online) throw new NetErr()
+  if (keadaan.sesiHabis) { const e = new Error('JWT expired'); e.code = 'PGRST301'; throw e }
+}
 
 vi.mock('../db.js', () => ({
   isNetworkError: (e) => String(e?.message || e).toLowerCase().includes('fetch'),
@@ -19,10 +22,10 @@ vi.mock('../db.js', () => ({
   },
 }))
 
-const { kirimAtauAntre, flushOutbox, outboxSize, clearOutbox, onOutboxChange } = await import('../outbox.js')
+const { kirimAtauAntre, flushOutbox, outboxSize, clearOutbox, onOutboxChange, onGagalChange, daftarGagal, cobaLagiGagal, buangGagal, isGalatSesi } = await import('../outbox.js')
 
 beforeEach(() => {
-  keadaan.online = true; keadaan.tolakSaldo = false; keadaan.terkirim = []
+  keadaan.online = true; keadaan.tolakSaldo = false; keadaan.sesiHabis = false; keadaan.terkirim = []
   clearOutbox()
 })
 
@@ -87,16 +90,76 @@ describe('saat jaringan kembali', () => {
 })
 
 describe('kiriman yang ditolak server', () => {
-  it('dibuang, tidak memacetkan sisa antrean', async () => {
+  it('pindah ke daftar gagal, tidak memacetkan sisa antrean', async () => {
     keadaan.online = false
     await kirimAtauAntre({ type:'simpanSaldo', value:1 })
     await kirimAtauAntre({ type:'hapusEntri', date:'2026-09-01' })
 
     keadaan.online = true; keadaan.tolakSaldo = true
+    const dilihat = []
+    const lepas = onGagalChange(xs => dilihat.push(xs.length))
     const r = await flushOutbox()
-    expect(r.dibuang).toHaveLength(1)
+    lepas()
+    expect(r.ditolak).toBe(1)
     expect(outboxSize()).toBe(0)
     expect(keadaan.terkirim.map(t => t[0])).toEqual(['hapusEntri'])
+    // Tidak hilang: tersimpan beserta alasannya, dan pendengar diberi tahu.
+    expect(daftarGagal()).toHaveLength(1)
+    expect(daftarGagal()[0].op.type).toBe('simpanSaldo')
+    expect(daftarGagal()[0].pesan).toMatch(/duplicate key/)
+    expect(dilihat[dilihat.length - 1]).toBe(1)
+    expect(JSON.parse(localStorage.getItem('warkop_gagal_v1'))).toHaveLength(1)
+  })
+
+  it('Coba lagi mengembalikannya ke antrean dan mengirimnya', async () => {
+    keadaan.tolakSaldo = true
+    keadaan.online = false
+    await kirimAtauAntre({ type:'simpanSaldo', value:7 })
+    keadaan.online = true
+    await flushOutbox()
+    expect(daftarGagal()).toHaveLength(1)
+    keadaan.tolakSaldo = false
+    await cobaLagiGagal(0)
+    expect(daftarGagal()).toHaveLength(0)
+    expect(keadaan.terkirim).toContainEqual(['simpanSaldo', 7])
+  })
+
+  it('Buang benar-benar membuangnya', async () => {
+    keadaan.tolakSaldo = true
+    keadaan.online = false
+    await kirimAtauAntre({ type:'simpanSaldo', value:7 })
+    keadaan.online = true
+    await flushOutbox()
+    buangGagal(0)
+    expect(daftarGagal()).toHaveLength(0)
+    expect(outboxSize()).toBe(0)
+  })
+})
+
+describe('sesi kedaluwarsa', () => {
+  it('kiriman tetap di antrean, tidak dibuang, tidak masuk daftar gagal', async () => {
+    keadaan.online = false
+    await kirimAtauAntre({ type:'simpanSaldo', value:3 })
+    keadaan.online = true; keadaan.sesiHabis = true
+    const r = await flushOutbox()
+    expect(r.terkirim).toBe(0)
+    expect(outboxSize()).toBe(1)
+    expect(daftarGagal()).toHaveLength(0)
+    keadaan.sesiHabis = false
+    await flushOutbox()
+    expect(outboxSize()).toBe(0)
+    expect(keadaan.terkirim).toContainEqual(['simpanSaldo', 3])
+  })
+
+  it('simpan langsung saat sesi habis ikut diantre, tidak gagal', async () => {
+    keadaan.sesiHabis = true
+    expect(await kirimAtauAntre({ type:'hapusEntri', date:'2026-09-02' })).toBe('diantre')
+    expect(outboxSize()).toBe(1)
+  })
+
+  it('penolakan RLS bukan galat sesi', () => {
+    expect(isGalatSesi({ code: 'PGRST301', message: 'JWT expired' })).toBe(true)
+    expect(isGalatSesi({ code: '42501', message: 'new row violates row-level security policy' })).toBe(false)
   })
 })
 

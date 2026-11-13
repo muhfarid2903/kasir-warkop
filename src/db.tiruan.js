@@ -33,6 +33,7 @@ export const AKUN_TIRUAN = [
 const gangguan = {
   putus: false,        // semua panggilan gagal seperti WiFi mati
   hilangBalasan: 0,    // n tulisan berikutnya SAMPAI di "server" tapi balasannya hilang
+  tolak: 0,            // n tulisan berikutnya DITOLAK server (seperti pelanggaran RLS)
   jeda: [120, 260],    // ms, acak di antaranya
 }
 
@@ -50,6 +51,12 @@ async function bacaan(fn) {
 async function tulisan(fn) {
   await jedaJaringan()
   if (gangguan.putus) throw galatJaringan()
+  if (gangguan.tolak > 0) {
+    gangguan.tolak--
+    const e = new Error('new row violates row-level security policy for table "entries"')
+    e.code = '42501'
+    throw e
+  }
   const hasil = fn()
   if (gangguan.hilangBalasan > 0) { gangguan.hilangBalasan--; throw galatJaringan() }
   return hasil
@@ -365,6 +372,8 @@ if (typeof window !== 'undefined') {
     // __tiruan.hilangkanBalasan(1) — tulisan berikutnya tersimpan, tapi app
     // menerima "Failed to fetch". Untuk menguji kiriman ganda (RENCANA 1.3).
     hilangkanBalasan(n = 1) { gangguan.hilangBalasan = n; return n + ' balasan tulisan berikutnya akan hilang' },
+    // __tiruan.tolak(1) — tulisan berikutnya ditolak server (RENCANA 1.4)
+    tolak(n = 1) { gangguan.tolak = n; return n + ' tulisan berikutnya akan ditolak' },
     // __tiruan.kirimAuth() — event auth dengan objek sesi baru, seperti yang
     // dikirim supabase-js saat token diperbarui (RENCANA 1.1).
     kirimAuth(jenis = 'TOKEN_REFRESHED') { siarkanAuth(jenis); return 'terkirim: ' + jenis },

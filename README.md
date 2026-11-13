@@ -23,6 +23,7 @@ Gangguan bisa dipicu dari console browser:
 |---|---|
 | `__tiruan.putus(true)` / `putus(false)` | WiFi mati / nyala lagi |
 | `__tiruan.hilangkanBalasan(1)` | tulisan berikutnya tersimpan, tapi app menerima "Failed to fetch" |
+| `__tiruan.tolak(1)` | tulisan berikutnya ditolak server, seperti pelanggaran RLS |
 | `__tiruan.kirimAuth()` | event auth dengan sesi baru, seperti saat token diperbarui |
 | `__tiruan.lambat(2000)` | jaringan lambat |
 | `__tiruan.reset()` | buang data tiruan, bibit ulang |

@@ -18,14 +18,20 @@ import {
 // 96.000" bisa jadi salah kalau perangkat lain menulis lebih dulu.
 
 const KEY = 'warkop_outbox_v1'
+// Kiriman yang DITOLAK server (bukan karena jaringan atau sesi). Dulu dibuang
+// begitu saja tanpa memberi tahu siapa pun; sekarang disimpan di sini sampai
+// orangnya memilih Coba lagi atau Buang.
+const KEY_GAGAL = 'warkop_gagal_v1'
 
-let antrean = muat()
+let antrean = muat(KEY)
+let gagal = muat(KEY_GAGAL)
 let sedangKirim = false
 const pendengar = new Set()
+const pendengarGagal = new Set()
 
-function muat() {
+function muat(kunci) {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(kunci)
     return raw ? JSON.parse(raw) : []
   } catch { return [] }
 }
@@ -34,6 +40,33 @@ function simpan() {
   try { localStorage.setItem(KEY, JSON.stringify(antrean)) } catch {}
   pendengar.forEach(f => f(antrean.length))
 }
+
+function simpanGagal() {
+  try { localStorage.setItem(KEY_GAGAL, JSON.stringify(gagal)) } catch {}
+  pendengarGagal.forEach(f => f(gagal.slice()))
+}
+
+export function onGagalChange(fn) {
+  pendengarGagal.add(fn)
+  fn(gagal.slice())
+  return () => pendengarGagal.delete(fn)
+}
+
+export function daftarGagal() { return gagal.slice() }
+
+// Sesi kedaluwarsa (HP lama tanpa sinyal, token habis sebelum antrean
+// terkirim) bukan alasan membuang input — begitu sesi diperbarui, kiriman
+// yang sama akan diterima. Diperlakukan seperti jaringan: coba lagi nanti.
+// Penolakan RLS (42501) BUKAN galat sesi: itu memang tidak diizinkan.
+export function isGalatSesi(e) {
+  if (!e) return false
+  const kode = String(e.code || '')
+  if (kode === 'PGRST301' || kode === 'PGRST302' || kode === 'PGRST303') return true
+  if (e.status === 401) return true
+  return /jwt|token.*(expired|invalid)|refresh token/i.test(String(e.message || e))
+}
+
+const cobaLagiNanti = (e) => isNetworkError(e) || isGalatSesi(e)
 
 export function onOutboxChange(fn) {
   pendengar.add(fn)
@@ -58,14 +91,15 @@ function kirimSatu(op) {
   }
 }
 
-// Kirim ulang isi antrean, berurutan. Berhenti di kegagalan jaringan pertama
-// supaya urutannya terjaga — dua "tambah" untuk tanggal sama tidak boleh
-// bertukar posisi. Kiriman yang DITOLAK server (bukan masalah jaringan) dibuang,
-// karena mengulangnya selamanya cuma akan memacetkan antrean.
+// Kirim ulang isi antrean, berurutan. Berhenti di kegagalan jaringan atau
+// sesi pertama supaya urutannya terjaga — dua "tambah" untuk tanggal sama
+// tidak boleh bertukar posisi. Kiriman yang DITOLAK server dikeluarkan dari
+// antrean (mengulangnya selamanya cuma memacetkan yang di belakangnya) dan
+// dipindah ke daftar gagal, bukan dibuang.
 export async function flushOutbox() {
-  if (sedangKirim || antrean.length === 0) return { terkirim: 0, sisa: antrean.length }
+  if (sedangKirim || antrean.length === 0) return { terkirim: 0, sisa: antrean.length, ditolak: 0 }
   sedangKirim = true
-  let terkirim = 0, dibuang = []
+  let terkirim = 0, ditolak = 0
   try {
     while (antrean.length > 0) {
       const op = antrean[0]
@@ -73,14 +107,32 @@ export async function flushOutbox() {
         await kirimSatu(op)
         antrean.shift(); terkirim++; simpan()
       } catch (e) {
-        if (isNetworkError(e)) break
-        antrean.shift(); dibuang.push({ op, pesan: e?.message || String(e) }); simpan()
+        if (cobaLagiNanti(e)) break
+        antrean.shift(); simpan()
+        gagal.push({ op, pesan: e?.message || String(e), waktu: new Date().toISOString() })
+        simpanGagal()
+        ditolak++
       }
     }
   } finally {
     sedangKirim = false
   }
-  return { terkirim, sisa: antrean.length, dibuang }
+  return { terkirim, sisa: antrean.length, ditolak }
+}
+
+// Dari lembar "gagal terkirim": kembalikan ke ujung antrean dan coba kirim.
+export async function cobaLagiGagal(indeks) {
+  const item = gagal[indeks]
+  if (!item) return
+  gagal.splice(indeks, 1); simpanGagal()
+  antrean.push(item.op); simpan()
+  return flushOutbox()
+}
+
+// Dari lembar "gagal terkirim": orangnya sendiri yang memutuskan membuang.
+export function buangGagal(indeks) {
+  if (!gagal[indeks]) return
+  gagal.splice(indeks, 1); simpanGagal()
 }
 
 // Coba kirim sekarang; kalau jaringan gagal, masuk antrean.
@@ -93,14 +145,14 @@ export async function kirimAtauAntre(op) {
       await kirimSatu(op)
       return 'terkirim'
     } catch (e) {
-      if (!isNetworkError(e)) throw e
+      if (!cobaLagiNanti(e)) throw e
     }
   }
   antrean.push(op); simpan()
   return 'diantre'
 }
 
-export function clearOutbox() { antrean = []; simpan() }
+export function clearOutbox() { antrean = []; simpan(); gagal = []; simpanGagal() }
 
 // Pengenal satu kiriman, dibuat SAAT tombol ditekan dan ikut tersimpan di
 // antrean. Kiriman ulang membawa pengenal yang sama, jadi server bisa
