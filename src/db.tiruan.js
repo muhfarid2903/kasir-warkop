@@ -141,7 +141,7 @@ function bibit() {
     }
   }
 
-  return { entries, voucher, config: { saldo_awal: 1000000 }, jejak, idJejak, opDiterima: [] }
+  return { entries, voucher, config: { saldo_awal: 6000000 }, jejak, idJejak, opDiterima: [] }
 }
 
 // === Realtime tiruan ===

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signIn } from '../db.js'
+import { signIn, modeTiruan, AKUN_TIRUAN } from '../db.js'
 import { Logo } from '../components/Logo.jsx'
 
 // Hanya masuk, tidak ada daftar. Pendaftaran publik dimatikan di Supabase
@@ -43,6 +43,18 @@ export default function LoginScreen({ onSession }) {
               {busy ? 'Memproses…' : 'Masuk'}
             </button>
           </div>
+          {/* Hanya di `npm run dev`: akun tiruan tinggal diketuk, supaya
+              mencoba sebagai pemilik atau karyawan tidak perlu menghafal. */}
+          {modeTiruan && (
+            <div className="tiruan-akun">
+              <div>Database tiruan — masuk sebagai:</div>
+              {AKUN_TIRUAN.map(a => (
+                <button key={a.email} type="button" onClick={()=>{ setEmail(a.email); setPassword(a.password); }}>
+                  {a.nama} ({a.peran})
+                </button>
+              ))}
+            </div>
+          )}
         </form>
       </div>
     </div>

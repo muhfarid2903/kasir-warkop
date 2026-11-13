@@ -45,11 +45,20 @@ jobs:
       # Itu yang membuat build di sini sama dengan build di laptop.
       - run: npm ci
 
+      - run: npm run lint
+
       # Tes jalan SEBELUM build: kalau rumus uang salah, jangan sampai
       # hasilnya sempat ter-deploy.
       - run: npm test
 
       - run: npm run build
+
+      # Build tiruan (VITE_DB=tiruan) tidak boleh sampai ke kasir: isinya data
+      # karangan dan tidak tersambung ke Supabase sama sekali.
+      - name: Pastikan yang ter-build database asli, bukan tiruan
+        run: |
+          if grep -lq "tiruan-pemilik" dist/assets/*.js; then echo "dist/ berisi database tiruan — batal deploy"; exit 1; fi
+          grep -lq "supabase.co" dist/assets/*.js || { echo "dist/ tidak memuat alamat Supabase — cek berkas .env"; exit 1; }
 
       - name: Pastikan CNAME ikut ke dist/
         run: |
