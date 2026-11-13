@@ -17,7 +17,8 @@ URL: **https://kasir.balanglompo.com**
 8. [Tips & Praktik Terbaik](#8-tips--praktik-terbaik)
 9. [Troubleshooting](#9-troubleshooting)
 10. [Pasang di HP](#10-pasang-di-hp)
-11. [Cadangan](#11-cadangan)
+11. [Pengaturan](#11-pengaturan-pemilik)
+12. [Cadangan](#12-cadangan)
 
 ---
 
@@ -482,7 +483,17 @@ tidak ada input yang hilang di tengah jalan.
 
 ---
 
-## 11. Cadangan
+## 11. Pengaturan (pemilik)
+Menu akun → **Pengaturan**:
+- **Ubah harga** produk: isi harga & gaji Jaya baru dan tanggal mulai berlakunya (bawaan: besok). Hari-hari sebelumnya tetap memakai harga lama.
+- **Dijual**: matikan untuk produk yang berhenti dijual (riwayatnya tetap). **Kartu besar**: produk yang tampil sebagai kartu besar di Hari Ini (paling banyak dua).
+- **Tambah produk**, **Tambah toko**, ganti nama toko, atau nonaktifkan toko yang berhenti.
+- **Tarif baru** voucher: harga jual, komisi toko, gaji Jaya, dan tanggal mulai.
+- **Pilihan cepat pengeluaran**: chip Susu, Good Day, … di Hari Ini.
+
+Tekan **Simpan pengaturan**; semua HP ikut berubah. Akun karyawan tidak melihat menu ini.
+
+## 12. Cadangan
 Menu akun → **Unduh cadangan** menyimpan seluruh data ke satu berkas. Simpan berkasnya di tempat lain (misalnya Drive pribadi). Pemilik melihat titik oranye di avatar kalau cadangan terakhir dari HP itu lebih dari 30 hari. Cara memulihkan ada di README.
 
 ## Kontak & Bantuan

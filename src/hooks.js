@@ -3,11 +3,11 @@ import {
   supabaseReady,
   getSession, onAuthChange,
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
-  loadJejak, loadHitungKas, subscribeRealtime,
+  loadJejak, loadHitungKas, loadKatalog, subscribeRealtime,
 } from './db.js'
 import { flushOutbox, onOutboxChange, outboxSize, onGagalChange } from './outbox.js'
 import { showToast } from './toast.js'
-import { hasDetail, todayISO, gabungRingkasan } from './model.js'
+import { hasDetail, todayISO, gabungRingkasan, aturKatalog } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
 // satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
@@ -66,6 +66,16 @@ const keRingkas = (map) => {
 
 const JEDA_SEGAR = 30000;
 
+// Katalog (Pengaturan) terakhir yang diterima, disimpan di HP: app yang
+// dibuka tanpa sinyal tetap memakai harga & toko yang benar, bukan bawaan.
+const KUNCI_KATALOG = 'warkop_katalog_v1';
+try { const k = JSON.parse(localStorage.getItem(KUNCI_KATALOG) || 'null'); if (k) aturKatalog(k); } catch (_) {}
+function pasangKatalog(k) {
+  if (!k || !aturKatalog(k)) return false;
+  try { localStorage.setItem(KUNCI_KATALOG, JSON.stringify(k)); } catch (_) {}
+  return true;
+}
+
 export function useWarkopData(session) {
   const userId = session?.user?.id || null;
   const [entries, setEntries] = useState({});
@@ -83,6 +93,9 @@ export function useWarkopData(session) {
   const [dataKosong, setDataKosong] = useState(false);
   // Hasil pencocokan kas per tanggal (tabel hitung_kas).
   const [hitungKas, setHitungKas] = useState({});
+  // Naik tiap kali katalog berganti, supaya halaman ikut menggambar ulang
+  // (larik produk/toko diubah di tempat, React tidak melihatnya sendiri).
+  const [versiKatalog, setVersiKatalog] = useState(0);
   // Fitur yang bergantung pada migrasi kas_pemilik_migration.sql. Disembunyikan
   // sampai server menjawab bahwa kolom/tabelnya memang ada.
   const [fitur, setFitur] = useState({ kePemilik: false, hitungKas: false });
@@ -111,7 +124,10 @@ export function useWarkopData(session) {
     if (!awal && outboxSize() > 0) return;
     sedangTarik.current = true;
     try {
-      const [saldo, ent, vt, hk] = await Promise.all([loadSaldoAwal(), loadEntrySummaries(), loadVoucherToko(), loadHitungKas()]);
+      const [saldo, ent, vt, hk, kat] = await Promise.all([loadSaldoAwal(), loadEntrySummaries(), loadVoucherToko(), loadHitungKas(), loadKatalog()]);
+      // Katalog dipasang LEBIH DULU dari angka lain: tarif & harga dipakai
+      // untuk menghitung semuanya.
+      if (!kat?.error && kat?.data && pasangKatalog(kat.data)) setVersiKatalog(v => v + 1);
       if (userAktif.current !== userId) return;
       if (ent.error) {
         pernahPutus.current = true;
@@ -187,6 +203,7 @@ export function useWarkopData(session) {
         });
       },
       onSaldoAwal: (value) => setInitialSaldo(value),
+      onKatalog: (k) => { if (pasangKatalog(k)) setVersiKatalog(v => v + 1); },
       // Diabaikan selama Riwayat belum pernah memuat jejak: daftar yang cuma
       // berisi kiriman satu jam terakhir lebih menyesatkan daripada kosong.
       onJejak: (j) => {
@@ -352,6 +369,7 @@ export function useWarkopData(session) {
     dataPer, dataKosong,
     hitungKas, setHitungKas, fitur,
     pastikanJejak,
+    versiKatalog, katalogDisimpan: (k) => { if (pasangKatalog(k)) setVersiKatalog(v => v + 1); },
   };
 }
 

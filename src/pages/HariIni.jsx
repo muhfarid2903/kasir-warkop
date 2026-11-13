@@ -4,7 +4,7 @@ import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
 import { loadEntryDetail, saveEntry as dbSaveEntry, deleteEntry as dbDeleteEntry } from '../db.js'
 import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
-  voucherForDate, draftTotals, accumulateEntry, tambahRingkas, kurangiEntri, entriKosong, computeKasSummary, computePaydayInfo, hasDetail, kopiSedangLibur,
+  voucherForDate, draftTotals, hargaProduk, accumulateEntry, tambahRingkas, kurangiEntri, entriKosong, computeKasSummary, computePaydayInfo, hasDetail, kopiSedangLibur,
 } from '../model.js'
 import { tandaJejak, rincianTambah, rincianUbah, tglJejak, ringkasJejak, jamJejak, LABEL_AKSI, khususPemilikTersembunyi } from '../jejak.js'
 import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafLain } from '../draf.js'
@@ -65,8 +65,8 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
   useEffect(() => { ensureDetail(selectedDate); }, [selectedDate, ensureDetail, adaDetail]);
 
   const inputTotals = useMemo(
-    () => draftTotals(quantities, expenses, cashIns, setors),
-    [quantities, expenses, cashIns, setors]
+    () => draftTotals(quantities, expenses, cashIns, setors, selectedDate),
+    [quantities, expenses, cashIns, setors, selectedDate]
   );
 
   // "Sekarang" diturunkan dari hariIni (useTodayISO), bukan new Date() di
@@ -197,7 +197,9 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
   );
 
   const blokProduk = (() => {
-            const tersedia = PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF));
+            // Produk nonaktif (Pengaturan) disembunyikan — kecuali yang sudah
+            // terlanjur ada di draf, supaya bisa dikurangi.
+            const tersedia = PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF) && (p.aktif !== false || (quantities[p.id]||0) > 0));
             const cari = (id) => tersedia.find(p => p.id === id);
             const utama = PRODUK_UTAMA.map(cari).filter(Boolean);
             const sekunder = PRODUK_SEKUNDER.map(cari).filter(Boolean);
@@ -227,7 +229,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
                           <ProductIcon type={p.id} size={21}/>
                           <div className="produk-kartu-nama">
                             <div className="nama">{p.name}</div>
-                            <div className="harga">{IDR(p.price)}</div>
+                            <div className="harga">{IDR(hargaProduk(p, selectedDate).price)}</div>
                           </div>
                         </div>
                         <div className="produk-kartu-bawah">
@@ -299,7 +301,7 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
                         <div className="product-emoji"><ProductIcon type={p.id} size={24}/></div>
                         <div className="product-info">
                           <div className="product-name">{p.name}</div>
-                          <div className="product-meta">{IDR(p.price)}</div>
+                          <div className="product-meta">{IDR(hargaProduk(p, selectedDate).price)}</div>
                         </div>
                         <div className="qty-control">
                           <button className="qty-btn" onClick={()=>changeQty(p.id,-1)}>−</button>

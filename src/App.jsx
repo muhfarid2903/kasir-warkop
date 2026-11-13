@@ -20,6 +20,7 @@ import HariIni from './pages/HariIni.jsx'
 import VoucherToko from './pages/VoucherToko.jsx'
 import Gajian from './pages/Gajian.jsx'
 import Riwayat from './pages/Riwayat.jsx'
+import Pengaturan from './pages/Pengaturan.jsx'
 
 const NAV_ITEMS = [
   { id:'input',   icon:'coffee', label:'Hari Ini',     shortLabel:'Hari Ini' },
@@ -61,6 +62,7 @@ function App() {
     dataPer, dataKosong,
     hitungKas, setHitungKas, fitur,
     pastikanJejak,
+    versiKatalog, katalogDisimpan,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -192,7 +194,7 @@ function App() {
   };
   const today = new Date();
 
-  const currentPage = NAV_ITEMS.find(n=>n.id===page);
+  const currentPage = page === 'pengaturan' ? { label: 'Pengaturan' } : NAV_ITEMS.find(n=>n.id===page);
   const userEmail = session?.user?.email || '';
   // Nama inilah yang menempel di tiap jejak input, jadi ditampilkan juga di
   // sini — supaya jelas atas nama siapa yang sedang dicatat, dan ketahuan
@@ -243,6 +245,11 @@ function App() {
           {!terpasang && (
             <button className="nav-btn" onClick={pasang}>
               <Icon type="download" size={16}/> Pasang di HP
+            </button>
+          )}
+          {!khususPemilikTersembunyi(session) && (
+            <button className={"nav-btn"+(page==='pengaturan'?' active':'')} onClick={()=>handleNav('pengaturan')}>
+              <Icon type="settings" size={16}/> Pengaturan
             </button>
           )}
           <button className="nav-btn" onClick={()=>setLembarBantuan(true)}>
@@ -311,6 +318,11 @@ function App() {
                       <Icon type="download" size={15}/> Pasang di HP
                     </button>
                   )}
+                  {!khususPemilikTersembunyi(session) && (
+                    <button role="menuitem" onClick={()=>{ setMenuAkun(false); handleNav('pengaturan'); }}>
+                      <Icon type="settings" size={15}/> Pengaturan
+                    </button>
+                  )}
                   <button role="menuitem" onClick={()=>{ setMenuAkun(false); setLembarBantuan(true); }}>
                     <Icon type="help" size={15}/> Bantuan
                   </button>
@@ -367,6 +379,10 @@ function App() {
 
           {page==="gajian" && (
             <Gajian entries={entries} voucherToko={voucherToko} session={session}/>
+          )}
+
+          {page==="pengaturan" && (
+            <Pengaturan session={session} hariIni={hariIni} versiKatalog={versiKatalog} katalogDisimpan={katalogDisimpan}/>
           )}
 
           {page==="riwayat" && (

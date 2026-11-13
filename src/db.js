@@ -185,6 +185,22 @@ export async function saveSaldoAwal(value, jejak) {
   await catatJejak(jejak?.date || todayISO(), jejak)
 }
 
+// === Katalog (Pengaturan) ===
+// Produk, toko, tarif, dan tampilan Hari Ini — di config key 'katalog'.
+// null = belum pernah diatur (app memakai bawaan di model.js).
+export async function loadKatalog() {
+  const { data, error } = await sb.from('config').select('value').eq('key', 'katalog').maybeSingle()
+  if (error) return { data: null, error }
+  return { data: data?.value || null, error: null }
+}
+
+// Hanya pemilik (RLS config, peran_2_aturan.sql).
+export async function simpanKatalog(katalog, jejak) {
+  const { error } = await sb.from('config').upsert({ key: 'katalog', value: katalog }, { onConflict: 'key' })
+  if (error) throw error
+  await catatJejak(jejak?.date || todayISO(), jejak)
+}
+
 // === Entries ===
 
 // Dua tingkat, karena kolom JSON (quantities + expenses) adalah 34,6 KB dari
@@ -445,7 +461,7 @@ export function isNetworkError(e) {
 // drop_qty, eventType) diterjemahkan di sini juga, supaya komponen cuma
 // menerima bentuk yang sudah dikenalnya.
 // Mengembalikan fungsi untuk berhenti berlangganan.
-export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, onHitung, onStatus }) {
+export function subscribeRealtime({ onEntry, onSaldoAwal, onKatalog, onVoucher, onJejak, onHitung, onStatus }) {
   if (!sb) return () => {}
   const ch = sb.channel('rt-entries')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, payload => {
@@ -458,6 +474,7 @@ export function subscribeRealtime({ onEntry, onSaldoAwal, onVoucher, onJejak, on
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, payload => {
       if (payload.new?.key === 'saldo_awal') onSaldoAwal(Number(payload.new.value) || 0)
+      else if (payload.new?.key === 'katalog') onKatalog?.(payload.new.value)
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'voucher_toko' }, payload => {
       if (payload.eventType === 'DELETE') {
