@@ -120,6 +120,17 @@ export async function flushOutbox() {
   return { terkirim, sisa: antrean.length, ditolak }
 }
 
+// Batalkan kiriman yang masih menunggu di antrean (tombol Batalkan/Urungkan).
+// true = berhasil dikeluarkan sebelum sempat terkirim. false = sudah terkirim
+// atau sedang dikirim — pemanggil harus membatalkannya di server.
+export function batalkanAntrean(id) {
+  if (!id) return false
+  const i = antrean.findIndex(op => op.id === id)
+  if (i < 0 || (sedangKirim && i === 0)) return false
+  antrean.splice(i, 1); simpan()
+  return true
+}
+
 // Dari lembar "gagal terkirim": kembalikan ke ujung antrean dan coba kirim.
 export async function cobaLagiGagal(indeks) {
   const item = gagal[indeks]

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { signOut } from './db.js'
+import { signOut, onPemulihanPassword } from './db.js'
 import { namaPengguna } from './jejak.js'
-import { DAYS, ML, fmtDateShort } from './format.js'
+import { DAYS, ML, fmtDate, fmtDateShort } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO, useKirimanGagal } from './hooks.js'
 import { useEfekSentuh } from './fx.js'
@@ -10,6 +10,7 @@ import { Icon } from './components/Icon.jsx'
 import { Logo } from './components/Logo.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
+import PasswordBaru from './pages/PasswordBaru.jsx'
 import LembarGagal from './components/LembarGagal.jsx'
 import { usePasang, mintaPasang, LembarPasang } from './components/PasangDiHP.jsx'
 import HariIni from './pages/HariIni.jsx'
@@ -56,6 +57,7 @@ function App() {
     pending, tandaiTulis,
     dataPer, dataKosong,
     hitungKas, setHitungKas, fitur,
+    pastikanJejak,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -64,6 +66,9 @@ function App() {
   useEfekSentuh();
   const [suara, setSuara] = useState(suaraAktif);
   const gagal = useKirimanGagal();
+  // Tautan "lupa password" dari email baru saja dibuka.
+  const [pemulihan, setPemulihan] = useState(false);
+  useEffect(() => onPemulihanPassword(() => setPemulihan(true)), []);
   const [lembarGagal, setLembarGagal] = useState(false);
   const { terpasang } = usePasang();
   const [lembarPasang, setLembarPasang] = useState(false);
@@ -127,6 +132,7 @@ function App() {
   );
 
   if (!session) return <LoginScreen onSession={s => setSession(s)}/>;
+  if (pemulihan) return <PasswordBaru onSelesai={()=>setPemulihan(false)}/>;
 
   if(loading) return (
     <div className="app">
@@ -234,7 +240,13 @@ function App() {
             <Icon type="menu" size={18}/>
           </button>
           <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minWidth:0,flex:"0 1 auto"}}>
-            <div className="header-page-title">{currentPage?.label || 'Warkopsaja'}</div>
+            {/* Mengisi tanggal lain: judulnya ikut jadi tanggal itu, supaya
+                tidak terbaca "Hari Ini" padahal yang diisi kemarin. */}
+            <div className="header-page-title">
+              {(page==='input' || page==='voucher') && selectedDate !== hariIni
+                ? (page==='input' ? 'Isi ' : 'Voucher ')+fmtDateShort(selectedDate)
+                : (currentPage?.label || 'Warkopsaja')}
+            </div>
           </div>
           <div className="header-right">
             <SyncBadge/>
@@ -282,9 +294,21 @@ function App() {
         </div>
 
         <div className="content">
+         {/* selectedDate dipakai bersama Hari Ini dan Voucher Toko. Dulu
+             tanggal mundur yang dipilih di satu halaman ikut diam-diam ke
+             halaman lain; sekarang selalu ada pita yang menyebutnya. */}
+         {(page==='input' || page==='voucher') && selectedDate !== hariIni && (
+           <div className="pita-tanggal" role="status">
+             <Icon type="calendar" size={14}/>
+             <span>Mengisi untuk <strong>{fmtDate(selectedDate)}</strong></span>
+             <button type="button" onClick={()=>setSelectedDate(hariIni)}>Kembali ke hari ini</button>
+           </div>
+         )}
          <div className="page-cinema" key={page}>
           {page==="input" && (
             <HariIni
+              bukaVoucher={()=>handleNav('voucher')}
+              jejak={jejak} pastikanJejak={pastikanJejak}
               hariIni={hariIni} dataPer={dataPer} dataKosong={dataKosong}
               fitur={fitur} hitungKas={hitungKas} setHitungKas={setHitungKas}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}

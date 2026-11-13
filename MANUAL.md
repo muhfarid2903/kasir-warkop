@@ -120,6 +120,12 @@ Tempat utama mencatat aktivitas harian: penjualan, pengeluaran, dan cash masuk.
 - **Kartu catatan** — Pengeluaran & Cash Masuk
 - **Tombol Simpan** — bawah
 
+### Tanggal
+Tombol tanggal membuka kalender; chip **Hari ini** dan **Kemarin** di sebelahnya untuk dua tanggal yang paling sering. Selama yang diisi bukan hari ini, ada pita oranye "Mengisi untuk …" dengan tombol **Kembali ke hari ini** — di Hari Ini maupun Voucher Toko.
+
+### Saat kopi libur
+Kalau 14 hari tidak ada penjualan kopi, Hari Ini menaruh ringkasan voucher di atas dan melipat kartu kopi ke bawah ("Kopi & lainnya · sedang libur"). Begitu ada penjualan kopi tersimpan, susunannya kembali seperti biasa.
+
 ### Cara input penjualan
 1. Pilih **tanggal** (default hari ini)
 2. Klik tombol **+** atau ketik langsung jumlah laku per produk
@@ -405,7 +411,9 @@ Tiga kemungkinan, urut dari yang paling sering:
    lewat SQL Editor. App tetap jalan tanpa tabel itu, jejaknya saja yang kosong.
 
 ### Salah input — gimana koreksi?
-- **Penjualan/Pengeluaran/Cash Masuk**: buka Riwayat, klik entri tanggal yang salah → expand → **Hapus Data Ini** → input ulang dari Hari Ini
+- **Baru saja disimpan**: ketuk **Batalkan** di pemberitahuan yang muncul sesudah Simpan (±8 detik). Isinya kembali ke draf; betulkan lalu simpan lagi.
+- **Penjualan/Pengeluaran/Cash Masuk yang lebih lama**: Riwayat → ketuk tanggalnya → **Edit**, ubah angkanya → **Simpan Perubahan**
+- **Terlanjur menghapus satu hari**: ketuk **Urungkan** di pemberitahuan sesudah hapus
 - **Voucher**: buka Voucher Toko, pilih tanggal yang salah, edit angka drop/laku → simpan (akan menimpa data lama)
 
 ### Kas Saat Ini tidak match dengan uang fisik
@@ -416,7 +424,7 @@ Tiga kemungkinan, urut dari yang paling sering:
 5. Cek apakah setoran voucher yang langsung ke pemilik sudah ditandai **Masuk ke kas pemilik**
 
 ### Lupa password
-Saat ini belum ada flow reset password di app. Hubungi admin (Muhammad Farid).
+Di layar masuk ketuk **Lupa password?**, tulis email akun, lalu **Kirim tautan**. Buka email itu di HP yang sama dan ketuk tautannya — app terbuka dengan formulir **Password baru**.
 
 ---
 

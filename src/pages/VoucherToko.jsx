@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { kirimAtauAntre } from '../outbox.js'
 import {
   TOKO, VOUCHER_TOKO_CUTOFF, V2K, V2K_SETORAN,
-  getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore,
+  getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore, infoToko,
 } from '../model.js'
 import { tandaJejak, rincianVoucher } from '../jejak.js'
-import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
+import { IDR, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
+import { PilihTanggal } from '../components/PilihTanggal.jsx'
 
 // Tanda "ke pemilik" yang terakhir dipakai toko ini sebelum tanggal itu —
 // toko yang biasa menyetor ke pemilik hampir selalu begitu lagi.
@@ -24,7 +25,6 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
   const [rekapTerbuka, setRekapTerbuka] = useState(false);
-  const voucherDateRef = useRef(null);
 
   // Kolom yang sudah diketik orang di tanggal ini ("dadi.laku", …). Dulu tiap
   // event realtime dari HP lain menyetel ulang SEMUA kolom dari server, jadi
@@ -101,17 +101,11 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
     <>
           <div style={{marginBottom:8}}></div>
 
-          <div className="voucher-date-row">
-            <button type="button" className="date-display-btn" onClick={() => { const i = voucherDateRef.current; if (!i) return; if (typeof i.showPicker === 'function') i.showPicker(); else i.focus(); }}>
-              <Icon type="calendar" size={15}/>
-              <span>{fmtDateShort(selectedDate)}</span>
-              <span className="chev">▾</span>
-            </button>
-            <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} max={hariIni} value={selectedDate} onChange={e=>{ if (e.target.value && e.target.value <= hariIni) setSelectedDate(e.target.value); }}/>
+          <PilihTanggal value={selectedDate} onChange={setSelectedDate} hariIni={hariIni} min={VOUCHER_TOKO_CUTOFF}>
             <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
               <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
             </button>
-          </div>
+          </PilihTanggal>
           {selectedDate < VOUCHER_TOKO_CUTOFF && (
             <div className="date-hint" style={{color:"var(--red)",margin:"8px 0 0"}}>
               <Icon type="alert" size={13}/> Voucher Toko mulai 1 Mei 2026
@@ -157,6 +151,9 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
                   const overLaku = dLaku > (stokAwal + dDrop);
                   const hasAction = dDrop>0 || dLaku>0;
                   const pillClass = overLaku ? 'over' : (stokAkhir > stokAwal ? 'up' : (stokAkhir < stokAwal ? 'down' : ''));
+                  const info = infoToko(t.id, selectedDate, voucherToko);
+                  // Stok yang mengendap lama di toko: layak ditagih atau dikurangi dropnya.
+                  const mengendap = stokAwal > 0 && (info.hariSejak ?? 0) > 14;
                   return (
                     <div key={t.id} className={"toko-card"+(overLaku?" over":(hasAction?" has-action":""))}>
                       <div className="toko-head">
@@ -170,12 +167,30 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
                       <div className="toko-inputs">
                         <div className={"toko-input-group drop"+(dDrop===0?" kosong":"")}>
                           <label>+ Drop</label>
-                          <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
+                          <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.drop==='0'?'':draft.drop} onChange={e=>setDraft(t.id,'drop',e.target.value)}/>
                         </div>
                         <div className={"toko-input-group laku"+(dLaku===0?" kosong":"")}>
                           <label>− Laku</label>
-                          <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
+                          <input type="number" inputMode="numeric" min="0" placeholder="0" value={draft.laku==='0'?'':draft.laku} onChange={e=>setDraft(t.id,'laku',e.target.value)}/>
                         </div>
+                      </div>
+                      {/* Pola nyata: toko menyetor seluruh stok lalu diisi ulang
+                          dengan jumlah yang biasa. Dua chip ini mengganti dua
+                          ketikan angka yang paling sering. */}
+                      {(stokAwal > 0 || info.dropUmum) && (
+                        <div className="toko-cepat">
+                          {stokAwal > 0 && dLaku !== stokAwal && (
+                            <button type="button" className="chip" onClick={()=>setDraft(t.id,'laku',String(stokAwal))}>Laku semua ({stokAwal})</button>
+                          )}
+                          {info.dropUmum && dDrop !== info.dropUmum && (
+                            <button type="button" className="chip" onClick={()=>setDraft(t.id,'drop',String(info.dropUmum))}>Drop {info.dropUmum}</button>
+                          )}
+                        </div>
+                      )}
+                      <div className={"toko-setor-terakhir"+(mengendap?" lama":"")}>
+                        {info.terakhirSetor
+                          ? <>Setor terakhir {fmtDate(info.terakhirSetor).replace(/^\w+, /,'').replace(/ \d{4}$/,'')} · {info.hariSejak===0?'hari ini':info.hariSejak===1?'kemarin':info.hariSejak+' hari lalu'}{mengendap?' — stok mengendap':''}</>
+                          : 'Belum pernah setor'}
                       </div>
                       {(overLaku || dLaku > 0) && (
                         <div className="toko-footer">

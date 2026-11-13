@@ -65,12 +65,18 @@ const angkaEntri = (e) => ({
 // Edit mengganti nilai, jadi yang berguna dicatat bukan hasil akhirnya saja
 // melainkan angka sebelum & sesudah — "berubah dari berapa jadi berapa"
 // itulah yang ditanya kalau kas tidak cocok.
-export function rincianUbah(sebelum, sesudah) {
-  return { sebelum: angkaEntri(sebelum), sesudah: angkaEntri(sesudah) }
+// `salinan` = isi lengkap entri SEBELUM diubah/dihapus (jumlah per produk dan
+// semua baris). Tiga angka saja tidak cukup untuk memulihkan hari yang
+// terhapus; dengan salinan ini, Urungkan — atau pemulihan manual dari jejak —
+// bisa mengembalikannya utuh.
+const salinanEntri = (e) => e ? { quantities: e.quantities || {}, expenses: e.expenses || [] } : null
+
+export function rincianUbah(sebelum, sesudah, tambahan = {}) {
+  return { sebelum: angkaEntri(sebelum), sesudah: angkaEntri(sesudah), salinan: salinanEntri(sebelum), ...tambahan }
 }
 
 export function rincianHapus(entry) {
-  return { sebelum: angkaEntri(entry) }
+  return { sebelum: angkaEntri(entry), salinan: salinanEntri(entry) }
 }
 
 // Apakah edit ini benar-benar mengubah sesuatu? Tombol Simpan Perubahan bisa
@@ -158,7 +164,9 @@ export function ringkasJejak(j) {
       banding('pengeluaran', a.pengeluaran, b.pengeluaran)
       // Keterangan pengeluaran bisa diperbaiki tanpa satu angka pun bergeser;
       // jangan diam-diam, tapi jangan pula mengarang selisih yang tidak ada.
-      return ubah.length ? ubah.join(' · ') : 'rincian dirapikan, angka tidak berubah'
+      const awalan = r.batal ? 'membatalkan input' : r.pulih ? 'memulihkan data yang dihapus' : ''
+      const isi = ubah.length ? ubah.join(' · ') : (awalan ? '' : 'rincian dirapikan, angka tidak berubah')
+      return [awalan, isi].filter(Boolean).join(' · ')
     }
     case 'hapus': {
       const a = r.sebelum || {}

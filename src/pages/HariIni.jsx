@@ -1,16 +1,19 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 // (akses Supabase lewat outbox — lihat src/outbox.js)
-import { kirimAtauAntre, idKiriman } from '../outbox.js'
+import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
+import { loadEntryDetail, saveEntry as dbSaveEntry, deleteEntry as dbDeleteEntry } from '../db.js'
 import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
-  voucherForDate, draftTotals, accumulateEntry, tambahRingkas, computeKasSummary, computePaydayInfo, hasDetail,
+  voucherForDate, draftTotals, accumulateEntry, tambahRingkas, kurangiEntri, entriKosong, computeKasSummary, computePaydayInfo, hasDetail, kopiSedangLibur,
 } from '../model.js'
-import { tandaJejak, rincianTambah, tglJejak } from '../jejak.js'
-import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tanggalDrafLain } from '../draf.js'
+import { tandaJejak, rincianTambah, rincianUbah, tglJejak, ringkasJejak, jamJejak, LABEL_AKSI } from '../jejak.js'
+import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafLain } from '../draf.js'
 import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
+import { InputNominal, BATAS_YAKIN } from '../components/InputNominal.jsx'
+import { PilihTanggal } from '../components/PilihTanggal.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 import { rayakan, kilat, denyut } from '../fx.js'
@@ -20,7 +23,7 @@ const jamSaja = (w) => { const d = new Date(w); return isNaN(d) ? '' : String(d.
 
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
-export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas, setHitungKas, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
+export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, dataPer, dataKosong, fitur, hitungKas, setHitungKas, selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
   // Draf milik SATU tanggal. Berganti tanggal = berganti draf; draf tanggal
   // lama tetap tersimpan di HP di bawah tanggalnya (lihat src/draf.js).
   const [draf, setDraf] = useState(() => ({ tanggal: selectedDate, ...bacaDraf(selectedDate) }));
@@ -33,6 +36,10 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
   const setCashIns = ubahBagian('cashIns');
   const setSetors = ubahBagian('setors');
   const [lembarCocok, setLembarCocok] = useState(false);
+  // Nominal di atas Rp5 juta hampir selalu kelebihan nol. Simpan pertama
+  // berhenti dan memberi tahu; ketukan kedua baru menyimpan.
+  const [yakinBesar, setYakinBesar] = useState(false);
+  useEffect(() => { setYakinBesar(false); }, [draf]);
   // Tiap perubahan langsung ditulis ke HP — kalau Android mematikan app di
   // saku, ketukannya masih ada saat dibuka lagi.
   useEffect(() => { tulisDraf(draf.tanggal, draf); }, [draf]);
@@ -41,10 +48,12 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
   const drafLain = tanggalDrafLain(selectedDate);
   const [saving, setSaving] = useState(false);
   const [lainnyaTerbuka, setLainnyaTerbuka] = useState(false);
-  const hariIniDateRef = useRef(null);
+  const [kopiTerbuka, setKopiTerbuka] = useState(false);
   const simpanRef = useRef(null);
 
   const existingEntry = entries[selectedDate] || null;
+
+  useEffect(() => { pastikanJejak?.(); }, [pastikanJejak]);
 
   // Muat awal cuma menarik kolom angka. Tanggal yang sedang dilihat butuh
   // quantities & expenses-nya, jadi diambil satu baris saat tanggal berganti.
@@ -119,6 +128,13 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
     const hasSetor = setors.some(e => (e.amount||0) > 0);
     if (!hasQty && !hasExp && !hasCash && !hasSetor) { bunyi('gagal'); showToast('Belum ada input!'); return; }
+    const besar = [...expenses, ...cashIns, ...setors].find(x => (x.amount||0) > BATAS_YAKIN);
+    if (besar && !yakinBesar) {
+      bunyi('gagal');
+      setYakinBesar(true);
+      showToast(IDR(besar.amount)+' — benar sebesar itu? Periksa nolnya, lalu ketuk Simpan sekali lagi', 'gagal');
+      return;
+    }
     setSaving(true);
     const tanggalSimpan = selectedDate;
     const input = { quantities, expenses, cashIns, setors };
@@ -133,7 +149,8 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
       const tebakan = existingEntry && !dasar
         ? tambahRingkas(existingEntry, tanggalSimpan, input)
         : accumulateEntry(dasar, tanggalSimpan, input);
-      const hasil = await kirimAtauAntre({ type:'tambahEntri', id:idKiriman(), date:tanggalSimpan, input, jejak });
+      const idOp = idKiriman();
+      const hasil = await kirimAtauAntre({ type:'tambahEntri', id:idOp, date:tanggalSimpan, input, jejak });
       tandaiTulis(hasil);
       setEntries(prev => ({ ...prev, [tanggalSimpan]: tebakan }));
       // Terkirim dapat kilau selebar layar; yang baru mengantre di HP dapat
@@ -142,9 +159,12 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
       else { bunyi('simpan'); kilat(); }
       getar([12, 60, 18]);
       denyut(simpanRef.current, 'sukses', 900);
+      const sebelumLokal = existingEntry;
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — disimpan di HP, terkirim otomatis nanti'
-        : (existingEntry ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(tanggalSimpan));
+        : (existingEntry ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(tanggalSimpan),
+        'info',
+        { label: 'Batalkan', fn: () => batalkan({ id: idOp, tanggal: tanggalSimpan, input, hasil, sebelumLokal }) });
       // Kurangi draf HANYA bila tidak gagal — supaya input tidak hilang saat
       // gagal. Dikurangi, bukan dikosongkan: ketukan yang masuk selagi
       // kiriman berjalan tetap tinggal.
@@ -154,111 +174,35 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
     setSaving(false);
   }
 
-  return (
-    <>
-          {/* Tanpa sinyal saat app dibuka: angka dari simpanan HP ditampilkan
-              redup dengan jamnya, atau "—" kalau belum pernah ada. Dulu yang
-              tampil Rp0 — angka yang tampak benar padahal kosong. */}
-          <div className={"kas-hero"+(dataPer||dataKosong?" basi":"")}>
-            {/* "Kas Toko", bukan "Kas Saat Ini": angka ini uang di laci toko,
-                bukan seluruh uang usaha — setoran ke pemilik tidak ada di sini. */}
-            <div className="kas-hero-label">Kas Toko</div>
-            {dataKosong
-              ? <div className="kas-hero-value kosong">—</div>
-              : <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>}
-            <div className="kas-hero-delta">
-              {dataKosong
-                ? <span className="kas-basi">Belum tersambung — angka belum bisa ditampilkan</span>
-                : dataPer
-                  ? <span className="kas-basi">Angka per {tglJejak(dataPer)} · belum tersambung</span>
-                  : kasSummary.hasToday
-                    ? <>Hari ini <span className={kasSummary.todayKas>=0?'pos':'neg'}>{kasSummary.todayKas>=0?'+':''}{IDR(kasSummary.todayKas)}</span></>
-                    : <span style={{color:"var(--text3)",fontStyle:"italic"}}>Hari ini belum input</span>}
-            </div>
-          </div>
+  // Kopi libur sementara (keputusan pemilik, Okt 2026): yang dikerjakan di
+  // sini hampir hanya voucher, jadi kartu kopi dilipat ke bawah dan ringkasan
+  // voucher hari itu naik. Tidak ada saklar yang harus diingat — begitu ada
+  // penjualan kopi tersimpan, tata letaknya kembali sendiri.
+  const libur = kopiSedangLibur(entries, hariIni);
+  // Apa saja yang sudah tercatat di tanggal ini, satu baris per simpan.
+  // Diambil dari jejak; dulu yang tersisa sesudah Simpan cuma satu kalimat
+  // "Sudah tercatat …" yang bahkan tidak menyebut pengeluaran.
+  const tercatat = (jejak?.[selectedDate] || []).slice(-6);
+  const vHari = voucherForDate(selectedDate, voucherToko);
+  const kartuVoucher = (
+    <div className="kartu-voucher-hari">
+      <div className="kvh-kepala">
+        <span><Icon type="signal" size={15}/> Voucher {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)}</span>
+        <button type="button" className="chip" onClick={bukaVoucher}>Isi di Voucher Toko →</button>
+      </div>
+      {(vHari.drop > 0 || vHari.laku > 0) ? (
+        <div className="voucher-day-summary" style={{margin:0}}>
+          <span className="seg">Drop <strong>{vHari.drop}</strong></span>
+          <span className="seg">Laku <strong>{vHari.laku}</strong></span>
+          {vHari.kePemilik > 0 && <span className="seg pemilik">Ke pemilik <strong>{IDR(vHari.kePemilik)}</strong></span>}
+          {vHari.masukKas > 0 && <span className="seg setoran">Masuk kas toko <strong>{IDR(vHari.masukKas)}</strong></span>}
+          <span className="seg gaji">Gaji Jaya <strong>{IDR(vHari.gaji)}</strong></span>
+        </div>
+      ) : <div className="kvh-kosong">Belum ada drop atau laku.</div>}
+    </div>
+  );
 
-          {paydayInfo && !dataKosong && (
-            <div className={"payday-banner "+paydayInfo.show}>
-              <div className="payday-main">
-                {paydayInfo.show==='today'
-                  ? <><Icon type="gift" size={16}/><span className="label">Hari Ini Gajian!</span></>
-                  : <><Icon type="calendar" size={15}/><span className="label">Gajian H−{paydayInfo.daysLeft}</span></>
-                }
-                <span className="sub">{paydayInfo.period.label} {ML[paydayInfo.month]}{paydayInfo.show==='upcoming' && ' · sementara'}</span>
-              </div>
-              <div className="payday-amount">{IDR(paydayInfo.totalGaji)}</div>
-            </div>
-          )}
-
-          {/* Cocokkan kas: hanya kalau tabelnya sudah ada dan angkanya segar.
-              Mencocokkan dengan angka dari simpanan HP tidak ada artinya. */}
-          {fitur?.hitungKas && !dataPer && !dataKosong && (() => {
-            const terakhir = (hitungKas?.[hariIni] || []).slice(-1)[0];
-            return (
-              <div className="cocok-bar">
-                {terakhir
-                  ? <span className={"cocok-status "+(terakhir.selisih===0?'pas':'beda')}>
-                      <Icon type={terakhir.selisih===0?'check':'alert'} size={13}/>
-                      {terakhir.selisih===0 ? 'Cocok' : 'Selisih '+IDR(terakhir.selisih)} · {terakhir.oleh} {jamSaja(terakhir.waktu)}
-                    </span>
-                  : <span className="cocok-status">Belum dicocokkan hari ini</span>}
-                <button type="button" className="chip samar" onClick={()=>setLembarCocok(true)}>
-                  <Icon type="coins" size={13}/> Cocokkan kas
-                </button>
-              </div>
-            );
-          })()}
-
-          {lembarCocok && (
-            <CocokkanKas
-              session={session} sistem={kasSummary.kasSekarang} hariIni={hariIni}
-              tandaiTulis={tandaiTulis}
-              onTercatat={(h)=>setHitungKas(prev => ({ ...prev, [h.date]: [...(prev[h.date]||[]).filter(x=>x.id!==h.id), h] }))}
-              onTutup={()=>setLembarCocok(false)}
-            />
-          )}
-
-          <div className="date-inline">
-            <button type="button" className="date-display-btn" onClick={() => { const i = hariIniDateRef.current; if (!i) return; if (typeof i.showPicker === 'function') i.showPicker(); else i.focus(); }}>
-              <Icon type="calendar" size={15}/>
-              <span>{fmtDateShort(selectedDate)}</span>
-              <span className="chev">▾</span>
-            </button>
-            <input ref={hariIniDateRef} type="date" className="date-input-hidden" max={hariIni} value={selectedDate} onChange={e=>{ if (e.target.value && e.target.value <= hariIni) setSelectedDate(e.target.value); }}/>
-            {(() => {
-              const v = voucherForDate(selectedDate, voucherToko);
-              const hasVoucher = v.laku>0 || v.drop>0;
-              if (!existingEntry && !hasVoucher) return null;
-              // Detail tanggal ini belum tiba: diamkan dulu, jangan tampilkan "–"
-              // yang bikin seolah harinya kosong padahal ada isinya.
-              if (existingEntry && !hasDetail(existingEntry) && !hasVoucher) return null;
-              const items = hasDetail(existingEntry) ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
-              const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
-              return (
-                <span className="date-hint">
-                  <Icon type="package" size={13}/> Sudah tercatat <strong>{summary}</strong>
-                </span>
-              );
-            })()}
-            {/* Gaji Jaya dibayar tiap hari dari laci, jadi angkanya perlu
-                terlihat di sini — dulu baru ada di Gajian atau Riwayat. */}
-            {(() => {
-              const g = (existingEntry?.gaji || 0) + voucherForDate(selectedDate, voucherToko).gaji;
-              if (!g) return null;
-              return (
-                <span className="gaji-hari">
-                  <Icon type="dollar" size={13}/> Gaji Jaya {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)} <strong>{IDR(g)}</strong>
-                </span>
-              );
-            })()}
-            {drafLain.length > 0 && (
-              <button type="button" className="draf-lain" onClick={() => setSelectedDate(drafLain[0])}>
-                <Icon type="pencil" size={12}/> Ada draf belum disimpan · {fmtDateShort(drafLain[0])}
-              </button>
-            )}
-          </div>
-
-          {(() => {
+  const blokProduk = (() => {
             const tersedia = PRODUCTS.filter(p => !(p.id==='v2k' && selectedDate >= VOUCHER_TOKO_CUTOFF));
             const cari = (id) => tersedia.find(p => p.id === id);
             const utama = PRODUK_UTAMA.map(cari).filter(Boolean);
@@ -383,7 +327,155 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
                 )}
               </>
             );
+          })();
+
+  // Batalkan simpan barusan. Masih di antrean HP: cukup dikeluarkan. Sudah
+  // di server: baris segarnya dibaca, input itu dikurangkan (kurangiEntri),
+  // lalu ditulis kembali — dengan jejak "membatalkan input". Isinya kembali ke
+  // draf, supaya tinggal dibetulkan lalu disimpan lagi.
+  async function batalkan({ id, tanggal, input, hasil, sebelumLokal }) {
+    const kembalikanDraf = () => {
+      setDraf(d => d.tanggal === tanggal ? { tanggal, ...tambahKeDraf(d, input) } : d);
+      if (draf.tanggal !== tanggal) tulisDraf(tanggal, tambahKeDraf(bacaDraf(tanggal), input));
+    };
+    if (hasil === 'diantre' && batalkanAntrean(id)) {
+      setEntries(prev => { const n = { ...prev }; if (sebelumLokal) n[tanggal] = sebelumLokal; else delete n[tanggal]; return n; });
+      kembalikanDraf();
+      showToast('Dibatalkan sebelum terkirim · isinya kembali ke draf');
+      return;
+    }
+    try {
+      const { data: kini, error } = await loadEntryDetail(tanggal);
+      if (error) throw error;
+      if (!kini) { showToast('Tidak ada yang bisa dibatalkan di tanggal itu', 'gagal'); return; }
+      const jadi = kurangiEntri(kini, tanggal, input);
+      const jejakBatal = tandaJejak(session, 'ubah', rincianUbah(kini, jadi, { batal: true }));
+      if (entriKosong(jadi)) await dbDeleteEntry(tanggal, jejakBatal);
+      else await dbSaveEntry(jadi, jejakBatal);
+      setEntries(prev => { const n = { ...prev }; if (entriKosong(jadi)) delete n[tanggal]; else n[tanggal] = jadi; return n; });
+      kembalikanDraf();
+      bunyi('hapus');
+      showToast('Dibatalkan · isinya kembali ke draf');
+    } catch (e) {
+      bunyi('gagal');
+      showToast('Belum bisa dibatalkan: '+pesanGalat(e)+' — ubah lewat Riwayat', 'gagal');
+    }
+  }
+
+  return (
+    <>
+          {/* Tanpa sinyal saat app dibuka: angka dari simpanan HP ditampilkan
+              redup dengan jamnya, atau "—" kalau belum pernah ada. Dulu yang
+              tampil Rp0 — angka yang tampak benar padahal kosong. */}
+          <div className={"kas-hero"+(dataPer||dataKosong?" basi":"")}>
+            {/* "Kas Toko", bukan "Kas Saat Ini": angka ini uang di laci toko,
+                bukan seluruh uang usaha — setoran ke pemilik tidak ada di sini. */}
+            <div className="kas-hero-label">Kas Toko</div>
+            {dataKosong
+              ? <div className="kas-hero-value kosong">—</div>
+              : <div className={"kas-hero-value"+(kasSummary.kasSekarang<0?" neg":"")}><AnimatedIDR value={kasSummary.kasSekarang}/></div>}
+            <div className="kas-hero-delta">
+              {dataKosong
+                ? <span className="kas-basi">Belum tersambung — angka belum bisa ditampilkan</span>
+                : dataPer
+                  ? <span className="kas-basi">Angka per {tglJejak(dataPer)} · belum tersambung</span>
+                  : kasSummary.hasToday
+                    ? <>Hari ini <span className={kasSummary.todayKas>=0?'pos':'neg'}>{kasSummary.todayKas>=0?'+':''}{IDR(kasSummary.todayKas)}</span></>
+                    : <span style={{color:"var(--text3)",fontStyle:"italic"}}>Hari ini belum input</span>}
+            </div>
+          </div>
+
+          {paydayInfo && !dataKosong && (
+            <div className={"payday-banner "+paydayInfo.show}>
+              <div className="payday-main">
+                {paydayInfo.show==='today'
+                  ? <><Icon type="gift" size={16}/><span className="label">Hari Ini Gajian!</span></>
+                  : <><Icon type="calendar" size={15}/><span className="label">Gajian H−{paydayInfo.daysLeft}</span></>
+                }
+                <span className="sub">{paydayInfo.period.label} {ML[paydayInfo.month]}{paydayInfo.show==='upcoming' && ' · sementara'}</span>
+              </div>
+              <div className="payday-amount">{IDR(paydayInfo.totalGaji)}</div>
+            </div>
+          )}
+
+          {/* Cocokkan kas: hanya kalau tabelnya sudah ada dan angkanya segar.
+              Mencocokkan dengan angka dari simpanan HP tidak ada artinya. */}
+          {fitur?.hitungKas && !dataPer && !dataKosong && (() => {
+            const terakhir = (hitungKas?.[hariIni] || []).slice(-1)[0];
+            return (
+              <div className="cocok-bar">
+                {terakhir
+                  ? <span className={"cocok-status "+(terakhir.selisih===0?'pas':'beda')}>
+                      <Icon type={terakhir.selisih===0?'check':'alert'} size={13}/>
+                      {terakhir.selisih===0 ? 'Cocok' : 'Selisih '+IDR(terakhir.selisih)} · {terakhir.oleh} {jamSaja(terakhir.waktu)}
+                    </span>
+                  : <span className="cocok-status">Belum dicocokkan hari ini</span>}
+                <button type="button" className="chip samar" onClick={()=>setLembarCocok(true)}>
+                  <Icon type="coins" size={13}/> Cocokkan kas
+                </button>
+              </div>
+            );
           })()}
+
+          {lembarCocok && (
+            <CocokkanKas
+              session={session} sistem={kasSummary.kasSekarang} hariIni={hariIni}
+              tandaiTulis={tandaiTulis}
+              onTercatat={(h)=>setHitungKas(prev => ({ ...prev, [h.date]: [...(prev[h.date]||[]).filter(x=>x.id!==h.id), h] }))}
+              onTutup={()=>setLembarCocok(false)}
+            />
+          )}
+
+          <div className="date-inline">
+            <PilihTanggal value={selectedDate} onChange={setSelectedDate} hariIni={hariIni}/>
+            {(() => {
+              const v = voucherForDate(selectedDate, voucherToko);
+              const hasVoucher = v.laku>0 || v.drop>0;
+              if (!existingEntry && !hasVoucher) return null;
+              // Detail tanggal ini belum tiba: diamkan dulu, jangan tampilkan "–"
+              // yang bikin seolah harinya kosong padahal ada isinya.
+              if (existingEntry && !hasDetail(existingEntry) && !hasVoucher) return null;
+              const items = hasDetail(existingEntry) ? PRODUCTS.filter(p=>(existingEntry.quantities?.[p.id]||0)>0).map(p=>p.name+' ×'+existingEntry.quantities[p.id]).join(', ') : '';
+              const summary = items || (hasVoucher ? 'voucher ×'+v.laku : '–');
+              return (
+                <span className="date-hint">
+                  <Icon type="package" size={13}/> Sudah tercatat <strong>{summary}</strong>
+                </span>
+              );
+            })()}
+            {/* Gaji Jaya dibayar tiap hari dari laci, jadi angkanya perlu
+                terlihat di sini — dulu baru ada di Gajian atau Riwayat. */}
+            {(() => {
+              const g = (existingEntry?.gaji || 0) + voucherForDate(selectedDate, voucherToko).gaji;
+              if (!g) return null;
+              return (
+                <span className="gaji-hari">
+                  <Icon type="dollar" size={13}/> Gaji Jaya {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)} <strong>{IDR(g)}</strong>
+                </span>
+              );
+            })()}
+            {drafLain.length > 0 && (
+              <button type="button" className="draf-lain" onClick={() => setSelectedDate(drafLain[0])}>
+                <Icon type="pencil" size={12}/> Ada draf belum disimpan · {fmtDateShort(drafLain[0])}
+              </button>
+            )}
+          </div>
+
+          {tercatat.length > 0 && (
+            <div className="kartu-tercatat">
+              <div className="pengeluaran-label">Tercatat {selectedDate === hariIni ? 'hari ini' : fmtDateShort(selectedDate)}</div>
+              {tercatat.map((j, i) => (
+                <div key={j.id ?? i} className="tercatat-baris">
+                  <span className="tercatat-jam">{jamJejak(j.waktu)}</span>
+                  <span className="tercatat-isi"><strong>{LABEL_AKSI[j.aksi] || j.aksi}</strong> {ringkasJejak(j)}</span>
+                  <span className="tercatat-oleh">{j.oleh}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!libur && blokProduk}
+          {libur && kartuVoucher}
 
           {/* Pengeluaran naik ke sini: dipakai 89% hari, dulu terkubur di
               bawah delapan baris produk. Chip-nya dari keterangan yang paling
@@ -400,7 +492,7 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
             {expenses.map((exp, i) => (
               <div key={'e'+i} className="expense-row">
                 <input className="expense-input" type="text" placeholder="Keterangan…" value={exp.desc} onChange={e=>updateExpense(i,'desc',e.target.value)}/>
-                <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" autoFocus={exp.desc!=='' && !exp.amount} value={exp.amount||''} onChange={e=>updateExpense(i,'amount',e.target.value)}/>
+                <InputNominal autoFocus={exp.desc!=='' && !exp.amount} value={exp.amount} onChange={v=>updateExpense(i,'amount',v)}/>
                 <button className="del-btn" onClick={()=>removeExpense(i)}>×</button>
               </div>
             ))}
@@ -426,7 +518,7 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
                 {cashIns.map((exp, i) => (
                   <div key={'c'+i} className="expense-row">
                     <input className="expense-input" type="text" placeholder="Cth: Pak Budi bayar hutang…" value={exp.desc} onChange={e=>updateCashIn(i,'desc',e.target.value)}/>
-                    <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateCashIn(i,'amount',e.target.value)}/>
+                    <InputNominal value={exp.amount} onChange={v=>updateCashIn(i,'amount',v)}/>
                     <button className="del-btn" onClick={()=>removeCashIn(i)}>×</button>
                   </div>
                 ))}
@@ -439,13 +531,24 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
                 {setors.map((exp, i) => (
                   <div key={'s'+i} className="expense-row">
                     <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={exp.desc} onChange={e=>updateSetor(i,'desc',e.target.value)}/>
-                    <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={exp.amount||''} onChange={e=>updateSetor(i,'amount',e.target.value)}/>
+                    <InputNominal value={exp.amount} onChange={v=>updateSetor(i,'amount',v)}/>
                     <button className="del-btn" onClick={()=>removeSetor(i)}>×</button>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {libur && (
+            <div className="lipat-kopi">
+              <button type="button" className="lipat-kopi-tombol" aria-expanded={kopiTerbuka || inputTotals.totalQty>0} onClick={()=>setKopiTerbuka(v=>!v)}>
+                <Icon type="coffee" size={15}/> Kopi &amp; lainnya · sedang libur
+                <span className="rekap-chev">{(kopiTerbuka || inputTotals.totalQty>0) ? '\u25B4' : '\u25BE'}</span>
+              </button>
+              {/* Draf yang sudah berisi kopi tetap terlihat, walau dilipat. */}
+              {(kopiTerbuka || inputTotals.totalQty>0) && blokProduk}
+            </div>
+          )}
 
           <button
             ref={simpanRef}
@@ -454,7 +557,10 @@ export default function HariIni({ hariIni, dataPer, dataKosong, fitur, hitungKas
             onClick={saveEntry}
           >
             <Icon type="coffee" size={16}/> Simpan
-            {inputTotals.totalQty>0 && <span className="simpan-total">· {IDR(inputTotals.totalSales)}</span>}
+            {/* Tombol ini menyebut apa yang akan tersimpan, supaya ketukan
+                terakhir tidak perlu menggulir ke atas untuk memeriksa. */}
+            {inputTotals.totalQty>0 && <span className="simpan-total">· {inputTotals.totalQty} item · {IDR(inputTotals.totalSales)}</span>}
+            {inputTotals.totalQty===0 && (inputTotals.totalExpense+inputTotals.totalCashIn+inputTotals.totalSetor)>0 && <span className="simpan-total">· {IDR(inputTotals.totalExpense+inputTotals.totalCashIn+inputTotals.totalSetor)}</span>}
           </button>
   
     </>

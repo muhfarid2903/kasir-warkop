@@ -74,6 +74,19 @@ export function tanggalDrafLain(tanggalKini) {
   return Object.keys(semua).filter(t => t !== tanggalKini && drafBerisi(semua[t])).sort().reverse()
 }
 
+// Kebalikan kurangiDraf: input yang dibatalkan dikembalikan ke draf, supaya
+// orangnya tinggal membetulkan lalu menyimpan lagi.
+export function tambahKeDraf(d, input) {
+  const quantities = { ...d.quantities }
+  Object.keys(input.quantities || {}).forEach(id => { quantities[id] = (quantities[id] || 0) + (input.quantities[id] || 0) })
+  return {
+    quantities,
+    expenses: [...(d.expenses || []), ...(input.expenses || [])],
+    cashIns: [...(d.cashIns || []), ...(input.cashIns || [])],
+    setors: [...(d.setors || []), ...(input.setors || [])],
+  }
+}
+
 // Sesudah simpan: kurangi draf dengan yang barusan terkirim, bukan
 // mengosongkannya. Ketukan yang masuk SELAGI kiriman berjalan tetap tinggal.
 // Baris pengeluaran dikenali dari objeknya sendiri — baris yang tidak diubah

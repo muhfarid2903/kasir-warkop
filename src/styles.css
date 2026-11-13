@@ -1697,3 +1697,94 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .edit-pemilik input{width:18px;height:18px;accent-color:var(--accent)}
 .gaji-hari{display:inline-flex;align-items:center;gap:6px;flex-basis:100%;font-size:13px;color:var(--text2)}
 .gaji-hari strong{color:var(--accent);font-weight:700}
+
+/* === Kolom nominal dengan tombol 000 (src/components/InputNominal.jsx) === */
+.nominal-wrap{position:relative;display:inline-flex;flex-shrink:0}
+.nominal-wrap .expense-amount{width:150px;padding-right:48px}
+.nominal-wrap .form-input{width:100%;padding-right:52px}
+.nominal-wrap:has(.form-input){display:flex;width:100%}
+.tombol-000{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  min-width:40px;height:32px;padding:0 6px;border-radius:8px;cursor:pointer;
+  font:600 12px/1 'JetBrains Mono',monospace;color:var(--text2);
+  background:var(--bg2);border:1px solid var(--border);
+}
+.tombol-000::after{content:'';position:absolute;inset:-6px -4px}
+.tombol-000:active{background:var(--accent-bg);color:var(--accent)}
+@media(max-width:600px){ .nominal-wrap .expense-amount{width:128px} }
+@media(max-width:380px){ .nominal-wrap .expense-amount{width:116px} }
+
+/* === Pemilih tanggal + chip Hari ini/Kemarin === */
+.pilih-tanggal{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-basis:100%}
+.pilih-tanggal .date-display-btn{flex:1 1 150px;min-width:0}
+.chip.chip-tanggal{flex:0 0 auto;min-height:44px}
+
+/* Pita "Mengisi untuk <tanggal lain>": oranye, menetap di atas halaman. */
+.pita-tanggal{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:760px;margin:0 auto 14px;
+  padding:8px 12px;border-radius:12px;font-size:13px;
+  background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border);
+}
+.pita-tanggal strong{color:var(--text)}
+.pita-tanggal button{
+  margin-left:auto;min-height:36px;padding:0 12px;border-radius:9px;cursor:pointer;
+  font:600 12.5px/1 'Inter',sans-serif;color:var(--orange);background:transparent;border:1px solid var(--orange-border);
+}
+
+/* Simpan disembunyikan selama belum ada isi — di HP ia mengambang dan
+   menutupi chip Pengeluaran tanpa ada yang bisa disimpan. */
+@media(max-width:900px){
+  .btn-save.simpan-sticky.kosong{display:none}
+}
+/* Kartu toko: chip isi cepat + kapan terakhir setor. */
+.toko-cepat{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.toko-cepat .chip{flex:0 1 auto;min-height:40px}
+.toko-setor-terakhir{margin-top:8px;font-size:12px;color:var(--text3)}
+.toko-setor-terakhir.lama{color:var(--orange);font-weight:600}
+
+/* === Hari Ini saat kopi libur === */
+.kartu-voucher-hari{
+  display:flex;flex-direction:column;gap:10px;margin-bottom:14px;padding:14px 16px;
+  border-radius:var(--radius-lg);background:var(--bg2);border:1px solid var(--accent-border);
+}
+.kvh-kepala{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:600;font-size:14px}
+.kvh-kepala > span{display:inline-flex;align-items:center;gap:7px}
+.kvh-kepala .chip{flex:0 0 auto;min-height:40px}
+.kvh-kosong{font-size:13px;color:var(--text3)}
+.lipat-kopi{margin-top:18px}
+.lipat-kopi-tombol{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:0 14px;cursor:pointer;
+  border-radius:12px;border:1px dashed var(--border2);background:transparent;
+  font:600 13.5px/1 'Inter',sans-serif;color:var(--text2);text-align:left;
+}
+.lipat-kopi-tombol .rekap-chev{margin-left:auto}
+.lipat-kopi .produk-grid{margin-top:12px}
+
+/* Toast dengan tombol Batalkan/Urungkan. */
+.toast.beraksi{pointer-events:auto;display:flex;align-items:center;gap:12px;text-align:left}
+.toast-aksi{
+  flex-shrink:0;min-height:36px;padding:0 12px;border-radius:9px;cursor:pointer;
+  font:700 13px/1 'Inter',sans-serif;background:rgba(0,0,0,.18);color:inherit;border:1px solid rgba(255,255,255,.35);
+}
+.toast.gagal.beraksi::after{content:none}
+
+/* Kartu "Tercatat hari ini" — satu baris per simpan, dari jejak. */
+.kartu-tercatat{display:flex;flex-direction:column;gap:4px;margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--bg2);border:1px solid var(--border)}
+.kartu-tercatat .pengeluaran-label{margin-bottom:4px}
+.tercatat-baris{display:flex;align-items:baseline;gap:10px;font-size:13px;line-height:1.4}
+.tercatat-jam{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3)}
+.tercatat-isi{flex:1;min-width:0;color:var(--text2);overflow-wrap:anywhere}
+.tercatat-isi strong{color:var(--text);font-weight:600;margin-right:4px}
+.tercatat-oleh{flex-shrink:0;font-size:12px;color:var(--text3)}
+
+/* === Layar masuk === */
+.password-wrap{position:relative}
+.password-wrap .form-input{padding-right:52px}
+.password-lihat{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  width:44px;height:40px;border:0;border-radius:8px;background:transparent;color:var(--text3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.password-lihat:hover{color:var(--text)}
+.login-galat{padding:10px 12px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:10px;font-size:13px;margin-bottom:12px}
+.login-tautan{display:block;margin:14px auto 0;min-height:40px;padding:0 10px;border:0;background:none;cursor:pointer;font:600 13px/1 'Inter',sans-serif;color:var(--accent)}

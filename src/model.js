@@ -148,6 +148,42 @@ export function voucherStockBefore(date, vtData) {
   return stok;
 }
 
+// Kopi sedang libur? Benar bila sudah ada riwayat, tapi tidak ada satu pun
+// penjualan produk dalam 14 hari sampai `hariIni`. Cukup baris ringkas:
+// totalPenjualan entri hanya memuat produk (voucher toko dihitung terpisah
+// sejak 1 Mei 2026). Pemakai baru (belum ada entri sama sekali) bukan libur.
+export function kopiSedangLibur(entries, hariIni, jangka = 14) {
+  const semua = Object.values(entries || {})
+  if (semua.length === 0) return false
+  const awal = new Date(hariIni + 'T00:00:00'); awal.setDate(awal.getDate() - (jangka - 1))
+  const batas = dateToISO(awal)
+  return !semua.some(e => e.date >= batas && e.date <= hariIni && (e.totalPenjualan || 0) > 0)
+}
+
+// Kebiasaan satu toko, untuk kartu di Voucher Toko:
+//   terakhirSetor — tanggal laku terakhir SEBELUM `tanggal` (null = belum pernah)
+//   hariSejak     — berapa hari dari terakhirSetor ke `tanggal`
+//   dropUmum      — jumlah drop yang paling sering dipakai toko ini (null = belum ada)
+// Dari pola nyata: toko menyetor seluruh stok lalu diisi ulang dengan jumlah
+// yang itu-itu saja (70, 140, 200).
+export function infoToko(tokoId, tanggal, vtData) {
+  let terakhirSetor = null
+  const hitungDrop = new Map()
+  Object.keys(vtData || {}).forEach(d => {
+    if (d >= tanggal) return
+    const r = vtData[d]?.[tokoId]
+    if (!r) return
+    if ((r.laku || 0) > 0 && (!terakhirSetor || d > terakhirSetor)) terakhirSetor = d
+    if ((r.drop || 0) > 0) hitungDrop.set(r.drop, (hitungDrop.get(r.drop) || 0) + 1)
+  })
+  let dropUmum = null, terbanyak = 0
+  hitungDrop.forEach((n, jumlah) => { if (n > terbanyak || (n === terbanyak && jumlah > dropUmum)) { terbanyak = n; dropUmum = jumlah } })
+  const hariSejak = terakhirSetor
+    ? Math.round((new Date(tanggal + 'T00:00:00') - new Date(terakhirSetor + 'T00:00:00')) / 86400000)
+    : null
+  return { terakhirSetor, hariSejak, dropUmum }
+}
+
 // Baris entri ada dua bentuk: RINGKAS (cuma kolom angka, dari muat awal) dan
 // LENGKAP (plus quantities & expenses). Yang ringkas tidak punya kunci
 // quantities sama sekali, jadi pengecekannya tegas — bukan menebak dari {} kosong.
@@ -260,6 +296,39 @@ export function accumulateEntry(existing, date, { quantities, expenses, cashIns,
 // sebagai satu langkah atomik (lihat kiriman_migration.sql).
 export function selisihInput(date, input) {
   return accumulateEntry(null, date, input)
+}
+
+// Kebalikan satu kali simpan Hari Ini — untuk tombol Batalkan. Jumlah per
+// produk dikurangi (tidak pernah di bawah nol), baris yang barusan ditambahkan
+// dibuang (yang terakhir cocok, dari belakang), dan TOTAL dikurangi selisih
+// input itu — bukan dihitung ulang dengan harga sekarang, supaya hari yang
+// tersimpan dengan harga lama tidak ikut berubah.
+export function kurangiEntri(kini, date, input) {
+  const s = selisihInput(date, input)
+  const quantities = { ...(kini?.quantities || {}) }
+  Object.keys(s.quantities).forEach(id => {
+    if (!s.quantities[id]) return
+    quantities[id] = Math.max(0, (quantities[id] || 0) - s.quantities[id])
+  })
+  const expenses = [...(kini?.expenses || [])]
+  const kunci = (x) => [x.type || '', (x.desc || '').trim(), x.amount || 0].join('|')
+  s.expenses.forEach(baris => {
+    for (let i = expenses.length - 1; i >= 0; i--) {
+      if (kunci(expenses[i]) === kunci(baris)) { expenses.splice(i, 1); break }
+    }
+  })
+  const totalPenjualan = (kini?.totalPenjualan || 0) - s.totalPenjualan
+  const gaji = (kini?.gaji || 0) - s.gaji
+  const totalPengeluaran = (kini?.totalPengeluaran || 0) - s.totalPengeluaran
+  return { date, quantities, expenses, totalPenjualan, gaji, totalPengeluaran, sisaKas: totalPenjualan - gaji - totalPengeluaran }
+}
+
+// Entri yang tidak berisi apa pun lagi (sesudah dibatalkan) lebih baik dihapus
+// daripada dibiarkan sebagai baris nol di Riwayat.
+export function entriKosong(e) {
+  return !Object.values(e?.quantities || {}).some(n => (n || 0) > 0)
+    && (e?.expenses || []).length === 0
+    && !(e?.totalPenjualan || 0) && !(e?.gaji || 0) && !(e?.totalPengeluaran || 0)
 }
 
 // Tebakan layar sesudah simpan, untuk tanggal yang baru punya baris RINGKAS
