@@ -90,12 +90,29 @@ function belumAda(error, nama) {
 const rpcTidakAda = new Set()
 const fungsiTidakAda = (error) => error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''))
 
+// Galat SQL dari DALAM fungsi server — tipe kolom tak cocok, operator tak
+// dikenal, data tak valid (kelas 42xxx & 22xxx, kecuali 42501 = tidak
+// diizinkan). Artinya fungsinya yang rusak, bukan datanya ditolak. Daripada
+// kasir tidak bisa menyimpan sama sekali, fungsi itu dimatikan untuk sesi
+// ini, cara lama (yang terbukti jalan) dipakai, dan kejadiannya dilaporkan.
+function fungsiRusak(error) {
+  const k = String(error?.code || '')
+  return (k.startsWith('42') && k !== '42501') || k.startsWith('22')
+}
+let laporRusak = null   // diisi galat.js lewat aturPelaporFungsiRusak (hindari impor melingkar)
+export function aturPelaporFungsiRusak(fn) { laporRusak = fn }
+function catatFungsiRusak(nama, error) {
+  rpcTidakAda.add(nama)
+  try { laporRusak?.(nama, error) } catch (_) {}
+}
+
 // true = sudah ditangani lewat fungsi server; false = pakai jalur lama.
 async function lewatFungsi(nama, args) {
   if (rpcTidakAda.has(nama)) return false
   const { error } = await sb.rpc(nama, args)
   if (!error) return true
   if (fungsiTidakAda(error)) { rpcTidakAda.add(nama); return false }
+  if (fungsiRusak(error)) { catatFungsiRusak(nama, error); return false }
   throw error
 }
 
@@ -236,7 +253,8 @@ export async function commitEntryAddition(date, input, jejak, opId) {
     })
     if (!error) return data ? rowToEntry(data) : null
     // PGRST202 = fungsi tidak ditemukan: migrasinya belum dijalankan.
-    if (error.code === 'PGRST202' || /could not find the function/i.test(error.message || '')) rpcTambahAda = false
+    if (fungsiTidakAda(error)) rpcTambahAda = false
+    else if (fungsiRusak(error)) { rpcTambahAda = false; catatFungsiRusak('tambah_entri', error) }
     else throw error
   }
   const { data: existing, error } = await loadEntryDetail(date)
