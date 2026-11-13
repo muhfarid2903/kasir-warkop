@@ -216,3 +216,17 @@ export function banyakPenginput(jejak) {
   Object.keys(jejak || {}).forEach(d => (jejak[d] || []).forEach(j => nama.add(j?.oleh || 'Tanpa nama')))
   return nama.size > 1
 }
+
+// Isi satu kiriman di antrean, dalam kalimat yang sama dengan jejak — dipakai
+// lembar "gagal terkirim", supaya orangnya tahu persis apa yang tertahan
+// sebelum memutuskan mencoba lagi atau membuangnya.
+export function ringkasKiriman(op) {
+  switch (op?.type) {
+    case 'tambahEntri': return ringkasJejak({ aksi: 'tambah', rincian: rincianTambah(op.input || {}) })
+    case 'hapusEntri':  return 'menghapus data hari itu'
+    case 'simpanVoucher':
+      return ringkasJejak({ aksi: 'voucher', rincian: { toko: (op.rows || []).map(r => ({ id: r.tokoId, drop: r.drop, laku: r.laku })) } })
+    case 'simpanSaldo': return ringkasJejak({ aksi: 'saldo', rincian: { nilai: op.value } })
+    default:            return op?.type || 'kiriman'
+  }
+}

@@ -3,13 +3,14 @@ import { signOut } from './db.js'
 import { namaPengguna } from './jejak.js'
 import { DAYS, ML, fmtDateShort } from './format.js'
 import { showToast } from './toast.js'
-import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO } from './hooks.js'
+import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO, useKirimanGagal } from './hooks.js'
 import { useEfekSentuh } from './fx.js'
 import { suaraAktif, setSuaraAktif, bunyi } from './sfx.js'
 import { Icon } from './components/Icon.jsx'
 import { Logo } from './components/Logo.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
+import LembarGagal from './components/LembarGagal.jsx'
 import HariIni from './pages/HariIni.jsx'
 import VoucherToko from './pages/VoucherToko.jsx'
 import Gajian from './pages/Gajian.jsx'
@@ -52,6 +53,7 @@ function App() {
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
     pending, tandaiTulis,
+    dataPer, dataKosong,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -59,6 +61,8 @@ function App() {
   // Bunyi + riak untuk seluruh app, satu listener di document (lihat src/fx.js).
   useEfekSentuh();
   const [suara, setSuara] = useState(suaraAktif);
+  const gagal = useKirimanGagal();
+  const [lembarGagal, setLembarGagal] = useState(false);
 
   // Menu akun di header. Ada HANYA karena di HP sidebar disembunyikan (lihat
   // .sidebar{display:none} di blok ≤900px): Mode terang/gelap dan Logout
@@ -138,6 +142,14 @@ function App() {
   // Tampil kalau tidak online ATAU masih ada kiriman tertunda. Jumlahnya
   // disebutkan supaya kasir tahu ada yang belum sampai, bukan sekadar "offline".
   const SyncBadge = () => {
+    // Yang ditolak server didahulukan: itu satu-satunya keadaan yang tidak
+    // akan beres sendiri.
+    if (gagal.length > 0) return (
+      <button type="button" className="sync-badge sync-offline sync-gagal" onClick={()=>setLembarGagal(true)}
+        title="Server menolak kiriman ini — ketuk untuk melihat">
+        <Icon type="alert" size={13}/> {gagal.length} gagal terkirim
+      </button>
+    );
     if (syncStatus === "online" && pending === 0) return null;
     const judul = pending > 0
       ? pending+' perubahan tersimpan di HP, menunggu sinyal untuk terkirim'
@@ -255,6 +267,7 @@ function App() {
          <div className="page-cinema" key={page}>
           {page==="input" && (
             <HariIni
+              hariIni={hariIni} dataPer={dataPer} dataKosong={dataKosong}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               entries={entries} setEntries={setEntries}
               voucherToko={voucherToko}
@@ -267,6 +280,7 @@ function App() {
 
           {page==="voucher" && (
             <VoucherToko
+              hariIni={hariIni}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               session={session}
@@ -292,6 +306,8 @@ function App() {
          </div>
         </div>
       </div>
+
+      {lembarGagal && <LembarGagal gagal={gagal} onTutup={()=>setLembarGagal(false)}/>}
 
       {/* Tab bar bawah — hanya tampil di HP (CSS menyembunyikannya di atas
           900px, di mana sidebar yang dipakai). shortLabel ada di NAV_ITEMS

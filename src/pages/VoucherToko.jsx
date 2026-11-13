@@ -11,25 +11,38 @@ import { Icon } from '../components/Icon.jsx'
 
 // Drop & laku voucher 2000 per toko, per hari. selectedDate dipegang App
 // karena dipakai bareng halaman Hari Ini.
-export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
+export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
   const [voucherDraft, setVoucherDraft] = useState({});
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
   const [rekapTerbuka, setRekapTerbuka] = useState(false);
   const voucherDateRef = useRef(null);
 
-  // Sinkronkan draft voucher dari data tersimpan saat tanggal/voucherToko berubah
+  // Kolom yang sudah diketik orang di tanggal ini ("dadi.laku", …). Dulu tiap
+  // event realtime dari HP lain menyetel ulang SEMUA kolom dari server, jadi
+  // angka yang sedang diketik hilang. Sekarang yang ikut diperbarui hanya
+  // kolom yang belum disentuh.
+  const disentuh = useRef(new Set());
+  const tanggalDraft = useRef(null);
+
   useEffect(() => {
     const day = voucherToko[selectedDate] || {};
-    const next = {};
-    TOKO.forEach(t => {
-      const r = day[t.id] || { drop:0, laku:0 };
-      next[t.id] = { drop: String(r.drop||0), laku: String(r.laku||0) };
+    const gantiTanggal = tanggalDraft.current !== selectedDate;
+    if (gantiTanggal) { disentuh.current = new Set(); tanggalDraft.current = selectedDate; }
+    setVoucherDraft(prev => {
+      const next = {};
+      TOKO.forEach(t => {
+        const r = day[t.id] || { drop:0, laku:0 };
+        const lama = prev[t.id];
+        const ambil = (f) => (!gantiTanggal && lama && disentuh.current.has(t.id+'.'+f)) ? lama[f] : String(r[f]||0);
+        next[t.id] = { drop: ambil('drop'), laku: ambil('laku') };
+      });
+      return next;
     });
-    setVoucherDraft(next);
   }, [selectedDate, voucherToko]);
 
   function setDraft(tokoId, field, val) {
+    disentuh.current.add(tokoId+'.'+field);
     setVoucherDraft(prev => ({ ...prev, [tokoId]: { ...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val } }));
   }
 
@@ -43,19 +56,24 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
     const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
     if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
-    // Tombol ini selalu mengirim kelima toko, padahal biasanya cuma satu yang
-    // disentuh. Yang dicatat hanya yang benar-benar berubah; simpan yang tidak
-    // mengubah apa pun tidak meninggalkan jejak sama sekali (null).
+    // Yang dikirim HANYA toko yang benar-benar berubah. Dulu kelima toko
+    // dikirim tiap kali; dari antrean offline itu bisa menimpa perubahan HP
+    // lain di toko yang tidak disentuh di sini.
     const berubah = rincianVoucher(rows, voucherToko[selectedDate]);
-    const jejak = berubah ? tandaJejak(session, 'voucher', berubah) : null;
+    if (!berubah) { showToast('Tidak ada yang berubah'); return; }
+    const idBerubah = new Set(berubah.toko.map(t => t.id));
+    const rowsBerubah = rows.filter(r => idBerubah.has(r.tokoId));
+    const jejak = tandaJejak(session, 'voucher', berubah);
     setVoucherSaving(true);
     try {
-      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows, jejak });
+      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows: rowsBerubah, jejak });
       tandaiTulis(hasil);
       // Optimistic local update
+      // Sudah tersimpan: kolomnya kembali ikut data server.
+      disentuh.current = new Set();
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
-        rows.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
+        rowsBerubah.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
         next[selectedDate] = dayMap; return next;
       });
       showToast(hasil === 'diantre'
@@ -75,7 +93,7 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
               <span>{fmtDateShort(selectedDate)}</span>
               <span className="chev">▾</span>
             </button>
-            <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+            <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} max={hariIni} value={selectedDate} onChange={e=>{ if (e.target.value && e.target.value <= hariIni) setSelectedDate(e.target.value); }}/>
             <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
               <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
             </button>

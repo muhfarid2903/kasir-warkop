@@ -30,9 +30,13 @@ export const AKUN_TIRUAN = [
 ]
 
 // === Gangguan ===
+// Status putus bertahan lewat muat ulang halaman — supaya "app dibuka tanpa
+// sinyal" bisa dicoba: putus(true), lalu muat ulang.
+const KUNCI_PUTUS = 'tiruan_putus'
 const gangguan = {
-  putus: false,        // semua panggilan gagal seperti WiFi mati
+  putus: (() => { try { return localStorage.getItem(KUNCI_PUTUS) === '1' } catch (_) { return false } })(),
   hilangBalasan: 0,    // n tulisan berikutnya SAMPAI di "server" tapi balasannya hilang
+  tolak: 0,            // n tulisan berikutnya DITOLAK server (seperti pelanggaran RLS)
   jeda: [120, 260],    // ms, acak di antaranya
 }
 
@@ -50,6 +54,12 @@ async function bacaan(fn) {
 async function tulisan(fn) {
   await jedaJaringan()
   if (gangguan.putus) throw galatJaringan()
+  if (gangguan.tolak > 0) {
+    gangguan.tolak--
+    const e = new Error('new row violates row-level security policy for table "entries"')
+    e.code = '42501'
+    throw e
+  }
   const hasil = fn()
   if (gangguan.hilangBalasan > 0) { gangguan.hilangBalasan--; throw galatJaringan() }
   return hasil
@@ -261,15 +271,21 @@ export async function saveEntry(entry, jejak) {
   catatJejak(entry.date, jejak)
 }
 
-// Sama dengan db.js: baca baris segar, tumpuk, tulis. Ditulis dalam satu
-// ubah() supaya urutannya tidak tertukar antar tab.
-export async function commitEntryAddition(date, input, jejak) {
+// Meniru fungsi server tambah_entri (kiriman_migration.sql): atomik, dan
+// kiriman ulang dengan opId yang sama tidak ditambahkan dua kali. Kiriman
+// tanpa opId (antrean lama) memakai jalur lama: baca, tumpuk, tulis.
+export async function commitEntryAddition(date, input, jejak, opId) {
+  let dobel = false
   const entry = await tulisan(() => ubah(db => {
+    db.opDiterima = db.opDiterima || []
+    if (opId && db.opDiterima.includes(opId)) { dobel = true; return db.entries[date] ? salin(db.entries[date]) : null }
+    if (opId) db.opDiterima.push(opId)
     const lama = db.entries[date] || null
     const baru = accumulateEntry(lama, date, input)
     db.entries[date] = baru
     return salin(baru)
   }))
+  if (dobel) return entry
   siarkan({ tabel: 'entries', jenis: 'upsert', entry })
   catatJejak(date, jejak)
   return entry
@@ -353,12 +369,15 @@ if (typeof window !== 'undefined') {
     // __tiruan.putus(true) — semua panggilan gagal; false — sambung lagi
     putus(nyala = true) {
       gangguan.putus = !!nyala
+      try { localStorage.setItem(KUNCI_PUTUS, nyala ? '1' : '0') } catch (_) { /* abaikan */ }
       pendengarStatus.forEach(f => f(nyala ? 'offline' : 'online'))
       return 'jaringan ' + (nyala ? 'PUTUS' : 'tersambung')
     },
     // __tiruan.hilangkanBalasan(1) — tulisan berikutnya tersimpan, tapi app
     // menerima "Failed to fetch". Untuk menguji kiriman ganda (RENCANA 1.3).
     hilangkanBalasan(n = 1) { gangguan.hilangBalasan = n; return n + ' balasan tulisan berikutnya akan hilang' },
+    // __tiruan.tolak(1) — tulisan berikutnya ditolak server (RENCANA 1.4)
+    tolak(n = 1) { gangguan.tolak = n; return n + ' tulisan berikutnya akan ditolak' },
     // __tiruan.kirimAuth() — event auth dengan objek sesi baru, seperti yang
     // dikirim supabase-js saat token diperbarui (RENCANA 1.1).
     kirimAuth(jenis = 'TOKEN_REFRESHED') { siarkanAuth(jenis); return 'terkirim: ' + jenis },

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { accumulateEntry, todayISO } from './model.js'
+import { accumulateEntry, selisihInput, todayISO } from './model.js'
 
 // Satu-satunya file yang menyentuh Supabase. Komponen tidak pernah memanggil
 // sb.from(...) atau sb.auth langsung — supaya kalau nanti mau menambah retry,
@@ -161,10 +161,35 @@ export async function saveEntry(entry, jejak) {
   await catatJejak(entry.date, jejak)
 }
 
-// Menambah input ke entri satu tanggal. Selalu membaca baris LENGKAP yang
-// segar dulu, jadi hasilnya benar walau state lokal basi — dan tetap benar
-// walau kirimannya baru terkirim beberapa jam kemudian dari antrean offline.
-export async function commitEntryAddition(date, input, jejak) {
+// Menambah input ke entri satu tanggal.
+//
+// Jalur utama: fungsi database tambah_entri (kiriman_migration.sql) — satu
+// langkah atomik, dan kiriman ulang dengan opId yang sama tidak ditambahkan
+// dua kali. Tanpa itu, simpan yang balasannya hilang di WiFi putus-nyambung
+// akan diantre lalu dikirim ulang, dan penjualannya tercatat ganda.
+//
+// Jalur lama (baca → tumpuk → tulis) masih dipakai kalau fungsinya belum ada
+// di server, atau untuk kiriman lama di antrean yang belum punya opId.
+let rpcTambahAda = true
+
+export async function commitEntryAddition(date, input, jejak, opId) {
+  if (opId && rpcTambahAda) {
+    const s = selisihInput(date, input)
+    const { data, error } = await sb.rpc('tambah_entri', {
+      p_op_id: opId,
+      p_date: date,
+      p_qty: s.quantities,
+      p_expenses: s.expenses,
+      p_penjualan: s.totalPenjualan,
+      p_gaji: s.gaji,
+      p_pengeluaran: s.totalPengeluaran,
+      p_jejak: jejak || {},
+    })
+    if (!error) return data ? rowToEntry(data) : null
+    // PGRST202 = fungsi tidak ditemukan: migrasinya belum dijalankan.
+    if (error.code === 'PGRST202' || /could not find the function/i.test(error.message || '')) rpcTambahAda = false
+    else throw error
+  }
   const { data: existing, error } = await loadEntryDetail(date)
   if (error) throw error
   const entry = accumulateEntry(existing, date, input)
