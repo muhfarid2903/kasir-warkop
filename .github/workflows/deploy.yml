@@ -67,7 +67,6 @@ jobs:
 
       - name: Pastikan berkas app ada di dist/
         run: |
-          test -f dist/.well-known/assetlinks.json || { echo "dist/.well-known/assetlinks.json hilang — app Android akan memunculkan address bar"; exit 1; }
           test -f dist/manifest.webmanifest || { echo "dist/manifest.webmanifest hilang — app tidak bisa dipasang ke layar utama"; exit 1; }
           test -f dist/sw.js || { echo "dist/sw.js hilang — app tidak bisa dibuka tanpa sinyal"; exit 1; }
 
@@ -75,9 +74,10 @@ jobs:
 
       # Dibungkus sendiri, bukan pakai actions/upload-pages-artifact: action
       # itu membungkus dengan `--exclude=.[^/]*`, yang membuang SELURUH berkas
-      # & folder titik — termasuk .well-known. Akibatnya assetlinks.json ada di
-      # dist, lolos pemeriksaan di atas, lalu hilang diam-diam saat dikirim,
-      # dan gejalanya cuma address bar yang muncul di app Android.
+      # & folder titik. Dulu itu menghilangkan .well-known/assetlinks.json milik
+      # app Android; app Android sudah dihentikan (cukup PWA), tapi cara ini
+      # dipertahankan supaya berkas titik yang kelak ditambahkan tidak hilang
+      # diam-diam dengan cara yang sama.
       #
       # Bentuk artefaknya sama persis dengan yang dibuat action itu: satu
       # berkas artifact.tar berisi isi dist/, diunggah dengan nama
@@ -91,14 +91,14 @@ jobs:
               --exclude=.github \
               .
 
-      # Yang diperiksa isi bungkusannya, bukan lagi isi dist/. Pemeriksaan
-      # sebelumnya lolos sementara berkasnya tetap tidak sampai ke server —
-      # justru itu yang membuat masalahnya tidak kelihatan.
-      - name: Pastikan berkas titik ikut terbungkus
+      # Yang diperiksa isi bungkusannya, bukan isi dist/: berkas yang ada di
+      # dist tapi tidak ikut terbungkus tidak akan pernah sampai ke server.
+      - name: Pastikan berkas penting ikut terbungkus
         run: |
-          tar -tf "$RUNNER_TEMP/artifact.tar" | grep -qF ".well-known/assetlinks.json" \
-            || { echo "assetlinks.json tidak ikut terbungkus — app Android akan memunculkan address bar"; exit 1; }
-          echo "isi bungkusan:"; tar -tf "$RUNNER_TEMP/artifact.tar" | grep -E "well-known|manifest|sw.js|CNAME"
+          for f in manifest.webmanifest sw.js CNAME index.html; do
+            tar -tf "$RUNNER_TEMP/artifact.tar" | grep -qE "(^|/)$f$" || { echo "$f tidak ikut terbungkus"; exit 1; }
+          done
+          echo "isi bungkusan:"; tar -tf "$RUNNER_TEMP/artifact.tar" | grep -E "manifest|sw.js|CNAME"
 
       - uses: actions/upload-artifact@v7.0.1
         with:

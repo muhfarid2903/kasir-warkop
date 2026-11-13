@@ -11,6 +11,7 @@ import { Logo } from './components/Logo.jsx'
 import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
 import LembarGagal from './components/LembarGagal.jsx'
+import { usePasang, mintaPasang, LembarPasang } from './components/PasangDiHP.jsx'
 import HariIni from './pages/HariIni.jsx'
 import VoucherToko from './pages/VoucherToko.jsx'
 import Gajian from './pages/Gajian.jsx'
@@ -63,6 +64,9 @@ function App() {
   const [suara, setSuara] = useState(suaraAktif);
   const gagal = useKirimanGagal();
   const [lembarGagal, setLembarGagal] = useState(false);
+  const { terpasang } = usePasang();
+  const [lembarPasang, setLembarPasang] = useState(false);
+  const pasang = async () => { if (!(await mintaPasang())) setLembarPasang(true); };
 
   // Menu akun di header. Ada HANYA karena di HP sidebar disembunyikan (lihat
   // .sidebar{display:none} di blok ≤900px): Mode terang/gelap dan Logout
@@ -207,6 +211,11 @@ function App() {
               </div>
             </div>
           )}
+          {!terpasang && (
+            <button className="nav-btn" onClick={pasang}>
+              <Icon type="download" size={16}/> Pasang di HP
+            </button>
+          )}
           <button className="nav-btn" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>
             <Icon type={theme==='dark'?'sun':'moon'} size={16}/> Mode {theme==='dark'?'terang':'gelap'}
           </button>
@@ -254,6 +263,11 @@ function App() {
                   <div className="user-menu-nama">{userNama}</div>
                   <div className="user-menu-email" title={userEmail}>{userEmail}</div>
                   <div className="user-menu-divider"/>
+                  {!terpasang && (
+                    <button role="menuitem" onClick={()=>{ setMenuAkun(false); pasang(); }}>
+                      <Icon type="download" size={15}/> Pasang di HP
+                    </button>
+                  )}
                   <button role="menuitem" onClick={()=>{ setTheme(theme==='dark'?'light':'dark'); setMenuAkun(false); }}>
                     <Icon type={theme==='dark'?'sun':'moon'} size={15}/> Mode {theme==='dark'?'terang':'gelap'}
                   </button>
@@ -311,6 +325,7 @@ function App() {
       </div>
 
       {lembarGagal && <LembarGagal gagal={gagal} onTutup={()=>setLembarGagal(false)}/>}
+      {lembarPasang && <LembarPasang onTutup={()=>setLembarPasang(false)}/>}
 
       {/* Tab bar bawah — hanya tampil di HP (CSS menyembunyikannya di atas
           900px, di mana sidebar yang dipakai). shortLabel ada di NAV_ITEMS
