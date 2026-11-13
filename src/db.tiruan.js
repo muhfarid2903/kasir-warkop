@@ -391,6 +391,9 @@ export async function loadJejak() {
   })
 }
 
+// Pasangan db.js; database tiruan tidak punya fungsi server yang bisa rusak.
+export function aturPelaporFungsiRusak() {}
+
 export async function catatGalat(laporan) {
   console.warn('[tiruan] galat tercatat:', laporan)
   ubah(db => { (db.galat = db.galat || []).push({ ...laporan, waktu: new Date().toISOString() }) })

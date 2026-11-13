@@ -1,4 +1,4 @@
-import { catatGalat } from './db.js'
+import { catatGalat, aturPelaporFungsiRusak } from './db.js'
 
 // Laporan galat ke server (tabel galat). Dipanggil ErrorBoundary dan dua
 // pendengar global di bawah. Paling banyak lima laporan per sesi: satu galat
@@ -46,3 +46,9 @@ export function laporkanGagalSimpan(e, tempat) {
   if (kode.startsWith('PGRST30') || /jwt/i.test(m)) return       // sesi
   laporkanGalat(Object.assign(new Error('[' + tempat + '] ' + m + (kode ? ' (kode ' + kode + ')' : '')), { stack: e?.stack || '' }), tempat)
 }
+
+// Fungsi server yang gagal karena galat SQL (lihat fungsiRusak di db.js):
+// app sudah beralih ke cara lama, tapi pemilik harus tahu.
+aturPelaporFungsiRusak((nama, e) => {
+  laporkanGalat(Object.assign(new Error('[fungsi ' + nama + ' rusak, beralih ke cara lama] ' + (e?.message || e) + (e?.code ? ' (kode ' + e.code + ')' : '')), { stack: '' }), 'fungsi-server')
+})
