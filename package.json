@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:asli": "VITE_DB=asli vite",
     "build": "vite build",
+    "build:tiruan": "VITE_DB=tiruan vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

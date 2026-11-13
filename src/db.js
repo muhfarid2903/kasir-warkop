@@ -7,10 +7,18 @@ import { accumulateEntry, todayISO } from './model.js'
 // delapan pemanggilan yang tersebar di dalam handler tombol.
 
 // === Konfigurasi Supabase ===
-// Ganti dua nilai di bawah dengan milik project Supabase Anda.
-// Dapatkan di: Supabase Dashboard → Project Settings → API
-const SUPABASE_URL      = "https://rhhothozowdxpxeotlad.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoaG90aG96b3dkeHB4ZW90bGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTk1MTYsImV4cCI6MjA5MjY5NTUxNn0.d9U1vvJNTjbVSvV83scDD_RXyHtNcXFvG40uBKgsNpk"
+// Nilainya di berkas .env (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY), dari
+// Supabase Dashboard → Project Settings → API. Dipindah dari sini supaya
+// `npm run dev` tidak lagi otomatis tersambung ke database produksi: dev
+// memakai src/db.tiruan.js, dan berkas ini hanya ikut saat build atau
+// `npm run dev:asli` (lihat vite.config.js).
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+
+// Pasangan db.tiruan.js. Di sini selalu kosong/salah — yang dipakai app untuk
+// memasang pita "DATA TIRUAN" dan petunjuk akun di layar masuk.
+export const modeTiruan = false
+export const AKUN_TIRUAN = []
 
 export const supabaseReady =
   SUPABASE_URL.startsWith("http") &&
