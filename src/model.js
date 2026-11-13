@@ -442,3 +442,67 @@ export function rekapPerBulan(baris, voucherToko) {
   })
   return out
 }
+
+// === Laporan bulanan (RENCANA 5.1) ===
+// Per bulan, terbaru dulu. `entries` boleh baris lengkap atau ringkas; baris
+// ringkas tidak punya daftar pengeluaran, jadi pengeluaran sungguhan dan
+// setor-ke-pemilik hanya terpisah untuk hari yang detailnya sudah dimuat
+// (Riwayat memuat semuanya). Tanggal yang cuma punya voucher ikut dihitung.
+export function rekapBulanan(entries, voucherToko) {
+  const tanggal = new Set(Object.keys(entries || {}))
+  Object.keys(voucherToko || {}).forEach(d => { if (d >= VOUCHER_TOKO_CUTOFF) tanggal.add(d) })
+  const out = {}
+  tanggal.forEach(d => {
+    const e = entries?.[d] || { date: d, quantities: {}, expenses: [], totalPenjualan: 0, gaji: 0, totalPengeluaran: 0 }
+    const t = entryDayTotals(e, voucherToko)
+    const k = d.slice(0, 7)
+    const r = out[k] || (out[k] = {
+      bulan: k, hari: 0, penjualanProduk: 0, setoranVoucher: 0, lakuVoucher: 0, gaji: 0,
+      pengeluaran: 0, cashMasuk: 0, hasil: 0, kePemilik: 0, kasToko: 0, _biaya: {},
+    })
+    if (t.totalPenjualan === 0 && t.totalGaji === 0 && t.totalPengeluaran === 0 && !t.voucher.drop) return
+    r.hari++
+    r.penjualanProduk += e.totalPenjualan || 0
+    r.setoranVoucher += t.voucher.penjualan
+    r.lakuVoucher += t.voucher.laku
+    r.gaji += t.totalGaji
+    r.pengeluaran += t.expGross
+    r.cashMasuk += t.cashGross
+    r.hasil += t.hasil
+    r.kePemilik += t.kePemilik
+    r.kasToko += t.sisaKas
+    t.expItems.forEach(x => {
+      const ket = ((x.desc || 'Tanpa keterangan').trim().toLowerCase()) || 'tanpa keterangan'
+      r._biaya[ket] = (r._biaya[ket] || 0) + (x.amount || 0)
+    })
+  })
+  return Object.values(out)
+    .filter(r => r.hari > 0)
+    .sort((a, b) => b.bulan.localeCompare(a.bulan))
+    .map(({ _biaya, ...r }) => ({
+      ...r,
+      // Lima keterangan pengeluaran terbesar bulan itu ("susu", "gelas", …).
+      biayaTerbesar: Object.entries(_biaya).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([ket, jumlah]) => ({ ket, jumlah })),
+    }))
+}
+
+// Keadaan tiap toko sekarang: stok, setor terakhir, laku per bulan.
+export function rekapToko(voucherToko, hariIni) {
+  const stok = voucherStockPerToko(hariIni, voucherToko)
+  const besok = new Date(hariIni + 'T00:00:00'); besok.setDate(besok.getDate() + 1)
+  return TOKO.map(t => {
+    const info = infoToko(t.id, dateToISO(besok), voucherToko)
+    const lakuPerBulan = {}
+    Object.keys(voucherToko || {}).forEach(d => {
+      const r = voucherToko[d]?.[t.id]
+      if (r && r.laku) lakuPerBulan[d.slice(0, 7)] = (lakuPerBulan[d.slice(0, 7)] || 0) + r.laku
+    })
+    return {
+      id: t.id, nama: t.name,
+      stok: (stok[t.id].drop || 0) - (stok[t.id].laku || 0),
+      terakhirSetor: info.terakhirSetor,
+      hariSejak: info.terakhirSetor ? info.hariSejak - 1 : null,
+      lakuPerBulan,
+    }
+  })
+}

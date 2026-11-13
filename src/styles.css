@@ -1698,3 +1698,28 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   display:block;width:100%;min-height:48px;margin:6px 0 16px;border-radius:12px;cursor:pointer;
   font:600 13.5px/1 'Inter',sans-serif;color:var(--accent);background:var(--bg2);border:1px dashed var(--accent-border);
 }
+
+/* === Laporan bulanan (RENCANA 5.1) === */
+.tampilan-pilih{display:flex;gap:4px;padding:4px;margin:0 0 14px;border-radius:12px;background:var(--bg3);border:1px solid var(--border)}
+.tampilan-pilih button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;cursor:pointer;font:600 13.5px/1 'Inter',sans-serif;color:var(--text2)}
+.tampilan-pilih button.aktif{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.laporan{display:flex;flex-direction:column;gap:14px}
+.laporan-kartu{padding:14px 16px;border-radius:var(--radius-lg);background:var(--bg2);border:1px solid var(--border)}
+.laporan-judul{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;margin-bottom:10px}
+.laporan .saring-row{margin:0}
+.grafik-hasil{display:flex;gap:6px;align-items:stretch}
+.grafik-kolom{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+/* Area batang: tinggi tetap, dibagi oleh garis nol. Label nilai berada di
+   dalam area (padding atas/bawah) supaya tidak menabrak label bulan. */
+.grafik-area{position:relative;width:100%;height:150px;padding:18px 0;display:flex;flex-direction:column}
+.grafik-atas{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;border-bottom:1px solid var(--border2);min-height:0}
+.grafik-bawah{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;min-height:0}
+.grafik-batang{width:min(28px,70%);flex-shrink:0}
+.grafik-batang.untung{background:var(--green);border-radius:4px 4px 0 0}
+.grafik-batang.rugi{background:var(--red);border-radius:0 0 4px 4px}
+.grafik-atas .grafik-nilai{margin-bottom:3px}
+.grafik-bawah .grafik-nilai{margin-top:3px}
+.grafik-nilai{font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;line-height:1}
+.grafik-sumbu{font-size:11.5px;font-weight:500;color:var(--text3)}
+.toko-laporan .toko-sub{display:inline;font-size:12px}
+.toko-laporan .toko-sub.lama{color:var(--orange);font-weight:600}

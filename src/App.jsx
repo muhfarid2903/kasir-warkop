@@ -342,7 +342,7 @@ function App() {
               jejak={jejak} fitur={fitur} hitungKas={hitungKas}
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
-              loadAllDetails={loadAllDetails} detailsReady={detailsReady}
+              loadAllDetails={loadAllDetails} detailsReady={detailsReady} hariIni={hariIni}
               tandaiTulis={tandaiTulis}
             />
           )}

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, Fragment } from 'react'
 import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '../db.js'
 import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
 import LembarHapus from '../components/LembarHapus.jsx'
+import LaporanBulanan from '../components/LaporanBulanan.jsx'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
   voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN, rekapPerBulan,
@@ -50,12 +51,14 @@ function JejakHari({ list }) {
 
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis, fitur, hitungKas }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis, fitur, hitungKas, hariIni }) {
   // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
   // jadi di sinilah detail lengkap ditarik — bukan saat login.
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
 
   const [openDetail, setOpenDetail] = useState(null);
+  const [tampilan, setTampilan] = useState(() => { try { return localStorage.getItem('riwayat_tampilan') || 'harian'; } catch (_) { return 'harian'; } });
+  useEffect(() => { try { localStorage.setItem('riwayat_tampilan', tampilan); } catch (_) {} }, [tampilan]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSaldo, setEditingSaldo] = useState(false);
   const [saldoInput, setSaldoInput] = useState('');
@@ -273,8 +276,15 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
 
   return (
     <>
-          <div style={{marginBottom:8}}></div>
+          {/* Harian = daftar hari seperti biasa; Bulanan = laporan per bulan.
+              Sengaja di dalam Riwayat, bukan tab kelima: datanya sama. */}
+          <div className="tampilan-pilih" role="tablist" aria-label="Tampilan riwayat">
+            {[['harian','Harian'],['bulanan','Bulanan']].map(([id,label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tampilan===id} className={tampilan===id?'aktif':''} onClick={()=>setTampilan(id)}>{label}</button>
+            ))}
+          </div>
 
+          {tampilan==='bulanan' ? <LaporanBulanan entries={entries} voucherToko={voucherToko} hariIni={hariIni || todayISO()}/> : <>
           {/* Saldo Awal: titik nol kas warkop, anchor di atas timeline */}
           {!searchQuery && (
             <div className="saldo-awal-bar" style={{margin:"0 0 10px"}}>
@@ -606,6 +616,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               Tampilkan lebih lama ({tersaring.length - batas} hari lagi)
             </button>
           )}
+          </>}
           {akanHapus && entries[akanHapus] && (
             <LembarHapus entry={entries[akanHapus]} voucherToko={voucherToko} onHapus={()=>deleteEntry(akanHapus)} onTutup={()=>setAkanHapus(null)}/>
           )}
