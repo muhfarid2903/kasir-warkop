@@ -261,15 +261,21 @@ export async function saveEntry(entry, jejak) {
   catatJejak(entry.date, jejak)
 }
 
-// Sama dengan db.js: baca baris segar, tumpuk, tulis. Ditulis dalam satu
-// ubah() supaya urutannya tidak tertukar antar tab.
-export async function commitEntryAddition(date, input, jejak) {
+// Meniru fungsi server tambah_entri (kiriman_migration.sql): atomik, dan
+// kiriman ulang dengan opId yang sama tidak ditambahkan dua kali. Kiriman
+// tanpa opId (antrean lama) memakai jalur lama: baca, tumpuk, tulis.
+export async function commitEntryAddition(date, input, jejak, opId) {
+  let dobel = false
   const entry = await tulisan(() => ubah(db => {
+    db.opDiterima = db.opDiterima || []
+    if (opId && db.opDiterima.includes(opId)) { dobel = true; return db.entries[date] ? salin(db.entries[date]) : null }
+    if (opId) db.opDiterima.push(opId)
     const lama = db.entries[date] || null
     const baru = accumulateEntry(lama, date, input)
     db.entries[date] = baru
     return salin(baru)
   }))
+  if (dobel) return entry
   siarkan({ tabel: 'entries', jenis: 'upsert', entry })
   catatJejak(date, jejak)
   return entry

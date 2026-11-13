@@ -219,6 +219,14 @@ export function accumulateEntry(existing, date, { quantities, expenses, cashIns 
   return buildEntry(date, accQty, accExpenses);
 }
 
+// Selisih yang ditambahkan SATU kali simpan Hari Ini: entri yang dibangun dari
+// input itu saja. Karena semua total linear, menambahkan selisih ini di server
+// sama dengan accumulateEntry di HP — itu yang membuat simpan bisa dikirim
+// sebagai satu langkah atomik (lihat kiriman_migration.sql).
+export function selisihInput(date, input) {
+  return accumulateEntry(null, date, input)
+}
+
 // Total satu hari termasuk setoran voucher toko — dipakai baris Riwayat & export CSV.
 // totalPengeluaran diambil dari entri bila ada; entri lama yang belum punya kolom
 // itu dihitung ulang dari daftarnya.

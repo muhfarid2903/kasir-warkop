@@ -56,21 +56,24 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
     const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
     if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
-    // Tombol ini selalu mengirim kelima toko, padahal biasanya cuma satu yang
-    // disentuh. Yang dicatat hanya yang benar-benar berubah; simpan yang tidak
-    // mengubah apa pun tidak meninggalkan jejak sama sekali (null).
+    // Yang dikirim HANYA toko yang benar-benar berubah. Dulu kelima toko
+    // dikirim tiap kali; dari antrean offline itu bisa menimpa perubahan HP
+    // lain di toko yang tidak disentuh di sini.
     const berubah = rincianVoucher(rows, voucherToko[selectedDate]);
-    const jejak = berubah ? tandaJejak(session, 'voucher', berubah) : null;
+    if (!berubah) { showToast('Tidak ada yang berubah'); return; }
+    const idBerubah = new Set(berubah.toko.map(t => t.id));
+    const rowsBerubah = rows.filter(r => idBerubah.has(r.tokoId));
+    const jejak = tandaJejak(session, 'voucher', berubah);
     setVoucherSaving(true);
     try {
-      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows, jejak });
+      const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows: rowsBerubah, jejak });
       tandaiTulis(hasil);
       // Optimistic local update
       // Sudah tersimpan: kolomnya kembali ikut data server.
       disentuh.current = new Set();
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
-        rows.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
+        rowsBerubah.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
         next[selectedDate] = dayMap; return next;
       });
       showToast(hasil === 'diantre'

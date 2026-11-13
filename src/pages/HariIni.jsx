@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 // (akses Supabase lewat outbox — lihat src/outbox.js)
-import { kirimAtauAntre } from '../outbox.js'
+import { kirimAtauAntre, idKiriman } from '../outbox.js'
 import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, accumulateEntry, computeKasSummary, computePaydayInfo, hasDetail,
@@ -112,7 +112,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
       // ada. Angka pasti menyusul dari server / saat antrean terkirim.
       const dasar = hasDetail(existingEntry) ? existingEntry : null;
       const tebakan = accumulateEntry(dasar, selectedDate, input);
-      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:tanggalSimpan, input, jejak });
+      const hasil = await kirimAtauAntre({ type:'tambahEntri', id:idKiriman(), date:tanggalSimpan, input, jejak });
       tandaiTulis(hasil);
       setEntries(prev => ({ ...prev, [tanggalSimpan]: tebakan }));
       // Terkirim dapat kilau selebar layar; yang baru mengantre di HP dapat

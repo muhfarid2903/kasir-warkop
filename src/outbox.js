@@ -50,7 +50,7 @@ export function outboxSize() { return antrean.length }
 // db diam saja soal itu.
 function kirimSatu(op) {
   switch (op.type) {
-    case 'tambahEntri':   return commitEntryAddition(op.date, op.input, op.jejak)
+    case 'tambahEntri':   return commitEntryAddition(op.date, op.input, op.jejak, op.id)
     case 'hapusEntri':    return dbDeleteEntry(op.date, op.jejak)
     case 'simpanVoucher': return dbSaveVoucherToko(op.date, op.rows, op.jejak)
     case 'simpanSaldo':   return dbSaveSaldoAwal(op.value, op.jejak)
@@ -101,3 +101,15 @@ export async function kirimAtauAntre(op) {
 }
 
 export function clearOutbox() { antrean = []; simpan() }
+
+// Pengenal satu kiriman, dibuat SAAT tombol ditekan dan ikut tersimpan di
+// antrean. Kiriman ulang membawa pengenal yang sama, jadi server bisa
+// mengenalinya dan tidak menambahkan penjualan yang sama dua kali.
+export function idKiriman() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  // Cadangan untuk browser lama: bentuk UUID v4 dari Math.random.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+}

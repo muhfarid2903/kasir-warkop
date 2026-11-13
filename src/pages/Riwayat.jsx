@@ -201,7 +201,11 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       // gagal terang-terangan dan diulang sendiri saat sinyal kembali.
       if (session) {
         if (writeEntry) await dbSaveEntry(entry, jejakUbah);
-        if (isVoucherDate) await dbSaveVoucherToko(date, voucherRows, jejakVoucher);
+        // Hanya toko yang berubah — sama alasannya dengan Voucher Toko.
+        if (voucherBerubah) {
+          const idBerubah = new Set(voucherBerubah.toko.map(t => t.id));
+          await dbSaveVoucherToko(date, voucherRows.filter(r => idBerubah.has(r.tokoId)), jejakVoucher);
+        }
       }
       if (writeEntry) setEntries(prev => ({ ...prev, [date]: entry }));
       if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku};}); next[date]=dayMap; return next; });
