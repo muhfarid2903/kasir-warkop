@@ -75,6 +75,9 @@ begin
 end;
 $$;
 
+-- Fungsi baru di Postgres otomatis boleh dipanggil SEMUA peran, termasuk
+-- anon. RLS tetap menolak anon menulis, tapi pintunya tidak perlu dibuka.
+revoke execute on function public.tambah_entri(uuid, date, jsonb, jsonb, numeric, numeric, numeric, jsonb) from public, anon;
 grant execute on function public.tambah_entri(uuid, date, jsonb, jsonb, numeric, numeric, numeric, jsonb) to authenticated;
 
 -- Cara mencoba setelah dijalankan (opsional), dari app: simpan satu kopi,

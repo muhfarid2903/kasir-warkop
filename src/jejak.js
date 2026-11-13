@@ -45,12 +45,15 @@ export function tandaJejak(session, aksi, rincian) {
 
 // Input Hari Ini: yang dicatat cuma yang benar-benar diisi. Nol tidak ditulis
 // supaya baris jejaknya sependek kalimat, bukan sepanjang katalog.
-export function rincianTambah({ quantities, expenses, cashIns }) {
+export function rincianTambah({ quantities, expenses, cashIns, setors }) {
   const qty = {}
   PRODUCTS.forEach(p => { const n = quantities?.[p.id] || 0; if (n > 0) qty[p.id] = n })
   const dipakai = (x) => (x.amount || 0) > 0 || (x.desc || '').trim() !== ''
   const bariskan = (xs) => (xs || []).filter(dipakai).map(x => ({ ket: (x.desc || '').trim(), jumlah: x.amount || 0 }))
-  return { qty, keluar: bariskan(expenses), masuk: bariskan(cashIns) }
+  const r = { qty, keluar: bariskan(expenses), masuk: bariskan(cashIns) }
+  const pemilik = bariskan(setors)
+  if (pemilik.length) r.pemilik = pemilik
+  return r
 }
 
 const angkaEntri = (e) => ({
@@ -93,10 +96,10 @@ export function entriBerubah(sebelum, sesudah) {
 export function rincianVoucher(rows, sebelum) {
   const berubah = (rows || []).filter(r => {
     const p = (sebelum || {})[r.tokoId] || { drop: 0, laku: 0 }
-    return (p.drop || 0) !== (r.drop || 0) || (p.laku || 0) !== (r.laku || 0)
+    return (p.drop || 0) !== (r.drop || 0) || (p.laku || 0) !== (r.laku || 0) || !!p.kePemilik !== !!r.kePemilik
   })
   if (berubah.length === 0) return null
-  return { toko: berubah.map(r => ({ id: r.tokoId, drop: r.drop || 0, laku: r.laku || 0 })) }
+  return { toko: berubah.map(r => ({ id: r.tokoId, drop: r.drop || 0, laku: r.laku || 0, ...(r.kePemilik ? { kePemilik: true } : {}) })) }
 }
 
 // === Untuk ditampilkan ===
@@ -143,6 +146,7 @@ export function ringkasJejak(j) {
       Object.keys(r.qty || {}).forEach(id => { const n = r.qty[id]; if (n > 0) bagian.push(n + ' ' + namaProduk(id)) })
       ;(r.keluar || []).forEach(x => bagian.push('−' + IDR(x.jumlah) + ' ' + (x.ket || 'pengeluaran')))
       ;(r.masuk  || []).forEach(x => bagian.push('+' + IDR(x.jumlah) + ' ' + (x.ket || 'cash masuk')))
+      ;(r.pemilik || []).forEach(x => bagian.push(IDR(x.jumlah) + ' ke pemilik' + (x.ket ? ' (' + x.ket + ')' : '')))
       return bagian.join(' · ') || 'tidak ada isinya'
     }
     case 'ubah': {
@@ -164,7 +168,7 @@ export function ringkasJejak(j) {
       const t = (r.toko || []).map(x => {
         const p = []
         if (x.drop) p.push('drop ' + x.drop)
-        if (x.laku) p.push('laku ' + x.laku)
+        if (x.laku) p.push('laku ' + x.laku + (x.kePemilik ? ' ke pemilik' : ''))
         return namaToko(x.id) + (p.length ? ' ' + p.join(', ') : ' dikosongkan')
       })
       return t.length ? t.join(' · ') : 'voucher toko'
@@ -225,7 +229,7 @@ export function ringkasKiriman(op) {
     case 'tambahEntri': return ringkasJejak({ aksi: 'tambah', rincian: rincianTambah(op.input || {}) })
     case 'hapusEntri':  return 'menghapus data hari itu'
     case 'simpanVoucher':
-      return ringkasJejak({ aksi: 'voucher', rincian: { toko: (op.rows || []).map(r => ({ id: r.tokoId, drop: r.drop, laku: r.laku })) } })
+      return ringkasJejak({ aksi: 'voucher', rincian: { toko: (op.rows || []).map(r => ({ id: r.tokoId, drop: r.drop, laku: r.laku, kePemilik: r.kePemilik })) } })
     case 'simpanSaldo': return ringkasJejak({ aksi: 'saldo', rincian: { nilai: op.value } })
     default:            return op?.type || 'kiriman'
   }

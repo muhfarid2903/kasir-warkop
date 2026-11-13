@@ -3,7 +3,7 @@ import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '
 import { kirimAtauAntre } from '../outbox.js'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, todayISO,
+  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
@@ -48,7 +48,7 @@ function JejakHari({ list }) {
 
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis, fitur, hitungKas }) {
   // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
   // jadi di sinilah detail lengkap ditarik — bukan saat login.
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
@@ -62,6 +62,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     editQty, setEditQty,
     editExpenses, setEditExpenses,
     editCashIns, setEditCashIns,
+    editSetors, setEditSetors,
     editVoucher, setEditVoucher,
     editSaving, setEditSaving,
   } = useEntryEditor();
@@ -147,11 +148,14 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     // Salin dulu SEMUA kunci qty yang ada, baru pastikan tiap PRODUCTS punya
     // nilai. Produk yang sudah tidak dijual ikut terbawa apa adanya.
     const q = { ...(e.quantities || {}) }; PRODUCTS.forEach(p => q[p.id] = e.quantities?.[p.id] || 0);
-    const exp  = (e.expenses||[]).filter(x=>x.type!=='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
-    const cash = (e.expenses||[]).filter(x=>x.type==='cashin').map(x=>({desc:x.desc||'', amount:x.amount||0}));
+    // Tiga daftar terpisah. Dulu semua yang bukan cashin dianggap
+    // pengeluaran — baris 'setor' akan diam-diam berubah jadi pengeluaran
+    // biasa begitu hari itu diedit.
+    const salinBaris = (x) => ({desc:x.desc||'', amount:x.amount||0});
+    const { items, cash, setor } = splitExpenses(e.expenses);
     const vday = voucherToko[e.date] || {};
-    const ev = {}; TOKO.forEach(t => { const r = vday[t.id]||{drop:0,laku:0}; ev[t.id] = { drop:String(r.drop||0), laku:String(r.laku||0) }; });
-    setEditQty(q); setEditExpenses(exp); setEditCashIns(cash); setEditVoucher(ev); setEditingDate(e.date);
+    const ev = {}; TOKO.forEach(t => { const r = vday[t.id]||{drop:0,laku:0}; ev[t.id] = { drop:String(r.drop||0), laku:String(r.laku||0), kePemilik:!!r.kePemilik }; });
+    setEditQty(q); setEditExpenses(items.map(salinBaris)); setEditCashIns(cash.map(salinBaris)); setEditSetors(setor.map(salinBaris)); setEditVoucher(ev); setEditingDate(e.date);
   }
   function cancelEdit() { setEditingDate(null); }
   function changeEditQty(id, d) { setEditQty(prev => ({...prev, [id]: Math.max(0,(prev[id]||0)+d)})); }
@@ -162,6 +166,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
   function addEditCashIn(){ setEditCashIns(prev=>[...prev,{desc:'',amount:0}]); }
   function removeEditCashIn(i){ setEditCashIns(prev=>prev.filter((_,idx)=>idx!==i)); }
   function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
+  function addEditSetor(){ setEditSetors(prev=>[...prev,{desc:'',amount:0}]); }
+  function removeEditSetor(i){ setEditSetors(prev=>prev.filter((_,idx)=>idx!==i)); }
+  function updateEditSetor(i,field,val){ setEditSetors(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function setEditVoucherVal(tokoId, field, val) { setEditVoucher(prev => ({...prev, [tokoId]: {...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val}})); }
 
   async function saveEdit() {
@@ -171,7 +178,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     let voucherRows = null;
     if (isVoucherDate) {
       const stockBefore = voucherStockBefore(date, voucherToko);
-      voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; return { tokoId:t.id, drop:parseInt(dr.drop)||0, laku:parseInt(dr.laku)||0 }; });
+      voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; const laku = parseInt(dr.laku)||0; return { tokoId:t.id, drop:parseInt(dr.drop)||0, laku, kePemilik: !!(fitur?.kePemilik && laku>0 && dr.kePemilik) }; });
       const over = voucherRows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
       if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
     }
@@ -179,7 +186,8 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     const accQty = { ...editQty }; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
     const expenses = editExpenses.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0}));
     const cashIns  = editCashIns.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'cashin'}));
-    const accExpenses = [...expenses, ...cashIns];
+    const setors   = editSetors.filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e=>({desc:e.desc, amount:e.amount||0, type:'setor'}));
+    const accExpenses = [...expenses, ...cashIns, ...setors];
     const entry = buildEntry(date, accQty, accExpenses);
     // Hindari membuat baris entri kosong untuk tanggal yang cuma punya data voucher
     const entryExisted = !!entries[date];
@@ -208,7 +216,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
         }
       }
       if (writeEntry) setEntries(prev => ({ ...prev, [date]: entry }));
-      if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku};}); next[date]=dayMap; return next; });
+      if (isVoucherDate) setVoucherToko(prev => { const next={...prev}; const dayMap={...(next[date]||{})}; voucherRows.forEach(r=>{dayMap[r.tokoId]={drop:r.drop,laku:r.laku,kePemilik:r.kePemilik};}); next[date]=dayMap; return next; });
       showToast('Perubahan disimpan · '+fmtDate(date));
       setEditingDate(null);
     } catch(e) { showToast('Perubahan belum tersimpan: '+pesanGalat(e), 'gagal'); }
@@ -300,24 +308,28 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               </div>
             );
             const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
-            const { expItems, cashItems, expGross, cashGross, voucher: v,
-                    totalGaji: totalGajiRow,
+            const { expItems, cashItems, setorItems, expGross, cashGross, voucher: v,
+                    totalGaji: totalGajiRow, kePemilik, hasil,
                     totalPenjualan: totalPenjualanRow, sisaKas } = entryDayTotals(e, voucherToko);
+            const cocokHari = (hitungKas?.[e.date] || []).slice(-1)[0];
             const hasVoucher = v.laku>0 || v.drop>0;
             const tokoBreakdown = hasVoucher ? TOKO.map(t => {
               const r = (voucherToko[e.date]||{})[t.id]; if (!r || (!r.drop && !r.laku)) return null;
-              return { id:t.id, name:t.name, drop:r.drop||0, laku:r.laku||0 };
+              return { id:t.id, name:t.name, drop:r.drop||0, laku:r.laku||0, kePemilik:!!r.kePemilik };
             }).filter(Boolean) : [];
             const isOpen = openDetail===e.date;
             const isEditing = editingDate===e.date;
-            const kasClass = sisaKas>0?'profit':sisaKas<0?'loss':'';
-            const sisaSign = sisaKas>0?'pos':sisaKas<0?'neg':'';
-            const sisaLabel = sisaKas>0?'Untung':sisaKas<0?'Rugi':'Impas';
+            // Yang ditampilkan HASIL usaha, bukan perubahan kas toko: hari
+            // yang setorannya masuk ke kas pemilik tidak rugi, uangnya cuma
+            // pindah tempat.
+            const kasClass = hasil>0?'profit':hasil<0?'loss':'';
+            const sisaSign = hasil>0?'pos':hasil<0?'neg':'';
+            const sisaLabel = hasil>0?'Untung':hasil<0?'Rugi':'Impas';
             return (
               <div key={e.date} className={"history-item "+kasClass} onClick={()=>{ if(isEditing) return; setOpenDetail(isOpen?null:e.date); }}>
                 <div className="history-item-header">
                   <span className="history-date">{tanggalRingkas(e.date)}</span>
-                  <span className={"history-gaji "+sisaSign}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span>
+                  <span className={"history-gaji "+sisaSign}>{hasil>0?'+':''}{IDR(hasil)}</span>
                 </div>
                 {(sold.length>0 || v.laku>0 || v.drop>0) && (
                   <div className="history-pills">
@@ -326,9 +338,11 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
                   </div>
                 )}
-                {(expGross>0 || cashGross>0) && (
+                {(expGross>0 || cashGross>0 || kePemilik>0 || cocokHari) && (
                   <div className="history-money">
                     {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>−{IDR(expGross)} keluar</span>}
+                    {kePemilik>0 && <span className="pill pemilik"><Icon type="wallet" size={11}/> {IDR(kePemilik)} ke pemilik</span>}
+                    {cocokHari && <span className={"pill "+(cocokHari.selisih===0?"cocok":"selisih")}><Icon type={cocokHari.selisih===0?'check':'alert'} size={11}/> {cocokHari.selisih===0 ? 'Kas cocok' : 'Selisih '+IDR(cocokHari.selisih)}</span>}
                     {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
                   </div>
                 )}
@@ -346,7 +360,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                       let eSales=0, eGaji=0; editProducts.forEach(p=>{const q=editQty[p.id]||0; eSales+=q*p.price; eGaji+=q*p.gaji;});
                       const eExp = editExpenses.reduce((s,x)=>s+(x.amount||0),0);
                       const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
-                      const eSisa = eSales - eGaji - (eExp - eCash);
+                      const eSisa = eSales - eGaji - (eExp - eCash);   // hasil usaha; setoran ke pemilik tidak mengurangi
                       const isVoucherDate = e.date >= VOUCHER_TOKO_CUTOFF;
                       const vStockBefore = isVoucherDate ? voucherStockBefore(e.date, voucherToko) : null;
                       let editVoucherOver = false;
@@ -386,6 +400,11 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                                 <label style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"var(--text3)"}}>Laku
                                   <input className="expense-amount" style={{maxWidth:64,...(over?{borderColor:"var(--red)",color:"var(--red)"}:{})}} type="number" inputMode="numeric" min="0" placeholder="0" value={dr.laku} onChange={ev=>setEditVoucherVal(t.id,'laku',ev.target.value)}/>
                                 </label>
+                                {fitur?.kePemilik && dL>0 && (
+                                  <label className="edit-pemilik" title="Setoran masuk ke kas pemilik">
+                                    <input type="checkbox" checked={!!dr.kePemilik} onChange={ev=>setEditVoucherVal(t.id,'kePemilik',ev.target.checked)}/> ke pemilik
+                                  </label>
+                                )}
                               </div>
                             );
                           })}
@@ -408,6 +427,15 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                           </div>
                         ))}
                         <button className="add-pill green" onClick={addEditCashIn} style={{marginTop:6}}><Icon type="banknote" size={14}/> Tambah Cash Masuk</button>
+                        <div className="detail-section-label" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="wallet" size={12}/> Setor ke pemilik</div>
+                        {editSetors.map((x,i)=>(
+                          <div key={i} className="expense-row">
+                            <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={x.desc} onChange={ev=>updateEditSetor(i,'desc',ev.target.value)}/>
+                            <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditSetor(i,'amount',ev.target.value)}/>
+                            <button className="del-btn" onClick={()=>removeEditSetor(i)}>×</button>
+                          </div>
+                        ))}
+                        <button className="add-pill" onClick={addEditSetor} style={{marginTop:6}}><Icon type="wallet" size={14}/> Tambah Setor ke pemilik</button>
                         <div className="inline-summary" style={{marginTop:14}}>
                           <span className="seg">Penjualan <strong>{IDR(eSales)}</strong></span>
                           <span className="seg">Gaji <strong>{IDR(eGaji)}</strong></span>
@@ -435,8 +463,14 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                       {cashGross>0 && <div className="summary-row cash"><span className="summary-label">Cash Masuk</span><span className="summary-value">+{IDR(cashGross)}</span></div>}
                       <div className="summary-row total">
                         <span className="summary-label">{sisaLabel} Hari Ini</span>
-                        <span className={"summary-value "+sisaSign}>{IDR(sisaKas)}</span>
+                        <span className={"summary-value "+sisaSign}>{IDR(hasil)}</span>
                       </div>
+                      {/* Hanya kalau ada uang yang pindah ke pemilik — selain
+                          itu "kas toko" sama persis dengan hasil di atas. */}
+                      {kePemilik>0 && <>
+                        <div className="summary-row"><span className="summary-label">Ke kas pemilik</span><span className="summary-value">−{IDR(kePemilik)}</span></div>
+                        <div className="summary-row"><span className="summary-label">Kas toko</span><span className={"summary-value "+(sisaKas<0?'neg':'')}>{sisaKas>0?'+':''}{IDR(sisaKas)}</span></div>
+                      </>}
                     </div>
                     {(sold.length>0 || tokoBreakdown.length>0) && <>
                       <div className="detail-section-label">Rincian Gaji</div>
@@ -467,6 +501,15 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     {expItems.length>0 && <>
                       <div className="detail-section-label red">Rincian Pengeluaran</div>
                       {expItems.map((x,xi)=>(<div key={xi} className="detail-row"><span className="detail-item-name">{x.desc||'Pengeluaran'}</span><span style={{color:"var(--red)",fontWeight:600}}>−{IDR(x.amount)}</span></div>))}
+                    </>}
+                    {(setorItems.length>0 || v.kePemilik>0) && <>
+                      <div className="detail-section-label" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="wallet" size={12}/> Ke kas pemilik</div>
+                      {tokoBreakdown.filter(t=>t.kePemilik && t.laku>0).map(t=>(<div key={'vp'+t.id} className="detail-row"><span className="detail-item-name">Setoran voucher {t.name} ({t.laku})</span><span className="detail-item-value">{IDR(t.laku*V2K_SETORAN)}</span></div>))}
+                      {setorItems.map((x,xi)=>(<div key={'sp'+xi} className="detail-row"><span className="detail-item-name">{x.desc||'Setor ke pemilik'}</span><span className="detail-item-value">{IDR(x.amount)}</span></div>))}
+                    </>}
+                    {cocokHari && <>
+                      <div className="detail-section-label" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="coins" size={12}/> Cocokkan kas</div>
+                      {(hitungKas[e.date]||[]).map(h=>(<div key={h.id} className="detail-row"><span className="detail-item-name">{h.oleh} · app {IDR(h.sistem)}, laci {IDR(h.fisik)}{h.catatan ? ' · '+h.catatan : ''}</span><span className="detail-item-value" style={{color:h.selisih===0?'var(--green)':'var(--orange)'}}>{h.selisih===0?'cocok':IDR(h.selisih)}</span></div>))}
                     </>}
                     {cashItems.length>0 && <>
                       <div className="detail-section-label green" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="banknote" size={12}/> Cash Masuk</div>

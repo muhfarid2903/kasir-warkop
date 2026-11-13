@@ -15,7 +15,7 @@ const UMUR_MAKS = 3 * 24 * 3600 * 1000   // draf lebih tua dari ini dibuang send
 export function drafKosong() {
   const quantities = {}
   PRODUCTS.forEach(p => { quantities[p.id] = 0 })
-  return { quantities, expenses: [], cashIns: [] }
+  return { quantities, expenses: [], cashIns: [], setors: [] }
 }
 
 // Draf yang tidak berisi apa pun tidak perlu disimpan, dan tidak perlu
@@ -24,7 +24,7 @@ export function drafBerisi(d) {
   if (!d) return false
   const adaQty = Object.values(d.quantities || {}).some(n => (n || 0) > 0)
   const adaBaris = (xs) => (xs || []).some(x => (x.amount || 0) > 0 || (x.desc || '').trim() !== '')
-  return adaQty || adaBaris(d.expenses) || adaBaris(d.cashIns)
+  return adaQty || adaBaris(d.expenses) || adaBaris(d.cashIns) || adaBaris(d.setors)
 }
 
 function muatSemua() {
@@ -49,12 +49,13 @@ export function bacaDraf(tanggal) {
     quantities: { ...kosong.quantities, ...(d.quantities || {}) },
     expenses: Array.isArray(d.expenses) ? d.expenses : [],
     cashIns: Array.isArray(d.cashIns) ? d.cashIns : [],
+    setors: Array.isArray(d.setors) ? d.setors : [],
   }
 }
 
 export function tulisDraf(tanggal, d) {
   const semua = muatSemua()
-  if (drafBerisi(d)) semua[tanggal] = { quantities: d.quantities, expenses: d.expenses, cashIns: d.cashIns, diubah: Date.now() }
+  if (drafBerisi(d)) semua[tanggal] = { quantities: d.quantities, expenses: d.expenses, cashIns: d.cashIns, setors: d.setors || [], diubah: Date.now() }
   else delete semua[tanggal]
   simpanSemua(semua)
 }
@@ -82,10 +83,11 @@ export function kurangiDraf(d, terkirim) {
   Object.keys(terkirim.quantities || {}).forEach(id => {
     quantities[id] = Math.max(0, (quantities[id] || 0) - (terkirim.quantities[id] || 0))
   })
-  const sudah = new Set([...(terkirim.expenses || []), ...(terkirim.cashIns || [])])
+  const sudah = new Set([...(terkirim.expenses || []), ...(terkirim.cashIns || []), ...(terkirim.setors || [])])
   return {
     quantities,
     expenses: (d.expenses || []).filter(x => !sudah.has(x)),
     cashIns: (d.cashIns || []).filter(x => !sudah.has(x)),
+    setors: (d.setors || []).filter(x => !sudah.has(x)),
   }
 }

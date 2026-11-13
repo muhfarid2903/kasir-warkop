@@ -9,9 +9,17 @@ import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
 
+// Tanda "ke pemilik" yang terakhir dipakai toko ini sebelum tanggal itu —
+// toko yang biasa menyetor ke pemilik hampir selalu begitu lagi.
+function pilihanTerakhir(tokoId, tanggal, voucherToko) {
+  const tgl = Object.keys(voucherToko || {}).filter(d => d < tanggal && (voucherToko[d][tokoId]?.laku || 0) > 0).sort();
+  const d = tgl[tgl.length - 1];
+  return d ? !!voucherToko[d][tokoId].kePemilik : false;
+}
+
 // Drop & laku voucher 2000 per toko, per hari. selectedDate dipegang App
 // karena dipakai bareng halaman Hari Ini.
-export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
+export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
   const [voucherDraft, setVoucherDraft] = useState({});
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
@@ -32,10 +40,14 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
     setVoucherDraft(prev => {
       const next = {};
       TOKO.forEach(t => {
-        const r = day[t.id] || { drop:0, laku:0 };
+        const r = day[t.id] || { drop:0, laku:0, kePemilik: pilihanTerakhir(t.id, selectedDate, voucherToko) };
         const lama = prev[t.id];
-        const ambil = (f) => (!gantiTanggal && lama && disentuh.current.has(t.id+'.'+f)) ? lama[f] : String(r[f]||0);
-        next[t.id] = { drop: ambil('drop'), laku: ambil('laku') };
+        const tetap = (f) => !gantiTanggal && lama && disentuh.current.has(t.id+'.'+f);
+        next[t.id] = {
+          drop: tetap('drop') ? lama.drop : String(r.drop||0),
+          laku: tetap('laku') ? lama.laku : String(r.laku||0),
+          kePemilik: tetap('kePemilik') ? lama.kePemilik : !!r.kePemilik,
+        };
       });
       return next;
     });
@@ -51,7 +63,9 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
     const stockBefore = voucherStockBefore(selectedDate, voucherToko);
     const rows = TOKO.map(t => {
       const d = voucherDraft[t.id] || { drop:'0', laku:'0' };
-      return { tokoId: t.id, drop: parseInt(d.drop)||0, laku: parseInt(d.laku)||0 };
+      const laku = parseInt(d.laku)||0;
+      // Tanda ke pemilik hanya berarti kalau ada yang laku.
+      return { tokoId: t.id, drop: parseInt(d.drop)||0, laku, kePemilik: !!(fitur?.kePemilik && laku > 0 && d.kePemilik) };
     });
     // Pengaman: tolak bila ada toko dengan laku melebihi stok (stok awal + drop hari ini)
     const over = rows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
@@ -73,7 +87,7 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
       disentuh.current = new Set();
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
-        rowsBerubah.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });
+        rowsBerubah.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku, kePemilik: r.kePemilik }; });
         next[selectedDate] = dayMap; return next;
       });
       showToast(hasil === 'diantre'
@@ -112,11 +126,12 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
 
           {selectedDate >= VOUCHER_TOKO_CUTOFF && (() => {
             const stockBefore = voucherStockBefore(selectedDate, voucherToko);
-            let dayDrop=0, dayLaku=0, anyOverLaku=false;
+            let dayDrop=0, dayLaku=0, dayLakuPemilik=0, anyOverLaku=false;
             TOKO.forEach(t => {
               const d = voucherDraft[t.id]||{drop:'0',laku:'0'};
               const dDrop = parseInt(d.drop)||0, dLaku = parseInt(d.laku)||0;
               dayDrop += dDrop; dayLaku += dLaku;
+              if (fitur?.kePemilik && d.kePemilik) dayLakuPemilik += dLaku;
               const sB = stockBefore[t.id]; const stokAwal = (sB.drop||0) - (sB.laku||0);
               if (dLaku > stokAwal + dDrop) anyOverLaku = true;
             });
@@ -127,7 +142,8 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
                     <span className="seg">Total drop <strong>{dayDrop}</strong></span>
                     <span className="seg">Total laku <strong>{dayLaku}</strong></span>
                     <span className="seg gaji">Gaji Jaya <strong>{IDR(dayLaku*V2K.gaji)}</strong></span>
-                    <span className="seg setoran">Setoran kas <strong>{IDR(dayLaku*V2K_SETORAN)}</strong></span>
+                    {dayLaku-dayLakuPemilik > 0 && <span className="seg setoran">Masuk kas toko <strong>{IDR((dayLaku-dayLakuPemilik)*V2K_SETORAN)}</strong></span>}
+                    {dayLakuPemilik > 0 && <span className="seg pemilik">Ke pemilik <strong>{IDR(dayLakuPemilik*V2K_SETORAN)}</strong></span>}
                   </div>
                 )}
 
@@ -166,11 +182,25 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
                           {overLaku
                             ? <span className="error"><Icon type="alert" size={13}/> Laku melebihi stok</span>
                             : <>
-                                <span className="seg setoran">Setoran <strong>{IDR(dLaku*V2K_SETORAN)}</strong></span>
+                                <span className={"seg "+(fitur?.kePemilik && draft.kePemilik ? "pemilik" : "setoran")}>
+                                  {fitur?.kePemilik && draft.kePemilik ? 'Ke pemilik' : 'Masuk kas toko'} <strong>{IDR(dLaku*V2K_SETORAN)}</strong>
+                                </span>
                                 <span className="seg gaji">Gaji Jaya <strong>{IDR(dLaku*V2K.gaji)}</strong></span>
                               </>
                           }
                         </div>
+                      )}
+                      {/* Ke mana uang setoran ini pergi. Dulu dicatat terpisah
+                          sebagai pengeluaran "tf <toko>" di Hari Ini — dua
+                          halaman, dua kali simpan, dan hari itu tampil rugi. */}
+                      {fitur?.kePemilik && dLaku > 0 && !overLaku && (
+                        <label className="saklar-pemilik">
+                          <input type="checkbox" checked={!!draft.kePemilik} onChange={e=>setDraft(t.id,'kePemilik',e.target.checked)}/>
+                          <span className="saklar-pemilik-teks">
+                            <strong>Masuk ke kas pemilik</strong>
+                            <span>{draft.kePemilik ? 'Tidak masuk laci toko' : 'Uangnya masuk laci toko'}</span>
+                          </span>
+                        </label>
                       )}
                     </div>
                   );

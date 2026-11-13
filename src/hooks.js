@@ -3,7 +3,7 @@ import {
   supabaseReady,
   getSession, onAuthChange,
   loadSaldoAwal, loadEntrySummaries, loadEntryDetails, loadEntryDetail, loadVoucherToko,
-  loadJejak, subscribeRealtime,
+  loadJejak, loadHitungKas, subscribeRealtime,
 } from './db.js'
 import { flushOutbox, onOutboxChange, outboxSize, onGagalChange } from './outbox.js'
 import { showToast } from './toast.js'
@@ -81,6 +81,11 @@ export function useWarkopData(session) {
   const [dataPer, setDataPer] = useState(null);
   // Server tidak terjangkau DAN tidak ada simpanan: jangan tampilkan Rp0.
   const [dataKosong, setDataKosong] = useState(false);
+  // Hasil pencocokan kas per tanggal (tabel hitung_kas).
+  const [hitungKas, setHitungKas] = useState({});
+  // Fitur yang bergantung pada migrasi kas_pemilik_migration.sql. Disembunyikan
+  // sampai server menjawab bahwa kolom/tabelnya memang ada.
+  const [fitur, setFitur] = useState({ kePemilik: false, hitungKas: false });
 
   const detailsLoaded = useRef(false);
   const jejakLoaded = useRef(false);
@@ -106,7 +111,7 @@ export function useWarkopData(session) {
     if (!awal && outboxSize() > 0) return;
     sedangTarik.current = true;
     try {
-      const [saldo, ent, vt] = await Promise.all([loadSaldoAwal(), loadEntrySummaries(), loadVoucherToko()]);
+      const [saldo, ent, vt, hk] = await Promise.all([loadSaldoAwal(), loadEntrySummaries(), loadVoucherToko(), loadHitungKas()]);
       if (userAktif.current !== userId) return;
       if (ent.error) {
         pernahPutus.current = true;
@@ -133,6 +138,8 @@ export function useWarkopData(session) {
       setEntries(g.entries);
       // Voucher opsional — abaikan galatnya kalau tabelnya belum ada.
       if (!vt.error) setVoucherToko(vt.data);
+      if (!hk.error) setHitungKas(hk.data);
+      setFitur({ kePemilik: !vt.error && vt.kePemilikAda !== false, hitungKas: !hk.error && hk.ada });
       setSyncStatus('online');
       setDataPer(null);
       setDataKosong(false);
@@ -160,7 +167,7 @@ export function useWarkopData(session) {
     userAktif.current = userId;
     // Pengguna berganti (atau keluar): buang semua milik pengguna sebelumnya.
     setEntries({}); entriesRef.current = {};
-    setVoucherToko({}); setJejak({}); setInitialSaldo(0);
+    setVoucherToko({}); setJejak({}); setInitialSaldo(0); setHitungKas({});
     setDataPer(null); setDataKosong(false);
     detailsLoaded.current = false; jejakLoaded.current = false; setDetailsReady(false);
     pernahPutus.current = false; segarTerakhir.current = 0;
@@ -188,6 +195,13 @@ export function useWarkopData(session) {
           const hari = prev[j.date] || [];
           if (hari.some(x => x.id === j.id)) return prev;
           return { ...prev, [j.date]: [...hari, j].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu))) };
+        });
+      },
+      onHitung: (h) => {
+        setHitungKas(prev => {
+          const hari = prev[h.date] || [];
+          if (hari.some(x => x.id === h.id)) return prev;
+          return { ...prev, [h.date]: [...hari, h] };
         });
       },
       onStatus: (st) => {
@@ -328,6 +342,7 @@ export function useWarkopData(session) {
     loadAllDetails, detailsReady, ensureDetail,
     pending, tandaiTulis,
     dataPer, dataKosong,
+    hitungKas, setHitungKas, fitur,
   };
 }
 
@@ -456,6 +471,7 @@ export function useEntryEditor() {
   const [editQty, setEditQty] = useState({});
   const [editExpenses, setEditExpenses] = useState([]);
   const [editCashIns, setEditCashIns] = useState([]);
+  const [editSetors, setEditSetors] = useState([]);
   const [editVoucher, setEditVoucher] = useState({});
   const [editSaving, setEditSaving] = useState(false);
 
@@ -464,6 +480,7 @@ export function useEntryEditor() {
     editQty, setEditQty,
     editExpenses, setEditExpenses,
     editCashIns, setEditCashIns,
+    editSetors, setEditSetors,
     editVoucher, setEditVoucher,
     editSaving, setEditSaving,
   };

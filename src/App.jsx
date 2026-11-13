@@ -55,6 +55,7 @@ function App() {
     loadAllDetails, detailsReady, ensureDetail,
     pending, tandaiTulis,
     dataPer, dataKosong,
+    hitungKas, setHitungKas, fitur,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -285,6 +286,7 @@ function App() {
           {page==="input" && (
             <HariIni
               hariIni={hariIni} dataPer={dataPer} dataKosong={dataKosong}
+              fitur={fitur} hitungKas={hitungKas} setHitungKas={setHitungKas}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               entries={entries} setEntries={setEntries}
               voucherToko={voucherToko}
@@ -297,7 +299,7 @@ function App() {
 
           {page==="voucher" && (
             <VoucherToko
-              hariIni={hariIni}
+              hariIni={hariIni} fitur={fitur}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               session={session}
@@ -313,7 +315,7 @@ function App() {
             <Riwayat
               entries={entries} setEntries={setEntries}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
-              jejak={jejak}
+              jejak={jejak} fitur={fitur} hitungKas={hitungKas}
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
               loadAllDetails={loadAllDetails} detailsReady={detailsReady}

@@ -86,25 +86,44 @@ export function getPayPeriods(year, month) {
 
 // === Voucher toko ===
 
+// Ada dua tempat uang: KAS TOKO (yang dihitung app ini) dan KAS PEMILIK (di
+// luar app). Setoran voucher yang ditandai kePemilik adalah penjualan — ikut
+// hasil usaha dan gaji Jaya — tapi uangnya tidak pernah masuk laci toko.
+//
+//   penjualan = semua laku × setoran        (hasil usaha)
+//   kePemilik = laku bertanda kePemilik × setoran
+//   masukKas  = penjualan − kePemilik       (yang benar-benar masuk kas toko)
+function rekapVoucher(drop, laku, lakuKePemilik) {
+  const penjualan = laku * V2K_SETORAN;
+  const kePemilik = lakuKePemilik * V2K_SETORAN;
+  return { drop, laku, gaji: laku * V2K.gaji, penjualan, kePemilik, masukKas: penjualan - kePemilik, komisiToko: laku * (V2K.komisi_toko||0) };
+}
+
 // Hitung agregat voucher (drop & laku × harga/gaji v2k) untuk satu tanggal.
-// vtData berbentuk: { '2026-05-01': { dadi: {drop, laku}, dio: {...}, ... }, ... }
+// vtData berbentuk: { '2026-05-01': { dadi: {drop, laku, kePemilik}, dio: {...}, ... }, ... }
 export function voucherForDate(date, vtData) {
   const dayMap = vtData?.[date] || {};
-  let drop = 0, laku = 0;
-  TOKO.forEach(t => { const r = dayMap[t.id]; if (r) { drop += r.drop||0; laku += r.laku||0; } });
-  return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
+  let drop = 0, laku = 0, lakuKePemilik = 0;
+  TOKO.forEach(t => {
+    const r = dayMap[t.id];
+    if (!r) return;
+    drop += r.drop||0; laku += r.laku||0;
+    if (r.kePemilik) lakuKePemilik += r.laku||0;
+  });
+  return rekapVoucher(drop, laku, lakuKePemilik);
 }
 
 // Sum voucher untuk semua tanggal di [start..end] (inklusif), hanya yang >= cutoff.
 export function voucherInRange(start, end, vtData) {
-  let drop = 0, laku = 0;
+  let drop = 0, laku = 0, lakuKePemilik = 0;
   Object.keys(vtData || {}).forEach(d => {
     if (d < VOUCHER_TOKO_CUTOFF) return;
     if (d >= start && d <= end) {
-      const r = voucherForDate(d, vtData); drop += r.drop; laku += r.laku;
+      const r = voucherForDate(d, vtData);
+      drop += r.drop; laku += r.laku; lakuKePemilik += r.kePemilik / V2K_SETORAN;
     }
   });
-  return { drop, laku, gaji: laku * V2K.gaji, penjualan: laku * V2K_SETORAN, komisiToko: laku * (V2K.komisi_toko||0) };
+  return rekapVoucher(drop, laku, lakuKePemilik);
 }
 
 // Stok berjalan per toko sampai (≤) endDate.
@@ -169,29 +188,41 @@ export function productTotals(quantities) {
   return { totalQty, totalSales, totalGaji };
 }
 
-// Cash masuk disimpan di larik yang sama dengan pengeluaran, ditandai type:'cashin'.
+// Tiga jenis baris tinggal di satu larik `expenses`:
+//   (tanpa type) pengeluaran sungguhan — susu, gelas
+//   type:'cashin' uang masuk yang bukan penjualan hari itu
+//   type:'setor'  uang yang pindah dari kas toko ke kas pemilik. BUKAN biaya:
+//                 tidak mengurangi hasil usaha, hanya mengurangi kas toko.
 export function splitExpenses(list) {
-  const items = (list || []).filter(e => e.type !== 'cashin');
+  const items = (list || []).filter(e => e.type !== 'cashin' && e.type !== 'setor');
   const cash  = (list || []).filter(e => e.type === 'cashin');
+  const setor = (list || []).filter(e => e.type === 'setor');
   const sum = (xs) => xs.reduce((s,e) => s+(e.amount||0), 0);
-  return { items, cash, expGross: sum(items), cashGross: sum(cash) };
+  return { items, cash, setor, expGross: sum(items), cashGross: sum(cash), setorGross: sum(setor) };
 }
 
-// Ringkasan form "Hari Ini" sebelum disimpan (pengeluaran & cash masih terpisah).
-export function draftTotals(quantities, expenses, cashIns) {
+const jumlahkan = (xs) => (xs || []).reduce((s,e) => s+(e.amount||0), 0);
+
+// Ringkasan form "Hari Ini" sebelum disimpan (tiap jenis baris masih terpisah).
+// hasil = untung/rugi usaha; sisaKas = yang tersisa di kas toko sesudah
+// setoran ke pemilik.
+export function draftTotals(quantities, expenses, cashIns, setors) {
   const { totalQty, totalSales, totalGaji } = productTotals(quantities);
-  const totalExpense = (expenses || []).reduce((s,e) => s+(e.amount||0), 0);
-  const totalCashIn = (cashIns || []).reduce((s,e) => s+(e.amount||0), 0);
-  return { totalQty, totalSales, totalGaji, totalExpense, totalCashIn, sisaKas: totalSales-totalGaji-totalExpense+totalCashIn };
+  const totalExpense = jumlahkan(expenses);
+  const totalCashIn = jumlahkan(cashIns);
+  const totalSetor = jumlahkan(setors);
+  const hasil = totalSales - totalGaji - totalExpense + totalCashIn;
+  return { totalQty, totalSales, totalGaji, totalExpense, totalCashIn, totalSetor, hasil, sisaKas: hasil - totalSetor };
 }
 
-// Entri siap simpan. expenseList sudah gabungan; cash masuk bertanda type:'cashin'.
-// Pengeluaran bersih = kotor − cash masuk, jadi cash masuk mengurangi pengeluaran
-// hari itu (bukan menambah penjualan).
+// Entri siap simpan. expenseList sudah gabungan (lihat splitExpenses).
+// totalPengeluaran = yang BERSIH keluar dari kas toko: pengeluaran + setoran
+// ke pemilik − cash masuk. Artinya kolom ini, baris ringkas, fungsi server
+// tambah_entri, dan rumus kas tidak berubah sedikit pun oleh adanya 'setor'.
 export function buildEntry(date, quantities, expenseList) {
   const { totalSales, totalGaji } = productTotals(quantities);
-  const { expGross, cashGross } = splitExpenses(expenseList);
-  const totalPengeluaran = expGross - cashGross;
+  const { expGross, cashGross, setorGross } = splitExpenses(expenseList);
+  const totalPengeluaran = expGross + setorGross - cashGross;
   return {
     date,
     quantities,
@@ -210,7 +241,7 @@ export function buildEntry(date, quantities, expenseList) {
 // existing boleh null (tanggal belum punya entri). Salin qty lama dulu, jangan
 // bangun ulang dari PRODUCTS: entri lama bisa memuat produk yang sudah tidak
 // ada di daftar, dan membangun ulang akan membuangnya diam-diam.
-export function accumulateEntry(existing, date, { quantities, expenses, cashIns }) {
+export function accumulateEntry(existing, date, { quantities, expenses, cashIns, setors }) {
   const accQty = { ...(existing?.quantities || {}) };
   PRODUCTS.forEach(p => { accQty[p.id] = (accQty[p.id]||0) + (quantities?.[p.id]||0); });
   // Nominal negatif tidak pernah sah (arahnya sudah ditentukan jenis barisnya);
@@ -218,7 +249,8 @@ export function accumulateEntry(existing, date, { quantities, expenses, cashIns 
   const rapikan = (e) => ({ ...e, amount: Math.max(0, e.amount || 0) });
   const barangKeluar = (expenses || []).map(rapikan).filter(e => e.amount>0 || (e.desc||'').trim()!=='');
   const uangMasuk = (cashIns || []).map(rapikan).filter(e => e.amount>0 || (e.desc||'').trim()!=='').map(e => ({...e, type:'cashin'}));
-  const accExpenses = [...(existing?.expenses || []), ...barangKeluar, ...uangMasuk];
+  const kePemilik = (setors || []).map(rapikan).filter(e => e.amount>0 || (e.desc||'').trim()!=='').map(e => ({...e, type:'setor'}));
+  const accExpenses = [...(existing?.expenses || []), ...barangKeluar, ...uangMasuk, ...kePemilik];
   return buildEntry(date, accQty, accExpenses);
 }
 
@@ -247,16 +279,24 @@ export function tambahRingkas(ringkas, date, input) {
 // Total satu hari termasuk setoran voucher toko — dipakai baris Riwayat & export CSV.
 // totalPengeluaran diambil dari entri bila ada; entri lama yang belum punya kolom
 // itu dihitung ulang dari daftarnya.
+//
+// Tiga angka, tiga nama:
+//   hasil     = penjualan − gaji − pengeluaran sungguhan + cash masuk
+//               (untung/rugi usaha hari itu)
+//   kePemilik = setoran voucher bertanda kePemilik + baris 'setor'
+//   sisaKas   = hasil − kePemilik  (perubahan kas toko; sama dengan dulu)
 export function entryDayTotals(entry, voucherToko) {
-  const { items, cash, expGross, cashGross } = splitExpenses(entry.expenses);
-  const totalPengeluaran = entry.totalPengeluaran != null ? entry.totalPengeluaran : (expGross - cashGross);
+  const { items, cash, setor, expGross, cashGross, setorGross } = splitExpenses(entry.expenses);
+  const totalPengeluaran = entry.totalPengeluaran != null ? entry.totalPengeluaran : (expGross + setorGross - cashGross);
   const voucher = voucherForDate(entry.date, voucherToko);
   const totalPenjualan = (entry.totalPenjualan||0) + voucher.penjualan;
   const totalGaji = (entry.gaji||0) + voucher.gaji;
+  const sisaKas = totalPenjualan - totalGaji - totalPengeluaran - voucher.kePemilik;
+  const kePemilik = setorGross + voucher.kePemilik;
   return {
-    expItems: items, cashItems: cash, expGross, cashGross,
+    expItems: items, cashItems: cash, setorItems: setor, expGross, cashGross, setorGross,
     totalPengeluaran, voucher, totalPenjualan, totalGaji,
-    sisaKas: totalPenjualan - totalGaji - totalPengeluaran,
+    kePemilik, hasil: sisaKas + kePemilik, sisaKas,
   };
 }
 
@@ -277,15 +317,17 @@ export function computeKasSummary(summaries, voucherToko, initialSaldo, now) {
   const ePenjualanAll = all.reduce((s,e)=>s+(e.totalPenjualan||0),0);
   const eGajiAll = all.reduce((s,e)=>s+(e.gaji||0),0);
   const ePengeluaranAll = all.reduce((s,e)=>s+(e.totalPengeluaran||0),0);
+  // Voucher: hanya yang masuk kas toko (masukKas). Setoran yang langsung ke
+  // kas pemilik tetap penjualan, tapi tidak pernah ada di laci.
   const vAll = voucherInRange('1900-01-01','9999-12-31', voucherToko);
-  const kasSekarang = initialSaldo + (ePenjualanAll + vAll.penjualan) - (eGajiAll + vAll.gaji) - ePengeluaranAll;
+  const kasSekarang = initialSaldo + (ePenjualanAll + vAll.masukKas) - (eGajiAll + vAll.gaji) - ePengeluaranAll;
 
   // Selisih hari ini, untuk baris di bawah angka besar.
   const todayStr = dateToISO(now);
   const tE = summaries[todayStr];
   const tV = voucherForDate(todayStr, voucherToko);
   const hasToday = !!tE || tV.drop>0 || tV.laku>0;
-  const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.penjualan) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
+  const todayKas = hasToday ? (((tE?.totalPenjualan||0)+tV.masukKas) - ((tE?.gaji||0)+tV.gaji) - (tE?.totalPengeluaran||0)) : 0;
 
   return { kasSekarang, todayKas, hasToday };
 }

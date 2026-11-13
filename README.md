@@ -137,6 +137,10 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
 - `MANUAL.md` — panduan pemakaian untuk yang menjaga warkop
 - `import_riwayat.sql` — import riwayat awal dari CSV
 - `voucher_toko_migration.sql` — bikin tabel `voucher_toko` + RLS
+- `kiriman_migration.sql` — fungsi `tambah_entri`: simpan Hari Ini atomik dan
+  tahan kirim ulang (tanpa ini app memakai cara lama)
+- `kas_pemilik_migration.sql` — kolom `voucher_toko.ke_pemilik` dan tabel
+  `hitung_kas` (Cocokkan kas). Tanpa ini kedua fitur itu tersembunyi.
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
 - `public/manifest.webmanifest` — identitas app saat dipasang di layar utama
