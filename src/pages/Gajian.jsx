@@ -41,7 +41,6 @@ export default function Gajian({ entries, voucherToko }) {
                 if (isPast && !isCurrent) { statusClass='paid'; statusText='Sudah gajian'; }
                 else if (isCurrent) { statusClass='pending'; statusText='Lagi jalan'; }
                 else { statusClass='future'; statusText='Nanti'; }
-                const overflowLabel = overflowEntries.length>0 ? ' (+tgl '+p.overflowDays[0]+'–'+p.overflowDays[p.overflowDays.length-1]+' '+MO[p.prevMonth]+')' : '';
                 // Hero: hitung countdown & progress (khusus periode berjalan)
                 const periodLength = p.endDay - p.startDay + 1;
                 const daysToPayday = isCurrent ? Math.max(0, p.payday - currentDay) : 0;

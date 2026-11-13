@@ -1553,3 +1553,22 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
   .toast{transition:opacity .2s ease;filter:none;transform:translateX(-50%)}
   .toast.show{transform:translateX(-50%)}
 }
+
+/* === Mode database tiruan (hanya `npm run dev`) ============================
+   Pita kuning-hitam di atas layar dan pilihan akun di layar masuk. Tidak
+   pernah muncul di build produksi: modeTiruan di db.js selalu false. */
+.pita-tiruan{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:1000;pointer-events:none;
+  padding:2px 14px;border-radius:0 0 8px 8px;text-align:center;white-space:nowrap;
+  font:700 11px/1.4 'Inter',sans-serif;letter-spacing:.12em;
+  color:#1A1400;background:repeating-linear-gradient(135deg,#FFD23F 0 14px,#F5C400 14px 28px);
+}
+.tiruan-akun{
+  margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+  font-size:12px;color:var(--text2);
+}
+.tiruan-akun > div{flex-basis:100%;text-align:center}
+.tiruan-akun button{
+  font:inherit;font-weight:600;padding:8px 14px;border-radius:10px;cursor:pointer;
+  background:var(--bg2);color:var(--text);border:1px dashed var(--border2);
+}

@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { showToast } from './toast.js'
+import { modeTiruan } from './db.js'
 // Font di-bundle lewat @fontsource — pengganti Google Fonts CDN. Warung kopi
 // sering pakai WiFi lambat: satu permintaan ke host pihak ketiga yang gagal
 // bikin teks kedip ganti font, atau app terasa menggantung saat dibuka.
@@ -14,6 +15,16 @@ import '@fontsource/inter/800.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import './styles.css'
+
+// Pita di atas layar selama memakai database tiruan. Sengaja di luar React
+// dan dipasang dari sini, supaya tampil di SEMUA layar — termasuk layar masuk
+// dan layar galat — dan tidak ada orang yang mengira sedang melihat angka asli.
+if (modeTiruan) {
+  const pita = document.createElement('div')
+  pita.className = 'pita-tiruan'
+  pita.textContent = 'DATA TIRUAN · bukan pembukuan asli'
+  document.body.prepend(pita)
+}
 
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>

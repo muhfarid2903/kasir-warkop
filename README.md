@@ -8,16 +8,41 @@ Tidak ada backend. Browser bicara langsung ke Supabase. Hosting di GitHub Pages.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev        # http://localhost:5173 — DATABASE TIRUAN, aman dicoba
+npm run dev:asli   # tersambung ke Supabase produksi — menulis ke pembukuan asli!
 ```
+
+`npm run dev` memakai `src/db.tiruan.js`: data di localStorage browser,
+dibibit dari entri nyata + data voucher sintetis, dengan pita kuning "DATA
+TIRUAN" di atas layar. Akun tiruannya tinggal diketuk di layar masuk. Dua tab
+= dua HP: perubahan di satu tab sampai ke tab lain seperti realtime.
+
+Gangguan bisa dipicu dari console browser:
+
+| perintah | akibatnya |
+|---|---|
+| `__tiruan.putus(true)` / `putus(false)` | WiFi mati / nyala lagi |
+| `__tiruan.hilangkanBalasan(1)` | tulisan berikutnya tersimpan, tapi app menerima "Failed to fetch" |
+| `__tiruan.kirimAuth()` | event auth dengan sesi baru, seperti saat token diperbarui |
+| `__tiruan.lambat(2000)` | jaringan lambat |
+| `__tiruan.reset()` | buang data tiruan, bibit ulang |
+
+Pemilihannya dilakukan plugin kecil di `vite.config.js` yang membelokkan
+impor `db.js`; tidak ada halaman yang tahu sedang memakai yang mana. URL &
+anon key Supabase ada di `.env`.
 
 ```bash
-npm test         # tes rumus uang + antrean offline
-npm run build    # hasil ke dist/
-npm run preview  # cek hasil build sebelum push
+npm run lint          # ESLint (aturan bawaan + aturan hook React)
+npm test              # tes rumus uang + antrean offline
+npm run build         # hasil ke dist/ — selalu database asli
+npm run build:tiruan  # build berisi database tiruan, untuk dicoba lewat preview
+npm run preview       # cek hasil build sebelum push
 ```
 
-Tes jalan otomatis di CI sebelum build, jadi rumus yang salah tidak ikut
+`build:tiruan` tidak bisa ter-deploy: CI menolak `dist/` yang berisi
+database tiruan.
+
+Lint dan tes jalan otomatis di CI sebelum build, jadi rumus yang salah tidak ikut
 ter-deploy. Datanya memakai 37 entri nyata dari `import_riwayat.sql`.
 
 ## Deploy
@@ -35,6 +60,7 @@ dipindah, custom domain akan lepas tiap deploy.
 | `main.jsx` | titik masuk: font, styles, render |
 | `App.jsx` | sidebar, header, perpindahan tab |
 | `db.js` | **satu-satunya** yang menyentuh Supabase |
+| `db.tiruan.js` | pengganti `db.js` untuk `npm run dev` — bentuk ekspornya harus sama |
 | `model.js` | aturan & rumus uang. Fungsi murni, tanpa I/O, tanpa React |
 | `hooks.js` | state yang dipakai lintas halaman |
 | `format.js` | angka & tanggal jadi teks |
@@ -91,7 +117,7 @@ tangan.
 
 ## Kunci Supabase
 
-Ada di `src/db.js`. Yang dipakai anon key — memang untuk dipublikasikan, yang
+Ada di `.env`, dibaca `src/db.js`. Yang dipakai anon key — memang untuk dipublikasikan, yang
 menjaga data adalah RLS policy di Supabase, bukan kerahasiaan kunci ini.
 
 Pendaftaran akun publik **dimatikan** di Supabase (Authentication → Allow new

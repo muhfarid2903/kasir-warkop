@@ -297,7 +297,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
             );
             const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
             const { expItems, cashItems, expGross, cashGross, voucher: v,
-                    totalPengeluaran: totalExp, totalGaji: totalGajiRow,
+                    totalGaji: totalGajiRow,
                     totalPenjualan: totalPenjualanRow, sisaKas } = entryDayTotals(e, voucherToko);
             const hasVoucher = v.laku>0 || v.drop>0;
             const tokoBreakdown = hasVoucher ? TOKO.map(t => {

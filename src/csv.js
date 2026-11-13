@@ -37,7 +37,7 @@ export function exportRiwayatCSV(entries, voucherToko, jejak) {
       const r = (voucherToko?.[d]||{})[t.id] || { drop:0, laku:0 };
       tokoCells.push(r.drop||0, r.laku||0); vLakuTotal += r.laku||0; vDropTotal += r.drop||0;
     });
-    const { expGross, cashGross, totalPengeluaran: totalExp, totalPenjualan, totalGaji, sisaKas } = entryDayTotals(e, voucherToko);
+    const { expGross, cashGross, totalPenjualan, totalGaji, sisaKas } = entryDayTotals(e, voucherToko);
     const expDetail = (e.expenses||[]).map(x => (x.type==='cashin'?'[CASH MASUK] ':'')+(x.desc||(x.type==='cashin'?'Cash Masuk':'Pengeluaran'))+' '+Math.round(x.amount)).join('; ');
     rows.push([d, DAYS[dt.getDay()], ...prodQtys, totalQty, ...tokoCells, vLakuTotal, vDropTotal, totalPenjualan, totalGaji, expDetail, expGross, cashGross, sisaKas, ringkasPelaku(jejak?.[d])]);
     prodQtys.forEach((q,i)=>totals.prod[i]+=q);

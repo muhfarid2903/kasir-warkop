@@ -33,8 +33,27 @@ function serviceWorker() {
   }
 }
 
-export default defineConfig({
-  plugins: [react(), serviceWorker()],
+// Membelokkan setiap impor src/db.js ke src/db.tiruan.js. Impor di halaman
+// tidak diubah satu pun — jadi tes (yang menyulih '../db.js') dan build
+// produksi tetap memakai berkas yang sama.
+//
+// Bawaan: `vite` (dev) → tiruan, `vite build` → Supabase asli.
+// Ditimpa lewat VITE_DB=asli / VITE_DB=tiruan (lihat skrip di package.json).
+function pilihDatabase(db) {
+  return {
+    name: 'warkop-pilih-database',
+    enforce: 'pre',
+    async resolveId(source, importer, options) {
+      if (db !== 'tiruan' || !importer || !/(^|\/)db\.js$/.test(source)) return null
+      const r = await this.resolve(source, importer, { ...options, skipSelf: true })
+      if (r && r.id.endsWith('/src/db.js')) return r.id.replace(/db\.js$/, 'db.tiruan.js')
+      return null
+    },
+  }
+}
+
+export default defineConfig(({ command }) => ({
+  plugins: [react(), serviceWorker(), pilihDatabase(process.env.VITE_DB || (command === 'build' ? 'asli' : 'tiruan'))],
   server: {
     port: 5173,
     host: true,
@@ -43,4 +62,4 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
-})
+}))
