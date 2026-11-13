@@ -6,7 +6,7 @@ import {
   loadJejak, subscribeRealtime,
 } from './db.js'
 import { flushOutbox, onOutboxChange, outboxSize } from './outbox.js'
-import { hasDetail, todayISO } from './model.js'
+import { hasDetail, todayISO, gabungRingkasan } from './model.js'
 
 // State yang dipakai lebih dari satu halaman, jadi tidak bisa dimiliki salah
 // satunya. Yang cuma dipakai satu halaman tinggal di halaman itu.
@@ -36,7 +36,37 @@ export function useAuth() {
 // baris LENGKAP (dengan quantities & expenses) menyusul hanya kalau diminta —
 // Riwayat minta semuanya, Hari Ini minta satu tanggal. Bedakan keduanya dengan
 // hasDetail(); baris ringkas tidak punya kunci quantities sama sekali.
+//
+// Muat penuh (dengan layar kerangka) HANYA terjadi saat penggunanya berganti.
+// Dulu efek ini bergantung pada objek sesi, padahal supabase-js mengirim objek
+// sesi baru tiap app kembali ke layar dan tiap token diperbarui: seluruh app
+// berganti kerangka, semua halaman dilepas, dan kopi yang sudah diketuk tapi
+// belum disimpan ikut hilang. Penyegaran berikutnya senyap (lihat tarik()).
+
+const KUNCI_SIMPANAN = 'warkop_simpanan_v1';
+
+// Hasil muat terakhir yang berhasil, beserta jamnya. Dipakai HANYA kalau muat
+// awal gagal (app dibuka tanpa sinyal) — dan selalu ditampilkan bersama
+// keterangan "angka per …", tidak pernah diam-diam seolah angka segar.
+function simpanTerakhir(userId, isi) {
+  try { localStorage.setItem(KUNCI_SIMPANAN, JSON.stringify({ userId, waktu: new Date().toISOString(), ...isi })); } catch (_) {}
+}
+function bacaSimpanan(userId) {
+  try {
+    const s = JSON.parse(localStorage.getItem(KUNCI_SIMPANAN) || 'null');
+    return s && s.userId === userId ? s : null;
+  } catch (_) { return null; }
+}
+const keRingkas = (map) => {
+  const out = {};
+  Object.values(map || {}).forEach(e => { out[e.date] = { date: e.date, totalPenjualan: e.totalPenjualan || 0, gaji: e.gaji || 0, totalPengeluaran: e.totalPengeluaran || 0 }; });
+  return out;
+};
+
+const JEDA_SEGAR = 30000;
+
 export function useWarkopData(session) {
+  const userId = session?.user?.id || null;
   const [entries, setEntries] = useState({});
   const [voucherToko, setVoucherToko] = useState({});
   // Jejak input per tanggal. Hanya Riwayat yang menampilkannya, jadi isinya
@@ -45,31 +75,100 @@ export function useWarkopData(session) {
   const [initialSaldo, setInitialSaldo] = useState(0);
   const [syncStatus, setSyncStatus] = useState(supabaseReady ? "loading" : "not_configured");
   const [loading, setLoading] = useState(supabaseReady);
+  // null = angka segar dari server. String waktu = angka dari simpanan HP,
+  // ditampilkan karena server tidak terjangkau saat app dibuka.
+  const [dataPer, setDataPer] = useState(null);
+  // Server tidak terjangkau DAN tidak ada simpanan: jangan tampilkan Rp0.
+  const [dataKosong, setDataKosong] = useState(false);
+
+  const detailsLoaded = useRef(false);
+  const jejakLoaded = useRef(false);
+  const [detailsReady, setDetailsReady] = useState(false);
+
+  const entriesRef = useRef(entries);
+  useEffect(() => { entriesRef.current = entries; }, [entries]);
+  const userAktif = useRef(userId);
+  const sedangTarik = useRef(false);
+  const segarTerakhir = useRef(0);
+  // Pernah putus sejak penarikan terakhir yang berhasil: begitu tersambung
+  // lagi, tarik ulang. Realtime tidak mengulang perubahan yang terjadi selagi
+  // kanalnya mati — tanpa ini angka basi tampil dengan badge yang sudah hijau.
+  const pernahPutus = useRef(false);
+
+  // Tarik saldo, ringkasan entri, dan voucher dari server. `awal` = muat
+  // pertama untuk pengguna ini; selain itu senyap dan tidak membuang detail.
+  const tarik = useCallback(async ({ awal = false } = {}) => {
+    if (!userId || sedangTarik.current) return;
+    // Selagi masih ada kiriman tertunda, server belum memuat input itu.
+    // Menyegarkan sekarang akan menghapus tebakan lokalnya dari layar; tunggu
+    // antrean terkirim (flush memanggil tarik sendiri sesudahnya).
+    if (!awal && outboxSize() > 0) return;
+    sedangTarik.current = true;
+    try {
+      const [saldo, ent, vt] = await Promise.all([loadSaldoAwal(), loadEntrySummaries(), loadVoucherToko()]);
+      if (userAktif.current !== userId) return;
+      if (ent.error) {
+        pernahPutus.current = true;
+        setSyncStatus('offline');
+        if (awal) {
+          const s = bacaSimpanan(userId);
+          if (s) {
+            setInitialSaldo(s.saldo || 0);
+            setEntries(s.entries || {});
+            setVoucherToko(s.voucher || {});
+            setDataPer(s.waktu);
+          } else {
+            setDataKosong(true);
+          }
+        }
+        return;
+      }
+      pernahPutus.current = false;
+      segarTerakhir.current = Date.now();
+      if (saldo != null) setInitialSaldo(saldo);
+      const sebelumnya = entriesRef.current;
+      const g = gabungRingkasan(sebelumnya, ent.data);
+      entriesRef.current = g.entries;
+      setEntries(g.entries);
+      // Voucher opsional — abaikan galatnya kalau tabelnya belum ada.
+      if (!vt.error) setVoucherToko(vt.data);
+      setSyncStatus('online');
+      setDataPer(null);
+      setDataKosong(false);
+      simpanTerakhir(userId, { saldo: saldo ?? 0, entries: keRingkas(g.entries), voucher: vt.error ? {} : vt.data });
+      // Riwayat sudah memegang detail: tanggal yang ternyata berubah atau baru
+      // muncul ditarik detailnya satu per satu, sisanya tetap.
+      if (detailsLoaded.current) {
+        const tanggalBaru = Object.keys(ent.data).filter(d => !sebelumnya[d]);
+        for (const d of [...g.perluDetail, ...tanggalBaru]) {
+          const { data } = await loadEntryDetail(d);
+          if (data && userAktif.current === userId) setEntries(prev => ({ ...prev, [d]: data }));
+        }
+        if (!awal && jejakLoaded.current) {
+          const { data: jmap, error: jerr } = await loadJejak();
+          if (!jerr && userAktif.current === userId) setJejak(jmap);
+        }
+      }
+    } finally {
+      sedangTarik.current = false;
+      if (awal && userAktif.current === userId) setLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
+    userAktif.current = userId;
+    // Pengguna berganti (atau keluar): buang semua milik pengguna sebelumnya.
+    setEntries({}); entriesRef.current = {};
+    setVoucherToko({}); setJejak({}); setInitialSaldo(0);
+    setDataPer(null); setDataKosong(false);
+    detailsLoaded.current = false; jejakLoaded.current = false; setDetailsReady(false);
+    pernahPutus.current = false; segarTerakhir.current = 0;
     // Tanpa sesi: layar Login yang tampil, jadi nilai loading tidak kelihatan.
     // Tetap dibiarkan true supaya saat sesi muncul tidak ada satu render antara
-    // di mana halaman sempat tampil dengan data kosong — itu bikin Hari Ini
-    // mount lalu unmount lagi, dan ikut menembakkan permintaan yang mubazir.
-    if (!supabaseReady || !session) { if (!session) { setEntries({}); setVoucherToko({}); setJejak({}); setInitialSaldo(0); detailsLoaded.current = false; setDetailsReady(false); jejakLoaded.current = false; } setLoading(supabaseReady); return; }
-    setLoading(true);
-    let cancelled = false;
-    (async () => {
-      // Saldo awal
-      const saldo = await loadSaldoAwal();
-      if (!cancelled && saldo != null) setInitialSaldo(saldo);
-      // Entries — ringkas dulu; detailnya menyusul saat diminta
-      const { data: map, error } = await loadEntrySummaries();
-      if (cancelled) return;
-      if (error) { setSyncStatus('offline'); setLoading(false); return; }
-      setEntries(map);
-      // Voucher Toko (opsional — abaikan error jika tabel belum ada)
-      const { data: vmap, error: vtErr } = await loadVoucherToko();
-      if (!cancelled && !vtErr) setVoucherToko(vmap);
-      setSyncStatus('online');
-      setLoading(false);
-    })();
-    // Realtime
+    // di mana halaman sempat tampil dengan data kosong.
+    setLoading(supabaseReady);
+    if (!supabaseReady || !userId) return;
+    tarik({ awal: true });
     const unsubscribe = subscribeRealtime({
       onEntry: (ev) => {
         setEntries(prev => {
@@ -90,7 +189,11 @@ export function useWarkopData(session) {
           return { ...prev, [j.date]: [...hari, j].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu))) };
         });
       },
-      onStatus: (st) => setSyncStatus(prev => prev === 'not_configured' ? prev : st),
+      onStatus: (st) => {
+        if (st === 'offline') pernahPutus.current = true;
+        setSyncStatus(prev => prev === 'not_configured' ? prev : st);
+        if (st === 'online' && pernahPutus.current) tarik();
+      },
       onVoucher: (ev) => {
         setVoucherToko(prev => {
           const next = { ...prev };
@@ -103,8 +206,26 @@ export function useWarkopData(session) {
         });
       },
     });
-    return () => { cancelled = true; unsubscribe(); };
-  }, [session]);
+    return () => { unsubscribe(); };
+  }, [userId, tarik]);
+
+  // Penyegaran senyap saat app kembali ke layar atau sinyal kembali. Dijeda
+  // 30 detik supaya bolak-balik ke WhatsApp tidak menembak server terus —
+  // kecuali kalau sempat putus, karena justru itu saat datanya paling basi.
+  useEffect(() => {
+    if (!userId) return;
+    const coba = () => {
+      if (document.hidden) return;
+      if (!pernahPutus.current && Date.now() - segarTerakhir.current < JEDA_SEGAR) return;
+      tarik();
+    };
+    document.addEventListener('visibilitychange', coba);
+    window.addEventListener('online', coba);
+    return () => {
+      document.removeEventListener('visibilitychange', coba);
+      window.removeEventListener('online', coba);
+    };
+  }, [userId, tarik]);
 
   // === Antrean kiriman tertunda ===
   const [pending, setPending] = useState(outboxSize);
@@ -114,13 +235,15 @@ export function useWarkopData(session) {
   // terlihat, dan berkala. WiFi warkop bisa "tersambung" tapi tidak jalan,
   // jadi event online saja tidak cukup diandalkan.
   useEffect(() => {
-    if (!session) return;
+    if (!userId) return;
     let batal = false;
     const coba = async () => {
       if (batal || outboxSize() === 0) return;
       const { terkirim, sisa } = await flushOutbox();
       if (batal) return;
-      if (terkirim > 0 && sisa === 0) setSyncStatus('online');
+      // Antrean habis: ambil angka pasti dari server, menggantikan tebakan
+      // lokal yang dipasang saat input diantre.
+      if (terkirim > 0 && sisa === 0) { setSyncStatus('online'); tarik(); }
     };
     coba();
     const timer = setInterval(coba, 20000);
@@ -131,7 +254,7 @@ export function useWarkopData(session) {
       window.removeEventListener('online', coba);
       document.removeEventListener('visibilitychange', coba);
     };
-  }, [session]);
+  }, [userId, tarik]);
 
   // Dipanggil halaman setelah operasi tulis, supaya badge mencerminkan keadaan
   // sebenarnya — bukan cuma hasil muat awal seperti sebelumnya.
@@ -140,16 +263,18 @@ export function useWarkopData(session) {
   }, []);
 
   // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
-  // per sesi — realtime yang menjaga tetap segar setelahnya.
-  const detailsLoaded = useRef(false);
-  const jejakLoaded = useRef(false);
-  const [detailsReady, setDetailsReady] = useState(false);
-
+  // per pengguna — realtime dan tarik() yang menjaga tetap segar setelahnya.
   const loadAllDetails = useCallback(async () => {
     if (detailsLoaded.current) { setDetailsReady(true); return; }
     detailsLoaded.current = true;
     const { data, error } = await loadEntryDetails();
-    if (error) { detailsLoaded.current = false; setSyncStatus('offline'); return; }
+    if (error) {
+      detailsLoaded.current = false; setSyncStatus('offline'); pernahPutus.current = true;
+      // Tanpa sinyal: tetap tampilkan yang sudah ada (ringkasan), jangan
+      // kerangka selamanya.
+      setDetailsReady(true);
+      return;
+    }
     // Jejak ikut ditarik di sini karena tempat menampilkannya sama. Gagalnya
     // dibiarkan tanpa suara: tabelnya opsional (lihat jejak_migration.sql),
     // dan riwayat uangnya tetap utuh walau daftar penginputnya kosong.
@@ -181,9 +306,7 @@ export function useWarkopData(session) {
   // quantities & expenses tanggal terpilih untuk menumpuk input di atasnya.
   const ensureDetail = useCallback(async (date) => {
     // Sudah lengkap: tidak perlu menarik ulang.
-    let sudah = false;
-    setEntries(prev => { sudah = hasDetail(prev[date]); return prev; });
-    if (sudah) return;
+    if (hasDetail(entriesRef.current[date])) return;
     const { data, error } = await loadEntryDetail(date);
     if (error) return;
     setEntries(prev => {
@@ -202,6 +325,7 @@ export function useWarkopData(session) {
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
     pending, tandaiTulis,
+    dataPer, dataKosong,
   };
 }
 

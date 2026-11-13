@@ -29,7 +29,10 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
 
   // Muat awal cuma menarik kolom angka. Tanggal yang sedang dilihat butuh
   // quantities & expenses-nya, jadi diambil satu baris saat tanggal berganti.
-  useEffect(() => { ensureDetail(selectedDate); }, [selectedDate, ensureDetail]);
+  // Ikut jalan lagi kalau baris tanggal ini kembali jadi ringkas (penyegaran
+  // menemukan angkanya berubah di HP lain).
+  const adaDetail = hasDetail(existingEntry);
+  useEffect(() => { ensureDetail(selectedDate); }, [selectedDate, ensureDetail, adaDetail]);
 
   const inputTotals = useMemo(
     () => draftTotals(quantities, expenses, cashIns),

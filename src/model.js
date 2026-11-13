@@ -136,6 +136,31 @@ export function hasDetail(entry) {
   return entry != null && entry.quantities !== undefined;
 }
 
+// Menyegarkan daftar entri dari server tanpa membuang detail yang sudah
+// ditarik. Dulu tiap penyegaran menimpa baris LENGKAP dengan baris RINGKAS,
+// sedangkan penanda "detail sudah dimuat" tetap menyala — rincian Riwayat
+// kosong sampai app dimuat ulang.
+//
+// Baris lengkap dipertahankan selama tiga angkanya masih sama dengan yang di
+// server. Kalau berbeda, berarti ada yang menulis sementara app tidak
+// mendengar: pakai ringkasan barunya, dan laporkan tanggalnya supaya detailnya
+// ditarik ulang. Tanggal yang tidak lagi ada di server dibuang.
+export function gabungRingkasan(lama, ringkasan) {
+  const entries = {}
+  const perluDetail = []
+  const sama = (a, b) => (a.totalPenjualan||0) === (b.totalPenjualan||0)
+    && (a.gaji||0) === (b.gaji||0)
+    && (a.totalPengeluaran||0) === (b.totalPengeluaran||0)
+  Object.keys(ringkasan || {}).forEach(d => {
+    const r = ringkasan[d]
+    const l = lama?.[d]
+    if (hasDetail(l) && sama(l, r)) { entries[d] = l; return }
+    entries[d] = r
+    if (hasDetail(l)) perluDetail.push(d)
+  })
+  return { entries, perluDetail }
+}
+
 // === Hitungan satu hari ===
 
 export function productTotals(quantities) {
