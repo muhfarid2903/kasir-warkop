@@ -18,18 +18,31 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
   const [rekapTerbuka, setRekapTerbuka] = useState(false);
   const voucherDateRef = useRef(null);
 
-  // Sinkronkan draft voucher dari data tersimpan saat tanggal/voucherToko berubah
+  // Kolom yang sudah diketik orang di tanggal ini ("dadi.laku", …). Dulu tiap
+  // event realtime dari HP lain menyetel ulang SEMUA kolom dari server, jadi
+  // angka yang sedang diketik hilang. Sekarang yang ikut diperbarui hanya
+  // kolom yang belum disentuh.
+  const disentuh = useRef(new Set());
+  const tanggalDraft = useRef(null);
+
   useEffect(() => {
     const day = voucherToko[selectedDate] || {};
-    const next = {};
-    TOKO.forEach(t => {
-      const r = day[t.id] || { drop:0, laku:0 };
-      next[t.id] = { drop: String(r.drop||0), laku: String(r.laku||0) };
+    const gantiTanggal = tanggalDraft.current !== selectedDate;
+    if (gantiTanggal) { disentuh.current = new Set(); tanggalDraft.current = selectedDate; }
+    setVoucherDraft(prev => {
+      const next = {};
+      TOKO.forEach(t => {
+        const r = day[t.id] || { drop:0, laku:0 };
+        const lama = prev[t.id];
+        const ambil = (f) => (!gantiTanggal && lama && disentuh.current.has(t.id+'.'+f)) ? lama[f] : String(r[f]||0);
+        next[t.id] = { drop: ambil('drop'), laku: ambil('laku') };
+      });
+      return next;
     });
-    setVoucherDraft(next);
   }, [selectedDate, voucherToko]);
 
   function setDraft(tokoId, field, val) {
+    disentuh.current.add(tokoId+'.'+field);
     setVoucherDraft(prev => ({ ...prev, [tokoId]: { ...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val } }));
   }
 
@@ -53,6 +66,8 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
       const hasil = await kirimAtauAntre({ type:'simpanVoucher', date:selectedDate, rows, jejak });
       tandaiTulis(hasil);
       // Optimistic local update
+      // Sudah tersimpan: kolomnya kembali ikut data server.
+      disentuh.current = new Set();
       setVoucherToko(prev => {
         const next = { ...prev }; const dayMap = { ...(next[selectedDate]||{}) };
         rows.forEach(r => { dayMap[r.tokoId] = { drop: r.drop, laku: r.laku }; });

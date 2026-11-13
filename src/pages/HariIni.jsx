@@ -6,6 +6,7 @@ import {
   voucherForDate, draftTotals, accumulateEntry, computeKasSummary, computePaydayInfo, hasDetail,
 } from '../model.js'
 import { tandaJejak, rincianTambah } from '../jejak.js'
+import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tanggalDrafLain } from '../draf.js'
 import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
@@ -17,9 +18,21 @@ import { bunyi } from '../sfx.js'
 // Input penjualan harian + kas hari ini. Menyimpan dengan cara MENAMBAH ke
 // entri yang sudah ada, bukan mengganti — ganti nilai dilakukan lewat Riwayat.
 export default function HariIni({ selectedDate, setSelectedDate, entries, setEntries, voucherToko, initialSaldo, session, ensureDetail, tandaiTulis }) {
-  const [quantities, setQuantities] = useState(()=>{ const q={}; PRODUCTS.forEach(p=>q[p.id]=0); return q; });
-  const [expenses, setExpenses] = useState([]);
-  const [cashIns, setCashIns] = useState([]);
+  // Draf milik SATU tanggal. Berganti tanggal = berganti draf; draf tanggal
+  // lama tetap tersimpan di HP di bawah tanggalnya (lihat src/draf.js).
+  const [draf, setDraf] = useState(() => ({ tanggal: selectedDate, ...bacaDraf(selectedDate) }));
+  if (draf.tanggal !== selectedDate) setDraf({ tanggal: selectedDate, ...bacaDraf(selectedDate) });
+  const { quantities, expenses, cashIns } = draf;
+  const ubahBagian = (kunci) => (f) => setDraf(d => ({ ...d, [kunci]: typeof f === 'function' ? f(d[kunci]) : f }));
+  const setQuantities = ubahBagian('quantities');
+  const setExpenses = ubahBagian('expenses');
+  const setCashIns = ubahBagian('cashIns');
+  // Tiap perubahan langsung ditulis ke HP — kalau Android mematikan app di
+  // saku, ketukannya masih ada saat dibuka lagi.
+  useEffect(() => { tulisDraf(draf.tanggal, draf); }, [draf]);
+  // Dibaca langsung tiap render: isinya kecil, dan memo yang keliru di sini
+  // berarti petunjuk draf yang basi.
+  const drafLain = tanggalDrafLain(selectedDate);
   const [saving, setSaving] = useState(false);
   const [lainnyaTerbuka, setLainnyaTerbuka] = useState(false);
   const hariIniDateRef = useRef(null);
@@ -88,6 +101,7 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
     const hasCash = cashIns.some(e => (e.amount||0) > 0);
     if (!hasQty && !hasExp && !hasCash) { bunyi('gagal'); showToast('Belum ada input!'); return; }
     setSaving(true);
+    const tanggalSimpan = selectedDate;
     const input = { quantities, expenses, cashIns };
     // Siapa & jam berapa dicatat SEKARANG, ikut menumpang kirimannya. Kalau
     // sinyal baru datang besok pagi, jejaknya tetap atas nama orang ini dan
@@ -98,9 +112,9 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
       // ada. Angka pasti menyusul dari server / saat antrean terkirim.
       const dasar = hasDetail(existingEntry) ? existingEntry : null;
       const tebakan = accumulateEntry(dasar, selectedDate, input);
-      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:selectedDate, input, jejak });
+      const hasil = await kirimAtauAntre({ type:'tambahEntri', date:tanggalSimpan, input, jejak });
       tandaiTulis(hasil);
-      setEntries(prev => ({ ...prev, [selectedDate]: tebakan }));
+      setEntries(prev => ({ ...prev, [tanggalSimpan]: tebakan }));
       // Terkirim dapat kilau selebar layar; yang baru mengantre di HP dapat
       // nada konfirmasi saja — bedanya harus kedengaran tanpa membaca toast.
       if (hasil === 'diantre') bunyi('enter');
@@ -108,9 +122,12 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
       denyut(simpanRef.current, 'sukses', 900);
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — disimpan di HP, terkirim otomatis nanti'
-        : (dasar ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(selectedDate));
-      // Reset form HANYA bila tidak gagal — supaya input tidak hilang saat gagal
-      const q = {}; PRODUCTS.forEach(p => q[p.id]=0); setQuantities(q); setExpenses([]); setCashIns([]);
+        : (dasar ? 'Ditambahkan' : 'Tersimpan')+' · '+fmtDate(tanggalSimpan));
+      // Kurangi draf HANYA bila tidak gagal — supaya input tidak hilang saat
+      // gagal. Dikurangi, bukan dikosongkan: ketukan yang masuk selagi
+      // kiriman berjalan tetap tinggal.
+      setDraf(d => d.tanggal === tanggalSimpan ? { tanggal: d.tanggal, ...kurangiDraf(d, input) } : d);
+      if (draf.tanggal !== tanggalSimpan) hapusDraf(tanggalSimpan);
     } catch(e) { bunyi('gagal'); showToast('Gagal menyimpan: '+e.message); }
     setSaving(false);
   }
@@ -162,6 +179,11 @@ export default function HariIni({ selectedDate, setSelectedDate, entries, setEnt
                 </span>
               );
             })()}
+            {drafLain.length > 0 && (
+              <button type="button" className="draf-lain" onClick={() => setSelectedDate(drafLain[0])}>
+                <Icon type="pencil" size={12}/> Ada draf belum disimpan · {fmtDateShort(drafLain[0])}
+              </button>
+            )}
           </div>
 
           {(() => {
