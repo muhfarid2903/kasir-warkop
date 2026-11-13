@@ -175,6 +175,8 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
 ## Berkas lain
 
 - `MANUAL.md` — panduan pemakaian untuk yang menjaga warkop
+- `skema_awal.sql` — tabel `entries` & `config` + aturan aksesnya, beserta
+  **urutan** semua migrasi untuk membangun project Supabase baru dari nol
 - `import_riwayat.sql` — import riwayat awal dari CSV
 - `voucher_toko_migration.sql` — bikin tabel `voucher_toko` + RLS
 - `kiriman_migration.sql` — fungsi `tambah_entri`: simpan Hari Ini atomik dan
