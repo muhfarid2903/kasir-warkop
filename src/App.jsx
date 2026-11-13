@@ -332,7 +332,7 @@ function App() {
           )}
 
           {page==="gajian" && (
-            <Gajian entries={entries} voucherToko={voucherToko}/>
+            <Gajian entries={entries} voucherToko={voucherToko} session={session}/>
           )}
 
           {page==="riwayat" && (

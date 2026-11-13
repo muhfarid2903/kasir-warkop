@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Fragment } from 'react'
 import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '../db.js'
 import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
 import LembarHapus from '../components/LembarHapus.jsx'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN,
+  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN, rekapPerBulan,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
   ringkasJejak, jamJejak, tglJejak, pelakuHari, banyakPenginput, jejakSaldoTerakhir,
   LABEL_AKSI, IKON_AKSI,
 } from '../jejak.js'
-import { IDR, DAYS, MO, fmtDate, pesanGalat } from '../format.js'
+import { IDR, DAYS, MO, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
@@ -119,6 +119,27 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
       return false;
     });
   }, [sortedEntries, searchQuery, voucherToko, jejak]);
+
+  // Saring cepat + render bertahap. Dulu ±180 kartu dirender sekaligus, tiap
+  // kartu beranimasi masuk sendiri.
+  const [saring, setSaring] = useState('semua');
+  const [batas, setBatas] = useState(30);
+  useEffect(() => { setBatas(30); }, [saring, searchQuery]);
+  const SARING = [
+    ['semua', 'Semua', () => true],
+    ['kopi', 'Ada kopi', (e) => PRODUCTS.some(p => (e.quantities?.[p.id]||0) > 0)],
+    ['voucher', 'Voucher', (e) => { const v = voucherForDate(e.date, voucherToko); return v.laku>0 || v.drop>0; }],
+    ['pengeluaran', 'Pengeluaran', (e) => splitExpenses(e.expenses).items.length > 0],
+    ['dihapus', 'Dihapus', (e) => !!e.terhapus],
+  ];
+  const tersaring = useMemo(() => {
+    const f = (SARING.find(x => x[0] === saring) || SARING[0])[2];
+    return filteredEntries.filter(f);
+  // SARING dibangun ulang tiap render tapi isinya hanya bergantung pada voucherToko
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredEntries, saring, voucherToko]);
+  const rekapBulan = useMemo(() => rekapPerBulan(tersaring, voucherToko), [tersaring, voucherToko]);
+  const tampil = tersaring.slice(0, batas);
 
   async function saveInitialSaldo(val) {
     const v = parseInt(val) || 0;
@@ -305,6 +326,13 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               <button className="btn-export-icon" onClick={()=>exportRiwayatCSV(entries, voucherToko, jejak)} title="Export CSV"><Icon type="download" size={16}/></button>
             </div>
           )}
+          {sortedEntries.length>0 && (
+            <div className="saring-row" role="group" aria-label="Saring riwayat">
+              {SARING.map(([id, label]) => (
+                <button key={id} type="button" className={"chip"+(saring===id?" ada-isi":"")} aria-pressed={saring===id} onClick={()=>setSaring(id)}>{label}</button>
+              ))}
+            </div>
+          )}
           {searchQuery && (
             <div className="search-meta">
               {filteredEntries.length} dari {sortedEntries.length} entri cocok dengan "{searchQuery}"
@@ -312,20 +340,38 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
           )}
           {sortedEntries.length===0 ? (
             <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="inbox" size={48}/></div>Belum ada data tersimpan.<br/>Mulai input di tab "Hari Ini".</div>
-          ) : filteredEntries.length===0 ? (
+          ) : tersaring.length===0 ? (
             <div className="empty"><div className="empty-icon" style={{color:"var(--text3)"}}><Icon type="search" size={44}/></div>Tidak ada entri yang cocok.<br/>Coba kata kunci lain atau hapus pencarian.</div>
-          ) : filteredEntries.map((e) => {
+          ) : tampil.map((e, idx) => {
             const jejakHari = jejak?.[e.date] || [];
+            // Kepala bulan: menempel di atas saat digulir, dengan subtotalnya.
+            const bln = e.date.slice(0, 7);
+            const rb = rekapBulan[bln];
+            const kepala = (idx === 0 || tampil[idx-1].date.slice(0, 7) !== bln) ? (
+              <div className="kepala-bulan">
+                <span className="kepala-bulan-nama">{ML[Number(bln.slice(5))-1]} {bln.slice(0,4)}</span>
+                {rb && (
+                  <span className="kepala-bulan-angka">
+                    Jual {IDR(rb.penjualan)} · Keluar {IDR(rb.pengeluaran)}
+                    {rb.kePemilik > 0 && <> · Ke pemilik {IDR(rb.kePemilik)}</>}
+                    {' · '}<strong className={rb.hasil<0?'neg':'pos'}>{rb.hasil>=0?'Untung ':'Rugi '}{IDR(rb.hasil)}</strong>
+                  </span>
+                )}
+              </div>
+            ) : null;
             // Hari yang datanya sudah dihapus: tidak ada uang untuk ditampilkan,
             // yang tersisa cuma catatan siapa yang menghapusnya.
             if (e.terhapus) return (
-              <div key={e.date} className="history-item terhapus">
+              <Fragment key={e.date}>
+              {kepala}
+              <div className="history-item terhapus">
                 <div className="history-item-header">
                   <span className="history-date">{tanggalRingkas(e.date)}</span>
                   <span className="pill">Data dihapus</span>
                 </div>
                 <JejakHari list={jejakHari}/>
               </div>
+              </Fragment>
             );
             const sold = PRODUCTS.filter(p=>(e.quantities?.[p.id]||0)>0);
             const { expItems, cashItems, setorItems, expGross, cashGross, voucher: v,
@@ -346,33 +392,41 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
             const sisaSign = hasil>0?'pos':hasil<0?'neg':'';
             const sisaLabel = hasil>0?'Untung':hasil<0?'Rugi':'Impas';
             return (
-              <div key={e.date} className={"history-item "+kasClass} onClick={()=>{ if(isEditing) return; setOpenDetail(isOpen?null:e.date); }}>
-                <div className="history-item-header">
+              <Fragment key={e.date}>
+              {kepala}
+              <div className={"history-item "+kasClass}>
+                {/* Seluruh ringkasan baris adalah satu tombol: bisa dijangkau
+                    papan ketik dan pembaca layar, dan menyebut terbuka/tidak.
+                    Dulu div ber-onClick yang hanya bisa disentuh. */}
+                <button type="button" className="history-buka" aria-expanded={isOpen} disabled={isEditing}
+                  onClick={()=>setOpenDetail(isOpen?null:e.date)}>
+                <span className="history-item-header">
                   <span className="history-date">{tanggalRingkas(e.date)}</span>
                   <span className={"history-gaji "+sisaSign}>{hasil>0?'+':''}{IDR(hasil)}</span>
-                </div>
+                </span>
+                {/* Semua pil dalam satu baris yang membungkus — dulu empat
+                    baris terpisah (produk, uang, orang). */}
+                <span className="history-pills">
                 {(sold.length>0 || v.laku>0 || v.drop>0) && (
-                  <div className="history-pills">
+                  <>
                     {sold.map(p=><span key={p.id} className="pill" style={{display:"inline-flex",alignItems:"center",gap:5}}><ProductIcon type={p.id} size={11}/>{p.name} ×{e.quantities[p.id]}</span>)}
                     {v.laku>0 && <span className="pill" style={{background:"var(--accent-bg)",color:"var(--accent)",borderColor:"var(--accent-border)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="signal" size={11}/> Voucher ×{v.laku}</span>}
                     {v.drop>0 && <span className="pill" style={{background:"var(--blue-bg)",color:"var(--blue)",display:"inline-flex",alignItems:"center",gap:5}}><Icon type="package" size={11}/> Drop {v.drop}</span>}
-                  </div>
+                  </>
                 )}
                 {(expGross>0 || cashGross>0 || kePemilik>0 || cocokHari) && (
-                  <div className="history-money">
+                  <>
                     {expGross>0 && <span className="pill" style={{background:"var(--red-bg)",color:"var(--red)",borderColor:"var(--red-border)"}}>−{IDR(expGross)} keluar</span>}
                     {kePemilik>0 && <span className="pill pemilik"><Icon type="wallet" size={11}/> {IDR(kePemilik)} ke pemilik</span>}
                     {cocokHari && <span className={"pill "+(cocokHari.selisih===0?"cocok":"selisih")}><Icon type={cocokHari.selisih===0?'check':'alert'} size={11}/> {cocokHari.selisih===0 ? 'Kas cocok' : 'Selisih '+IDR(cocokHari.selisih)}</span>}
                     {cashGross>0 && <span className="pill" style={{background:"var(--green-bg)",color:"var(--green)",borderColor:"var(--green-border)"}}>+{IDR(cashGross)} cash</span>}
-                  </div>
+                  </>
                 )}
-                {banyakOrang && jejakHari.length>0 && (
-                  <div className="history-orang">
-                    {pelakuHari(jejakHari).map(o => (
-                      <span key={o.nama} className="pill orang"><Icon type="user" size={10}/> {o.nama}{o.jumlah>1 ? ' ×'+o.jumlah : ''}</span>
-                    ))}
-                  </div>
-                )}
+                {banyakOrang && jejakHari.length>0 && pelakuHari(jejakHari).map(o => (
+                  <span key={o.nama} className="pill orang"><Icon type="user" size={10}/> {o.nama}{o.jumlah>1 ? ' ×'+o.jumlah : ''}</span>
+                ))}
+                </span>
+                </button>
                 {isOpen && isEditing && (
                   <div className="history-detail" onClick={ev=>ev.stopPropagation()}>
                     {(() => {
@@ -544,8 +598,14 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                   </div>
                 )}
               </div>
+              </Fragment>
             );
           })}
+          {tersaring.length > batas && (
+            <button type="button" className="tampil-lagi" onClick={()=>setBatas(b=>b+30)}>
+              Tampilkan lebih lama ({tersaring.length - batas} hari lagi)
+            </button>
+          )}
           {akanHapus && entries[akanHapus] && (
             <LembarHapus entry={entries[akanHapus]} voucherToko={voucherToko} onHapus={()=>deleteEntry(akanHapus)} onTutup={()=>setAkanHapus(null)}/>
           )}

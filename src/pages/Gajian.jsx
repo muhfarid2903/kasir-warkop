@@ -1,12 +1,18 @@
+import { useState } from 'react'
 import { getPayPeriods, voucherForDate, periodGaji } from '../model.js'
+import { akunJaya } from '../jejak.js'
 import { IDR, DAYS, MO, ML } from '../format.js'
 import { Icon } from '../components/Icon.jsx'
 import { AnimatedIDR } from '../components/AnimatedIDR.jsx'
 
 // Rekap gaji dua periode terakhir. Halaman ini tidak punya state sendiri —
 // semuanya diturunkan dari entries + voucherToko.
-export default function Gajian({ entries, voucherToko }) {
+export default function Gajian({ entries, voucherToko, session }) {
   const today = new Date();
+  // Dulu hanya bulan ini dan bulan lalu; periode yang lebih tua tidak bisa
+  // dilihat sama sekali dari app.
+  const [jumlahBulan, setJumlahBulan] = useState(2);
+  const labelGaji = akunJaya(session) ? 'Gajiku' : 'Gaji Jaya';
 
   return (
     <>
@@ -14,7 +20,10 @@ export default function Gajian({ entries, voucherToko }) {
 
           {(()=>{
             const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); const currentDay = today.getDate();
-            const monthsToShow = [{ year:currentYear, month:currentMonth }, currentMonth===0?{year:currentYear-1,month:11}:{year:currentYear,month:currentMonth-1}];
+            const monthsToShow = Array.from({ length: jumlahBulan }, (_, i) => {
+              const d = new Date(currentYear, currentMonth - i, 1);
+              return { year: d.getFullYear(), month: d.getMonth() };
+            });
             return monthsToShow.map(({year, month}) => {
               const periods = getPayPeriods(year, month);
               const isCurrentMonth = (year===currentYear && month===currentMonth);
@@ -62,13 +71,15 @@ export default function Gajian({ entries, voucherToko }) {
                           </span>
                         </div>
                         <div className="gajian-hero-amount">
-                          <div className="gajian-hero-amount-label">Gajiku</div>
+                          <div className="gajian-hero-amount-label">{labelGaji}</div>
                           <div className="gajian-hero-amount-value"><AnimatedIDR value={totalGaji}/></div>
                         </div>
                         <div className="gajian-hero-progress">
                           <div className="gajian-hero-progress-bar"><div className="gajian-hero-progress-fill" style={{width:progressPct+'%'}}/></div>
                           <div className="gajian-hero-progress-meta">
-                            <span>{totalDays>0 ? 'Sudah '+totalDays+' hari kerja · '+progressPct+'% jalan' : 'Belum mulai catat'}</span>
+                            {/* Batangnya mengukur hari kalender, bukan uang — jadi
+                                disebut dalam hari, bukan persen. */}
+                            <span>Hari ke-{daysElapsed} dari {periodLength}{totalDays>0 ? ' · '+totalDays+' hari tercatat' : ' · belum ada catatan'}</span>
                           </div>
                         </div>
                       </div>
@@ -78,7 +89,7 @@ export default function Gajian({ entries, voucherToko }) {
                           <div className="gajian-period-label">{monthLabel} · {p.label}</div>
                         </div>
                         <div className="gajian-total-box">
-                          <div className="gajian-total-label">Gajiku</div>
+                          <div className="gajian-total-label">{labelGaji}</div>
                           <div className="gajian-total-value"><AnimatedIDR value={totalGaji}/></div>
                           <span className={"gajian-status-badge "+statusClass}>{statusText}</span>
                         </div>
@@ -130,6 +141,7 @@ export default function Gajian({ entries, voucherToko }) {
             });
           })()}
   
+          <button type="button" className="tampil-lagi" onClick={()=>setJumlahBulan(n=>n+2)}>Periode lebih lama</button>
     </>
   );
 }

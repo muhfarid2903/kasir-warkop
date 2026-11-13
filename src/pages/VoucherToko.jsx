@@ -103,7 +103,7 @@ export default function VoucherToko({ hariIni, fitur, selectedDate, setSelectedD
 
           <PilihTanggal value={selectedDate} onChange={setSelectedDate} hariIni={hariIni} min={VOUCHER_TOKO_CUTOFF}>
             <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
-              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
+              <span style={{fontFamily:'var(--font-angka)',fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
             </button>
           </PilihTanggal>
           {selectedDate < VOUCHER_TOKO_CUTOFF && (
