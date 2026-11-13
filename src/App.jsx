@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { signOut, onPemulihanPassword } from './db.js'
-import { namaPengguna } from './jejak.js'
-import { DAYS, ML, fmtDate, fmtDateShort } from './format.js'
+import { namaPengguna, khususPemilikTersembunyi } from './jejak.js'
+import { simpanCadangan, hariSejakCadangan, BATAS_HARI } from './cadangan.js'
+import { DAYS, ML, fmtDate, fmtDateShort, pesanGalat } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO, useKirimanGagal } from './hooks.js'
 import { useEfekSentuh } from './fx.js'
@@ -73,6 +74,17 @@ function App() {
   const { terpasang } = usePasang();
   const [lembarPasang, setLembarPasang] = useState(false);
   const pasang = async () => { if (!(await mintaPasang())) setLembarPasang(true); };
+
+  // Cadangan: paket gratis Supabase tidak punya cadangan otomatis, jadi
+  // pemilik diingatkan bila cadangan terakhir dari HP ini sudah lewat 30 hari.
+  const [hariCadangan, setHariCadangan] = useState(hariSejakCadangan);
+  const unduh = async () => {
+    try {
+      const n = await simpanCadangan();
+      setHariCadangan(0);
+      showToast('Cadangan diunduh · '+n+' baris data');
+    } catch (e) { showToast('Cadangan belum terunduh: '+pesanGalat(e), 'gagal'); }
+  };
 
   // Menu akun di header. Ada HANYA karena di HP sidebar disembunyikan (lihat
   // .sidebar{display:none} di blok ≤900px): Mode terang/gelap dan Logout
@@ -184,6 +196,8 @@ function App() {
   // kalau masih berupa potongan email yang perlu diberi nama asli.
   const userNama = namaPengguna(session);
   const userInitial = (userNama[0] || 'W').toUpperCase();
+  const perluCadangan = !khususPemilikTersembunyi(session) && (hariCadangan === null || hariCadangan > BATAS_HARI);
+  const ketCadangan = hariCadangan === null ? 'belum pernah' : hariCadangan === 0 ? 'hari ini' : hariCadangan+' hari lalu';
 
   return (
     <div className={"app"+(sidebarOpen?" sidebar-open":"")}>
@@ -218,6 +232,10 @@ function App() {
               </div>
             </div>
           )}
+          <button className="nav-btn" onClick={unduh} title={'Cadangan terakhir dari HP ini: '+ketCadangan}>
+            <Icon type="download" size={16}/> Unduh cadangan
+            {perluCadangan && <span className="tanda-cadangan" aria-label={'cadangan '+ketCadangan}/>}
+          </button>
           {!terpasang && (
             <button className="nav-btn" onClick={pasang}>
               <Icon type="download" size={16}/> Pasang di HP
@@ -270,12 +288,16 @@ function App() {
                 aria-expanded={menuAkun}
                 aria-label="Akun"
                 title={userEmail}
-              >{userInitial}</button>
+              >{userInitial}{perluCadangan && <span className="tanda-cadangan"/>}</button>
               {menuAkun && (
                 <div className="user-menu" role="menu">
                   <div className="user-menu-nama">{userNama}</div>
                   <div className="user-menu-email" title={userEmail}>{userEmail}</div>
                   <div className="user-menu-divider"/>
+                  <button role="menuitem" onClick={()=>{ setMenuAkun(false); unduh(); }}>
+                    <Icon type="download" size={15}/> Unduh cadangan
+                    {perluCadangan && <span className="ket-cadangan">{ketCadangan}</span>}
+                  </button>
                   {!terpasang && (
                     <button role="menuitem" onClick={()=>{ setMenuAkun(false); pasang(); }}>
                       <Icon type="download" size={15}/> Pasang di HP

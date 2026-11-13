@@ -31,7 +31,7 @@ export default [
   },
   {
     // Berkas yang jalan di Node (konfigurasi build) atau di service worker.
-    files: ['vite.config.js', 'vitest.config.js', 'eslint.config.js'],
+    files: ['vite.config.js', 'vitest.config.js', 'eslint.config.js', 'scripts/**/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
   },
   {

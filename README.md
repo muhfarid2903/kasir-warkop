@@ -68,7 +68,8 @@ dipindah, custom domain akan lepas tiap deploy.
 | `toast.js` | notifikasi |
 | `sfx.js` | bunyi ketuk/ketik, disintesis Web Audio — tanpa berkas audio |
 | `fx.js` | riak & denyut sentuhan, satu listener untuk seluruh app |
-| `csv.js` | export riwayat |
+| `csv.js` | export riwayat (untuk dibaca di Excel) |
+| `cadangan.js` | unduh cadangan lengkap (untuk dipulihkan) |
 | `outbox.js` | antrean kiriman saat sinyal putus |
 | `jejak.js` | siapa menginput apa — nama penginput & ringkasannya |
 | `sw.js` | service worker: kerangka app disimpan di HP supaya bisa dibuka tanpa sinyal |
@@ -124,6 +125,30 @@ Semuanya di `src/model.js`, lalu deploy seperti biasa.
   punya stok tetap tampil sampai stoknya habis.
 - **Toko baru**: tambah baris di `TOKO` dengan `id` baru yang tidak pernah
   dipakai sebelumnya.
+
+## Cadangan & pemulihan
+
+Project ini memakai paket gratis Supabase. Menurut dokumentasi Supabase (dicek
+14 Nov 2026), paket gratis **tidak punya cadangan otomatis** dan project yang
+sepi aktivitas sekitar seminggu **dijeda** (bisa dipulihkan dari Dashboard).
+Pemakaian harian app sudah cukup menjaganya tetap aktif, tapi cadangan tetap
+tanggung jawab kita sendiri:
+
+- **Unduh:** menu akun → **Unduh cadangan**. Hasilnya satu berkas JSON berisi
+  seluruh `entries`, `voucher_toko`, `config`, `jejak`, `hitung_kas`. Simpan di
+  tempat lain (Drive pribadi). Pemilik diingatkan (titik oranye di avatar)
+  bila cadangan terakhir dari HP itu lebih dari 30 hari.
+- **Pulihkan:**
+  ```bash
+  node scripts/cadangan-ke-sql.mjs cadangan-warkopsaja-2026-11-14.json > pulihkan.sql
+  ```
+  Baca `pulihkan.sql`, lalu tempel di Supabase SQL Editor. Isinya upsert:
+  baris di cadangan ditulis ulang, baris yang dibuat sesudahnya dibiarkan,
+  jejak tidak terduplikasi. Semuanya dalam satu transaksi.
+
+Rujukan: [Pricing](https://supabase.com/pricing),
+[Free project pausing](https://supabase.com/kb/faqs/platform/free-project-pausing),
+[Production checklist](https://supabase.com/docs/guides/deployment/going-into-prod).
 
 ## Kunci Supabase
 

@@ -391,6 +391,24 @@ export async function loadJejak() {
   })
 }
 
+export async function unduhCadangan() {
+  const r = await bacaan(() => {
+    const db = muat()
+    return {
+      app: 'kasir-warkop', versi: 1, dibuat: new Date().toISOString(), tiruan: true,
+      tabel: {
+        entries: Object.values(db.entries).map(e => ({ date: e.date, quantities: e.quantities, expenses: e.expenses, total_penjualan: e.totalPenjualan, gaji: e.gaji, total_pengeluaran: e.totalPengeluaran, sisa_kas: e.sisaKas })),
+        voucher_toko: Object.entries(db.voucher).flatMap(([date, m]) => Object.entries(m).map(([toko_id, c]) => ({ date, toko_id, drop_qty: c.drop, laku_qty: c.laku, ke_pemilik: !!c.kePemilik }))),
+        config: [{ key: 'saldo_awal', value: db.config.saldo_awal }],
+        jejak: db.jejak,
+        hitung_kas: db.hitungKas || [],
+      },
+    }
+  })
+  if (r.error) throw new TypeError('Failed to fetch')
+  return r.data
+}
+
 // Sama persis dengan db.js — app memakainya untuk memilah galat.
 export function isNetworkError(e) {
   if (!e) return false
