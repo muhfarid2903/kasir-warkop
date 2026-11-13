@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { signOut, onPemulihanPassword } from './db.js'
 import { namaPengguna, khususPemilikTersembunyi } from './jejak.js'
 import { simpanCadangan, hariSejakCadangan, BATAS_HARI } from './cadangan.js'
+import { VERSI_APP, setPelapor } from './galat.js'
 import { DAYS, ML, fmtDate, fmtDateShort, pesanGalat } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO, useKirimanGagal } from './hooks.js'
@@ -196,6 +197,7 @@ function App() {
   // kalau masih berupa potongan email yang perlu diberi nama asli.
   const userNama = namaPengguna(session);
   const userInitial = (userNama[0] || 'W').toUpperCase();
+  setPelapor(userNama);
   const perluCadangan = !khususPemilikTersembunyi(session) && (hariCadangan === null || hariCadangan > BATAS_HARI);
   const ketCadangan = hariCadangan === null ? 'belum pernah' : hariCadangan === 0 ? 'hari ini' : hariCadangan+' hari lalu';
 
@@ -247,6 +249,7 @@ function App() {
           <button className="nav-btn" onClick={async()=>{ await signOut(); }}>
             <Icon type="log-out" size={16}/> Logout
           </button>
+          <div className="versi-app">Versi {VERSI_APP}</div>
         </div>
       </aside>
 
@@ -309,6 +312,7 @@ function App() {
                   <button role="menuitem" onClick={async()=>{ setMenuAkun(false); await signOut(); }}>
                     <Icon type="log-out" size={15}/> Logout
                   </button>
+                  <div className="versi-app">Versi {VERSI_APP}</div>
                 </div>
               )}
             </div>

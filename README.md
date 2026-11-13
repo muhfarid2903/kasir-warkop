@@ -71,6 +71,7 @@ dipindah, custom domain akan lepas tiap deploy.
 | `csv.js` | export riwayat (untuk dibaca di Excel) |
 | `cadangan.js` | unduh cadangan lengkap (untuk dipulihkan) |
 | `outbox.js` | antrean kiriman saat sinyal putus |
+| `galat.js` | laporan galat ke server + versi app (`__VERSI_APP__`, dari commit & tanggal build) |
 | `jejak.js` | siapa menginput apa — nama penginput & ringkasannya |
 | `sw.js` | service worker: kerangka app disimpan di HP supaya bisa dibuka tanpa sinyal |
 | `pages/` | Login, HariIni, VoucherToko, Gajian, Riwayat |
@@ -183,6 +184,9 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
   menghapus hari dan mengubah Saldo Awal. **Urutannya wajib:** langkah 1
   (tandai pemilik) → pemilik keluar lalu masuk lagi → langkah 2. Langkah 2
   menolak berjalan kalau belum ada akun pemilik.
+- `galat_migration.sql` — tabel `galat`: error di HP kasir ikut tercatat di
+  server (maks. 5 per sesi). Lihat dengan
+  `select waktu, oleh, versi, pesan from public.galat order by waktu desc limit 20;`
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
 - `public/manifest.webmanifest` — identitas app saat dipasang di layar utama

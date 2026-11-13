@@ -52,7 +52,13 @@ function pilihDatabase(db) {
   }
 }
 
+// Versi app yang tampil di menu akun dan ikut di laporan galat: 7 karakter
+// commit (dari GitHub Actions) + tanggal build. Lokal: "lokal".
+const VERSI_APP = (process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : 'lokal')
+  + ' · ' + new Date().toISOString().slice(0, 10)
+
 export default defineConfig(({ command }) => ({
+  define: { __VERSI_APP__: JSON.stringify(VERSI_APP) },
   plugins: [react(), serviceWorker(), pilihDatabase(process.env.VITE_DB || (command === 'build' ? 'asli' : 'tiruan'))],
   server: {
     port: 5173,

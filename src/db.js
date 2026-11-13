@@ -357,6 +357,14 @@ export async function loadJejak() {
   return { data: map, error: null }
 }
 
+// === Laporan galat (galat_migration.sql) ===
+// Sebisanya: tabel belum ada, tanpa sinyal, atau belum masuk — diam saja.
+// Laporan galat yang ikut gagal tidak boleh memunculkan galat baru.
+export async function catatGalat(laporan) {
+  if (!sb) return
+  try { await sb.from('galat').insert(laporan) } catch (_) {}
+}
+
 // === Cadangan lengkap ===
 // Seluruh isi tabel app, mentah (nama kolom database), untuk diunduh sebagai
 // JSON dan — kalau perlu — dipulihkan dengan scripts/cadangan-ke-sql.mjs.

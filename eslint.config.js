@@ -10,12 +10,12 @@ export default [
   { ignores: ['dist/', 'node_modules/', '.vite/', 'build-twa/'] },
   js.configs.recommended,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,mjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.browser },
+      globals: { ...globals.browser, __VERSI_APP__: 'readonly' },
     },
     plugins: { 'react-hooks': reactHooks },
     rules: {

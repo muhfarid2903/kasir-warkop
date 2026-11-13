@@ -391,6 +391,11 @@ export async function loadJejak() {
   })
 }
 
+export async function catatGalat(laporan) {
+  console.warn('[tiruan] galat tercatat:', laporan)
+  ubah(db => { (db.galat = db.galat || []).push({ ...laporan, waktu: new Date().toISOString() }) })
+}
+
 export async function unduhCadangan() {
   const r = await bacaan(() => {
     const db = muat()
