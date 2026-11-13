@@ -1639,3 +1639,4 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 @media(max-width:900px){
   .pita-versi{bottom:calc(140px + env(safe-area-inset-bottom,20px))}
 }
+.langkah-pasang{margin:0 0 14px;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.5;color:var(--text)}

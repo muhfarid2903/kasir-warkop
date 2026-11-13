@@ -79,30 +79,16 @@ Aturannya: komponen tidak memanggil Supabase langsung, dan `model.js` tidak
 tahu apa-apa soal React maupun jaringan. Kalau butuh menambah retry atau
 penanganan offline, tempatnya `db.js` saja.
 
-## App Android
+## Pasang di HP
 
-Yang dipasang di HP bukan salinan app, melainkan pembungkus setebal ±20 KB
-yang membuka `kasir.balanglompo.com` di mesin Chrome milik HP itu, tanpa
-address bar (TWA — Trusted Web Activity). Akibatnya isi app tetap diperbarui
-lewat `git push` seperti biasa; APK cuma perlu dibuat ulang kalau nama, ikon,
-atau warnanya berubah.
+App ini PWA: buka situsnya di Chrome HP → menu → **Tambahkan ke layar
+utama** (atau menu akun di app → **Pasang di HP**). Hasilnya ikon sendiri,
+layar penuh tanpa address bar, dan tetap bisa dibuka tanpa sinyal. Isinya
+ikut diperbarui lewat `git push` seperti biasa.
 
-```bash
-bash scripts/buat-keystore.sh   # sekali seumur hidup app; butuh Docker
-```
-
-Skrip itu membuat kunci penanda tangan, mengisi
-`public/.well-known/assetlinks.json` dengan sidik jarinya, dan menyebutkan
-tiga `gh secret set` yang perlu dijalankan. Setelah assetlinks-nya ikut
-ter-deploy, APK dibuat dari **Actions → Build APK Android → Run workflow**;
-hasilnya (APK + AAB) menempel di halaman run itu.
-
-Kuncinya jangan sampai hilang atau bocor: hilang berarti app yang sudah
-terpasang tidak bisa di-update, bocor berarti orang lain bisa menerbitkan
-"update" atas namanya. Berkasnya sudah masuk `.gitignore` — repo ini publik.
-
-Tanpa APK pun app tetap bisa dipasang: buka situsnya di Chrome HP →
-menu → **Tambahkan ke layar utama**.
+Pembungkus APK Android (TWA) pernah disiapkan lalu **dihentikan** (13 Nov
+2026): ia hanya membungkus situs yang sama, tidak menambah kemampuan, tapi
+menambah kunci penanda tangan yang harus dijaga seumur hidup app.
 
 ## Offline
 
@@ -153,7 +139,4 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
 - `voucher_toko_migration.sql` — bikin tabel `voucher_toko` + RLS
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
-- `twa-manifest.json` — konfigurasi pembungkus APK (nama, ikon, warna, paket)
-- `scripts/buat-keystore.sh` — bikin kunci penanda tangan APK lewat Docker
-- `public/manifest.webmanifest` — identitas app saat dipasang di layar utama;
-  dibaca juga oleh Bubblewrap saat membungkus APK
+- `public/manifest.webmanifest` — identitas app saat dipasang di layar utama

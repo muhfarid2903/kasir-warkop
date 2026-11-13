@@ -388,21 +388,17 @@ Saat ini belum ada flow reset password di app. Hubungi admin (Muhammad Farid).
 App ini bisa duduk di layar utama HP seperti aplikasi biasa: punya ikonnya
 sendiri, buka layar penuh tanpa address bar.
 
-### Cara 1 — dari Chrome (paling cepat)
+### Di Android (Chrome)
 
 1. Buka **kasir.balanglompo.com** di Chrome HP
 2. Menu ⋮ → **Tambahkan ke layar utama** (atau "Install app")
 3. Ikon Warkopsaja muncul di layar utama
 
-### Cara 2 — file APK
+### Di iPhone
 
-Kalau yang dibagikan file `.apk`:
-
-1. Buka file APK-nya, izinkan "Install dari sumber ini" kalau ditanya
-2. Pasang, lalu buka dari layar utama
-
-Isinya sama persis dengan Cara 1 — APK-nya cuma pembungkus. Update app datang
-sendiri dari internet; APK tidak perlu dikirim ulang tiap ada perbaikan.
+1. Buka **kasir.balanglompo.com** di Safari
+2. Ketuk tombol **Bagikan** (kotak dengan panah ke atas)
+3. Pilih **Tambahkan ke Layar Utama**
 
 ### Waktu sinyal warkop mati
 
