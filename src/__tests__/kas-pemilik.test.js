@@ -97,3 +97,33 @@ describe('data lama tidak berubah', () => {
     })
   })
 })
+
+import { tarifVoucher, tokoTampil, TOKO } from '../model.js'
+describe('tarif voucher bertanggal (RENCANA 5.2)', () => {
+  const daftar = [
+    { sejak: '2026-05-01', harga: 2000, komisi: 500, gaji: 500 },
+    { sejak: '2026-12-01', harga: 2500, komisi: 500, gaji: 600 },
+  ]
+  const vt = { '2026-11-20': { dadi: { drop: 0, laku: 10 } }, '2026-12-05': { dadi: { drop: 0, laku: 10 } } }
+  it('tarif baru tidak mengubah tanggal sebelum berlakunya', () => {
+    expect(voucherForDate('2026-11-20', vt, daftar).penjualan).toBe(10 * 1500)
+    expect(voucherForDate('2026-12-05', vt, daftar).penjualan).toBe(10 * 2000)
+    expect(voucherForDate('2026-12-05', vt, daftar).gaji).toBe(10 * 600)
+  })
+  it('jumlah rentang menjumlahkan tiap tanggal dengan tarifnya sendiri', () => {
+    const r = voucherInRange('2026-11-01', '2026-12-31', vt, daftar)
+    expect(r.penjualan).toBe(15000 + 20000)
+    expect(r.gaji).toBe(5000 + 6000)
+  })
+  it('tarif yang berlaku = baris terakhir yang sudah dimulai', () => {
+    expect(tarifVoucher('2026-11-30', daftar).harga).toBe(2000)
+    expect(tarifVoucher('2026-12-01', daftar).harga).toBe(2500)
+    expect(tarifVoucher('2026-05-01').setoran).toBe(1500)
+  })
+})
+
+describe('toko tidak aktif', () => {
+  it('semua toko sekarang aktif dan tampil', () => {
+    expect(tokoTampil('2026-11-13', {}).length).toBe(TOKO.length)
+  })
+})

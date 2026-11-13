@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { modeTiruan } from './db.js'
+import { pasangPelaporGalat } from './galat.js'
 // Font di-bundle lewat @fontsource — pengganti Google Fonts CDN. Warung kopi
 // sering pakai WiFi lambat: satu permintaan ke host pihak ketiga yang gagal
 // bikin teks kedip ganti font, atau app terasa menggantung saat dibuka.
@@ -56,6 +57,8 @@ if (modeTiruan) {
   pita.textContent = 'DATA TIRUAN · bukan pembukuan asli'
   document.body.prepend(pita)
 }
+
+pasangPelaporGalat()
 
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>

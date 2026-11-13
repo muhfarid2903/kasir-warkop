@@ -2,14 +2,15 @@ import { useState, useMemo, useEffect, Fragment } from 'react'
 import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '../db.js'
 import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
 import LembarHapus from '../components/LembarHapus.jsx'
+import LaporanBulanan from '../components/LaporanBulanan.jsx'
 import {
-  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN, rekapPerBulan,
+  PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, tarifVoucher,
+  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
   ringkasJejak, jamJejak, tglJejak, pelakuHari, banyakPenginput, jejakSaldoTerakhir,
-  LABEL_AKSI, IKON_AKSI,
+  LABEL_AKSI, IKON_AKSI, khususPemilikTersembunyi,
 } from '../jejak.js'
 import { IDR, DAYS, MO, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
@@ -50,12 +51,17 @@ function JejakHari({ list }) {
 
 // Daftar seluruh hari tersimpan, plus satu-satunya tempat entri bisa diedit
 // atau dihapus. Saldo Awal juga di sini karena dia titik nol timeline ini.
-export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis, fitur, hitungKas }) {
+export default function Riwayat({ entries, setEntries, voucherToko, setVoucherToko, jejak, initialSaldo, setInitialSaldo, session, loadAllDetails, detailsReady, tandaiTulis, fitur, hitungKas, hariIni }) {
   // Halaman ini satu-satunya yang butuh quantities & expenses SEMUA tanggal,
   // jadi di sinilah detail lengkap ditarik — bukan saat login.
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
 
   const [openDetail, setOpenDetail] = useState(null);
+  // Akun karyawan: tanpa tombol hapus hari dan ubah Saldo Awal (keputusan
+  // pemilik). Server juga menolaknya — lihat peran_2_aturan.sql.
+  const kasir = khususPemilikTersembunyi(session);
+  const [tampilan, setTampilan] = useState(() => { try { return localStorage.getItem('riwayat_tampilan') || 'harian'; } catch (_) { return 'harian'; } });
+  useEffect(() => { try { localStorage.setItem('riwayat_tampilan', tampilan); } catch (_) {} }, [tampilan]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSaldo, setEditingSaldo] = useState(false);
   const [saldoInput, setSaldoInput] = useState('');
@@ -273,8 +279,15 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
 
   return (
     <>
-          <div style={{marginBottom:8}}></div>
+          {/* Harian = daftar hari seperti biasa; Bulanan = laporan per bulan.
+              Sengaja di dalam Riwayat, bukan tab kelima: datanya sama. */}
+          <div className="tampilan-pilih" role="tablist" aria-label="Tampilan riwayat">
+            {[['harian','Harian'],['bulanan','Bulanan']].map(([id,label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tampilan===id} className={tampilan===id?'aktif':''} onClick={()=>setTampilan(id)}>{label}</button>
+            ))}
+          </div>
 
+          {tampilan==='bulanan' ? <LaporanBulanan entries={entries} voucherToko={voucherToko} hariIni={hariIni || todayISO()}/> : <>
           {/* Saldo Awal: titik nol kas warkop, anchor di atas timeline */}
           {!searchQuery && (
             <div className="saldo-awal-bar" style={{margin:"0 0 10px"}}>
@@ -288,7 +301,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               ) : (
                 <>
                   <span className="val">{IDR(initialSaldo)}</span>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
+                  {!kasir && <button className="btn btn-ghost btn-sm" aria-label="Ubah saldo awal" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>}
                   {/* Saldo awal satu-satunya angka yang tidak punya baris
                       harinya sendiri, jadi jejaknya ditempel di sini. */}
                   {jejakSaldo && <span className="info">diubah {jejakSaldo.oleh} · {tglJejak(jejakSaldo.waktu)}</span>}
@@ -562,12 +575,12 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                             <div className="toko-info">
                               <div className="toko-main" style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 <Icon type="store" size={12}/> <span>{t.name}</span>
-                                {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(V2K.gaji)}</>}
+                                {hasLaku && <> · <strong>{t.laku}</strong> laku × {IDR(tarifVoucher(e.date).gaji)}</>}
                                 {!hasLaku && hasDrop && <span style={{color:"var(--text3)"}}> · drop saja, belum laku</span>}
                               </div>
                               {hasDrop && <div className="toko-sub"><Icon type="package" size={11}/> Drop {t.drop} voucher ke toko{dropNote}</div>}
                             </div>
-                            <span className="detail-item-value">{hasLaku ? IDR(t.laku*V2K.gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
+                            <span className="detail-item-value">{hasLaku ? IDR(t.laku*tarifVoucher(e.date).gaji) : <span style={{color:"var(--text3)"}}>—</span>}</span>
                           </div>
                         );
                       })}
@@ -578,7 +591,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     </>}
                     {(setorItems.length>0 || v.kePemilik>0) && <>
                       <div className="detail-section-label" style={{display:"flex",alignItems:"center",gap:6}}><Icon type="wallet" size={12}/> Ke kas pemilik</div>
-                      {tokoBreakdown.filter(t=>t.kePemilik && t.laku>0).map(t=>(<div key={'vp'+t.id} className="detail-row"><span className="detail-item-name">Setoran voucher {t.name} ({t.laku})</span><span className="detail-item-value">{IDR(t.laku*V2K_SETORAN)}</span></div>))}
+                      {tokoBreakdown.filter(t=>t.kePemilik && t.laku>0).map(t=>(<div key={'vp'+t.id} className="detail-row"><span className="detail-item-name">Setoran voucher {t.name} ({t.laku})</span><span className="detail-item-value">{IDR(t.laku*tarifVoucher(e.date).setoran)}</span></div>))}
                       {setorItems.map((x,xi)=>(<div key={'sp'+xi} className="detail-row"><span className="detail-item-name">{x.desc||'Setor ke pemilik'}</span><span className="detail-item-value">{IDR(x.amount)}</span></div>))}
                     </>}
                     {cocokHari && <>
@@ -593,7 +606,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     <JejakHari list={jejakHari}/>
                     <div style={{display:"flex",gap:8,marginTop:14}}>
                       <button className="btn btn-primary" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();startEdit(e);}}><Icon type="pencil" size={14}/> Edit</button>
-                      <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();setAkanHapus(e.date);}}><Icon type="trash" size={14}/> Hapus</button>
+                      {!kasir && <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();setAkanHapus(e.date);}}><Icon type="trash" size={14}/> Hapus</button>}
                     </div>
                   </div>
                 )}
@@ -606,6 +619,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               Tampilkan lebih lama ({tersaring.length - batas} hari lagi)
             </button>
           )}
+          </>}
           {akanHapus && entries[akanHapus] && (
             <LembarHapus entry={entries[akanHapus]} voucherToko={voucherToko} onHapus={()=>deleteEntry(akanHapus)} onTutup={()=>setAkanHapus(null)}/>
           )}

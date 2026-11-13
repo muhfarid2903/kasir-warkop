@@ -254,6 +254,14 @@ function penggunaSekarang() {
   return sesiTersimpan()?.user || null
 }
 
+// Sama dengan peran_2_aturan.sql: hapus hari dan ubah Saldo Awal khusus pemilik.
+function wajibPemilik(tabel) {
+  if (penggunaSekarang()?.app_metadata?.peran === 'pemilik') return
+  const e = new Error('new row violates row-level security policy for table "' + tabel + '"')
+  e.code = '42501'
+  throw e
+}
+
 // === Saldo awal ===
 
 export async function loadSaldoAwal() {
@@ -262,7 +270,7 @@ export async function loadSaldoAwal() {
 }
 
 export async function saveSaldoAwal(value, jejak) {
-  await tulisan(() => ubah(db => { db.config.saldo_awal = value }))
+  await tulisan(() => { wajibPemilik('config'); return ubah(db => { db.config.saldo_awal = value }) })
   siarkan({ tabel: 'config', jenis: 'upsert', value })
   catatJejak(jejak?.date || todayISO(), jejak)
 }
@@ -315,7 +323,7 @@ export async function commitEntryAddition(date, input, jejak, opId) {
 }
 
 export async function deleteEntry(date, jejak) {
-  await tulisan(() => ubah(db => { delete db.entries[date] }))
+  await tulisan(() => { wajibPemilik('entries'); return ubah(db => { delete db.entries[date] }) })
   siarkan({ tabel: 'entries', jenis: 'delete', date })
   catatJejak(date, jejak)
 }
@@ -381,6 +389,29 @@ export async function loadJejak() {
       .forEach(j => { (map[j.date] = map[j.date] || []).push(j) })
     return map
   })
+}
+
+export async function catatGalat(laporan) {
+  console.warn('[tiruan] galat tercatat:', laporan)
+  ubah(db => { (db.galat = db.galat || []).push({ ...laporan, waktu: new Date().toISOString() }) })
+}
+
+export async function unduhCadangan() {
+  const r = await bacaan(() => {
+    const db = muat()
+    return {
+      app: 'kasir-warkop', versi: 1, dibuat: new Date().toISOString(), tiruan: true,
+      tabel: {
+        entries: Object.values(db.entries).map(e => ({ date: e.date, quantities: e.quantities, expenses: e.expenses, total_penjualan: e.totalPenjualan, gaji: e.gaji, total_pengeluaran: e.totalPengeluaran, sisa_kas: e.sisaKas })),
+        voucher_toko: Object.entries(db.voucher).flatMap(([date, m]) => Object.entries(m).map(([toko_id, c]) => ({ date, toko_id, drop_qty: c.drop, laku_qty: c.laku, ke_pemilik: !!c.kePemilik }))),
+        config: [{ key: 'saldo_awal', value: db.config.saldo_awal }],
+        jejak: db.jejak,
+        hitung_kas: db.hitungKas || [],
+      },
+    }
+  })
+  if (r.error) throw new TypeError('Failed to fetch')
+  return r.data
 }
 
 // Sama persis dengan db.js — app memakainya untuk memilah galat.

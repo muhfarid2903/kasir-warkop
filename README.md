@@ -68,8 +68,10 @@ dipindah, custom domain akan lepas tiap deploy.
 | `toast.js` | notifikasi |
 | `sfx.js` | bunyi ketuk/ketik, disintesis Web Audio — tanpa berkas audio |
 | `fx.js` | riak & denyut sentuhan, satu listener untuk seluruh app |
-| `csv.js` | export riwayat |
+| `csv.js` | export riwayat (untuk dibaca di Excel) |
+| `cadangan.js` | unduh cadangan lengkap (untuk dipulihkan) |
 | `outbox.js` | antrean kiriman saat sinyal putus |
+| `galat.js` | laporan galat ke server + versi app (`__VERSI_APP__`, dari commit & tanggal build) |
 | `jejak.js` | siapa menginput apa — nama penginput & ringkasannya |
 | `sw.js` | service worker: kerangka app disimpan di HP supaya bisa dibuka tanpa sinyal |
 | `pages/` | Login, HariIni, VoucherToko, Gajian, Riwayat |
@@ -112,6 +114,43 @@ Daftar berkas yang disimpan dibuat saat build oleh plugin kecil di
 `vite.config.js` — nama berkas hasil build ber-hash, jadi tidak bisa ditulis
 tangan.
 
+## Mengubah harga, tarif, atau daftar toko
+
+Semuanya di `src/model.js`, lalu deploy seperti biasa.
+
+- **Tarif voucher berubah** (harga, komisi toko, gaji per voucher): **tambah**
+  baris baru di `TARIF_VOUCHER` dengan tanggal mulai berlakunya. Jangan ubah
+  baris lama — riwayat dan Kas Toko sebelum tanggal itu tetap memakai tarif lama.
+- **Toko berhenti**: beri `aktif: false` di `TOKO`. Jangan dihapus — stok dan
+  setoran lamanya masih dihitung dari daftar itu. Toko tidak aktif yang masih
+  punya stok tetap tampil sampai stoknya habis.
+- **Toko baru**: tambah baris di `TOKO` dengan `id` baru yang tidak pernah
+  dipakai sebelumnya.
+
+## Cadangan & pemulihan
+
+Project ini memakai paket gratis Supabase. Menurut dokumentasi Supabase (dicek
+14 Nov 2026), paket gratis **tidak punya cadangan otomatis** dan project yang
+sepi aktivitas sekitar seminggu **dijeda** (bisa dipulihkan dari Dashboard).
+Pemakaian harian app sudah cukup menjaganya tetap aktif, tapi cadangan tetap
+tanggung jawab kita sendiri:
+
+- **Unduh:** menu akun → **Unduh cadangan**. Hasilnya satu berkas JSON berisi
+  seluruh `entries`, `voucher_toko`, `config`, `jejak`, `hitung_kas`. Simpan di
+  tempat lain (Drive pribadi). Pemilik diingatkan (titik oranye di avatar)
+  bila cadangan terakhir dari HP itu lebih dari 30 hari.
+- **Pulihkan:**
+  ```bash
+  node scripts/cadangan-ke-sql.mjs cadangan-warkopsaja-2026-11-14.json > pulihkan.sql
+  ```
+  Baca `pulihkan.sql`, lalu tempel di Supabase SQL Editor. Isinya upsert:
+  baris di cadangan ditulis ulang, baris yang dibuat sesudahnya dibiarkan,
+  jejak tidak terduplikasi. Semuanya dalam satu transaksi.
+
+Rujukan: [Pricing](https://supabase.com/pricing),
+[Free project pausing](https://supabase.com/kb/faqs/platform/free-project-pausing),
+[Production checklist](https://supabase.com/docs/guides/deployment/going-into-prod).
+
 ## Kunci Supabase
 
 Ada di `.env`, dibaca `src/db.js`. Yang dipakai anon key — memang untuk dipublikasikan, yang
@@ -141,6 +180,13 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
   tahan kirim ulang (tanpa ini app memakai cara lama)
 - `kas_pemilik_migration.sql` — kolom `voucher_toko.ke_pemilik` dan tabel
   `hitung_kas` (Cocokkan kas). Tanpa ini kedua fitur itu tersembunyi.
+- `peran_1_tandai_akun.sql`, `peran_2_aturan.sql` — akun karyawan tidak bisa
+  menghapus hari dan mengubah Saldo Awal. **Urutannya wajib:** langkah 1
+  (tandai pemilik) → pemilik keluar lalu masuk lagi → langkah 2. Langkah 2
+  menolak berjalan kalau belum ada akun pemilik.
+- `galat_migration.sql` — tabel `galat`: error di HP kasir ikut tercatat di
+  server (maks. 5 per sesi). Lihat dengan
+  `select waktu, oleh, versi, pesan from public.galat order by waktu desc limit 20;`
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
 - `public/manifest.webmanifest` — identitas app saat dipasang di layar utama

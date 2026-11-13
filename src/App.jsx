@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { signOut, onPemulihanPassword } from './db.js'
-import { namaPengguna } from './jejak.js'
-import { DAYS, ML, fmtDate, fmtDateShort } from './format.js'
+import { namaPengguna, khususPemilikTersembunyi } from './jejak.js'
+import { simpanCadangan, hariSejakCadangan, BATAS_HARI } from './cadangan.js'
+import { VERSI_APP, setPelapor } from './galat.js'
+import { DAYS, ML, fmtDate, fmtDateShort, pesanGalat } from './format.js'
 import { showToast } from './toast.js'
 import { useAuth, useWarkopData, useTheme, useSidebar, useNumberInputGuards, useTodayISO, useKirimanGagal } from './hooks.js'
 import { useEfekSentuh } from './fx.js'
@@ -12,6 +14,7 @@ import { SkeletonInput } from './components/Skeleton.jsx'
 import LoginScreen from './pages/Login.jsx'
 import PasswordBaru from './pages/PasswordBaru.jsx'
 import LembarGagal from './components/LembarGagal.jsx'
+import Bantuan from './components/Bantuan.jsx'
 import { usePasang, mintaPasang, LembarPasang } from './components/PasangDiHP.jsx'
 import HariIni from './pages/HariIni.jsx'
 import VoucherToko from './pages/VoucherToko.jsx'
@@ -72,7 +75,19 @@ function App() {
   const [lembarGagal, setLembarGagal] = useState(false);
   const { terpasang } = usePasang();
   const [lembarPasang, setLembarPasang] = useState(false);
+  const [lembarBantuan, setLembarBantuan] = useState(false);
   const pasang = async () => { if (!(await mintaPasang())) setLembarPasang(true); };
+
+  // Cadangan: paket gratis Supabase tidak punya cadangan otomatis, jadi
+  // pemilik diingatkan bila cadangan terakhir dari HP ini sudah lewat 30 hari.
+  const [hariCadangan, setHariCadangan] = useState(hariSejakCadangan);
+  const unduh = async () => {
+    try {
+      const n = await simpanCadangan();
+      setHariCadangan(0);
+      showToast('Cadangan diunduh · '+n+' baris data');
+    } catch (e) { showToast('Cadangan belum terunduh: '+pesanGalat(e), 'gagal'); }
+  };
 
   // Menu akun di header. Ada HANYA karena di HP sidebar disembunyikan (lihat
   // .sidebar{display:none} di blok ≤900px): Mode terang/gelap dan Logout
@@ -184,6 +199,9 @@ function App() {
   // kalau masih berupa potongan email yang perlu diberi nama asli.
   const userNama = namaPengguna(session);
   const userInitial = (userNama[0] || 'W').toUpperCase();
+  setPelapor(userNama);
+  const perluCadangan = !khususPemilikTersembunyi(session) && (hariCadangan === null || hariCadangan > BATAS_HARI);
+  const ketCadangan = hariCadangan === null ? 'belum pernah' : hariCadangan === 0 ? 'hari ini' : hariCadangan+' hari lalu';
 
   return (
     <div className={"app"+(sidebarOpen?" sidebar-open":"")}>
@@ -218,17 +236,25 @@ function App() {
               </div>
             </div>
           )}
+          <button className="nav-btn" onClick={unduh} title={'Cadangan terakhir dari HP ini: '+ketCadangan}>
+            <Icon type="download" size={16}/> Unduh cadangan
+            {perluCadangan && <span className="tanda-cadangan" aria-label={'cadangan '+ketCadangan}/>}
+          </button>
           {!terpasang && (
             <button className="nav-btn" onClick={pasang}>
               <Icon type="download" size={16}/> Pasang di HP
             </button>
           )}
+          <button className="nav-btn" onClick={()=>setLembarBantuan(true)}>
+            <Icon type="help" size={16}/> Bantuan
+          </button>
           <button className="nav-btn" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>
             <Icon type={theme==='dark'?'sun':'moon'} size={16}/> Mode {theme==='dark'?'terang':'gelap'}
           </button>
           <button className="nav-btn" onClick={async()=>{ await signOut(); }}>
             <Icon type="log-out" size={16}/> Logout
           </button>
+          <div className="versi-app">Versi {VERSI_APP}</div>
         </div>
       </aside>
 
@@ -270,23 +296,31 @@ function App() {
                 aria-expanded={menuAkun}
                 aria-label="Akun"
                 title={userEmail}
-              >{userInitial}</button>
+              >{userInitial}{perluCadangan && <span className="tanda-cadangan"/>}</button>
               {menuAkun && (
                 <div className="user-menu" role="menu">
                   <div className="user-menu-nama">{userNama}</div>
                   <div className="user-menu-email" title={userEmail}>{userEmail}</div>
                   <div className="user-menu-divider"/>
+                  <button role="menuitem" onClick={()=>{ setMenuAkun(false); unduh(); }}>
+                    <Icon type="download" size={15}/> Unduh cadangan
+                    {perluCadangan && <span className="ket-cadangan">{ketCadangan}</span>}
+                  </button>
                   {!terpasang && (
                     <button role="menuitem" onClick={()=>{ setMenuAkun(false); pasang(); }}>
                       <Icon type="download" size={15}/> Pasang di HP
                     </button>
                   )}
+                  <button role="menuitem" onClick={()=>{ setMenuAkun(false); setLembarBantuan(true); }}>
+                    <Icon type="help" size={15}/> Bantuan
+                  </button>
                   <button role="menuitem" onClick={()=>{ setTheme(theme==='dark'?'light':'dark'); setMenuAkun(false); }}>
                     <Icon type={theme==='dark'?'sun':'moon'} size={15}/> Mode {theme==='dark'?'terang':'gelap'}
                   </button>
                   <button role="menuitem" onClick={async()=>{ setMenuAkun(false); await signOut(); }}>
                     <Icon type="log-out" size={15}/> Logout
                   </button>
+                  <div className="versi-app">Versi {VERSI_APP}</div>
                 </div>
               )}
             </div>
@@ -342,7 +376,7 @@ function App() {
               jejak={jejak} fitur={fitur} hitungKas={hitungKas}
               initialSaldo={initialSaldo} setInitialSaldo={setInitialSaldo}
               session={session}
-              loadAllDetails={loadAllDetails} detailsReady={detailsReady}
+              loadAllDetails={loadAllDetails} detailsReady={detailsReady} hariIni={hariIni}
               tandaiTulis={tandaiTulis}
             />
           )}
@@ -352,6 +386,7 @@ function App() {
 
       {lembarGagal && <LembarGagal gagal={gagal} onTutup={()=>setLembarGagal(false)}/>}
       {lembarPasang && <LembarPasang onTutup={()=>setLembarPasang(false)}/>}
+      {lembarBantuan && <Bantuan onTutup={()=>setLembarBantuan(false)}/>}
 
       {/* Tab bar bawah — hanya tampil di HP (CSS menyembunyikannya di atas
           900px, di mana sidebar yang dipakai). shortLabel ada di NAV_ITEMS

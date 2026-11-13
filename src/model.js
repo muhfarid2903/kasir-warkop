@@ -41,13 +41,41 @@ export const PRESET_PENGELUARAN = ['Susu', 'Good Day', 'Gelas', 'Air']
 
 // Voucher 2000 dititipkan ke toko: drop = stok dititipkan, laku = laporan setoran toko.
 // Mulai 1 Mei 2026, gaji & penjualan v2k mengikuti laku per toko (bukan input harian).
+// Toko TIDAK PERNAH dihapus dari daftar ini: semua hitungan stok dan riwayat
+// berjalan di atasnya, jadi toko yang dihapus ikut menghapus stok dan setoran
+// lamanya dari hitungan. Toko yang berhenti cukup diberi aktif:false — ia
+// hilang dari kartu input, tapi riwayatnya tetap utuh.
 export const TOKO = [
-  { id: 'dadi',   name: 'Dadi'    },
-  { id: 'dio',    name: 'Dio'     },
-  { id: 'hrahim', name: 'H Rahim' },
-  { id: 'anci',   name: 'Anci'    },
-  { id: 'nahrul', name: 'Nahrul'  },
+  { id: 'dadi',   name: 'Dadi',    aktif: true },
+  { id: 'dio',    name: 'Dio',     aktif: true },
+  { id: 'hrahim', name: 'H Rahim', aktif: true },
+  { id: 'anci',   name: 'Anci',    aktif: true },
+  { id: 'nahrul', name: 'Nahrul',  aktif: true },
 ]
+
+// Toko yang tampil sebagai kartu input pada satu tanggal: yang aktif, ditambah
+// toko tidak aktif yang masih punya stok atau sudah punya catatan di tanggal
+// itu (supaya sisa stoknya masih bisa disetor/dikoreksi).
+export function tokoTampil(tanggal, vtData) {
+  const stok = voucherStockPerToko(tanggal, vtData)
+  return TOKO.filter(t => t.aktif !== false
+    || ((stok[t.id].drop || 0) - (stok[t.id].laku || 0)) !== 0
+    || !!vtData?.[tanggal]?.[t.id])
+}
+
+// Tarif voucher toko, BERLAKU MULAI tanggalnya. Saat harga, komisi toko, atau
+// gaji per voucher berubah: TAMBAH baris baru dengan tanggal mulainya — jangan
+// ubah baris lama. Dulu semua hitungan memakai satu konstanta, jadi mengubah
+// harga akan diam-diam mengubah seluruh riwayat dan Kas Toko.
+export const TARIF_VOUCHER = [
+  { sejak: '2026-05-01', harga: 2000, komisi: 500, gaji: 500 },
+]
+
+export function tarifVoucher(tanggal, daftar = TARIF_VOUCHER) {
+  let t = daftar[0]
+  daftar.forEach(x => { if (x.sejak <= tanggal && x.sejak >= t.sejak) t = x })
+  return { ...t, setoran: t.harga - t.komisi }
+}
 
 export const VOUCHER_TOKO_CUTOFF = '2026-05-01'
 export const V2K = PRODUCTS.find(p => p.id === 'v2k')
@@ -93,15 +121,15 @@ export function getPayPeriods(year, month) {
 //   penjualan = semua laku × setoran        (hasil usaha)
 //   kePemilik = laku bertanda kePemilik × setoran
 //   masukKas  = penjualan − kePemilik       (yang benar-benar masuk kas toko)
-function rekapVoucher(drop, laku, lakuKePemilik) {
-  const penjualan = laku * V2K_SETORAN;
-  const kePemilik = lakuKePemilik * V2K_SETORAN;
-  return { drop, laku, gaji: laku * V2K.gaji, penjualan, kePemilik, masukKas: penjualan - kePemilik, komisiToko: laku * (V2K.komisi_toko||0) };
+function rekapVoucher(drop, laku, lakuKePemilik, tarif) {
+  const penjualan = laku * tarif.setoran;
+  const kePemilik = lakuKePemilik * tarif.setoran;
+  return { drop, laku, gaji: laku * tarif.gaji, penjualan, kePemilik, masukKas: penjualan - kePemilik, komisiToko: laku * tarif.komisi };
 }
 
-// Hitung agregat voucher (drop & laku × harga/gaji v2k) untuk satu tanggal.
+// Hitung agregat voucher (drop & laku × tarif yang berlaku di tanggal itu).
 // vtData berbentuk: { '2026-05-01': { dadi: {drop, laku, kePemilik}, dio: {...}, ... }, ... }
-export function voucherForDate(date, vtData) {
+export function voucherForDate(date, vtData, daftarTarif = TARIF_VOUCHER) {
   const dayMap = vtData?.[date] || {};
   let drop = 0, laku = 0, lakuKePemilik = 0;
   TOKO.forEach(t => {
@@ -110,20 +138,21 @@ export function voucherForDate(date, vtData) {
     drop += r.drop||0; laku += r.laku||0;
     if (r.kePemilik) lakuKePemilik += r.laku||0;
   });
-  return rekapVoucher(drop, laku, lakuKePemilik);
+  return rekapVoucher(drop, laku, lakuKePemilik, tarifVoucher(date, daftarTarif));
 }
 
 // Sum voucher untuk semua tanggal di [start..end] (inklusif), hanya yang >= cutoff.
-export function voucherInRange(start, end, vtData) {
-  let drop = 0, laku = 0, lakuKePemilik = 0;
+// Dijumlahkan per tanggal, karena tiap tanggal boleh bertarif lain.
+export function voucherInRange(start, end, vtData, daftarTarif = TARIF_VOUCHER) {
+  const r = { drop: 0, laku: 0, gaji: 0, penjualan: 0, kePemilik: 0, masukKas: 0, komisiToko: 0 };
   Object.keys(vtData || {}).forEach(d => {
     if (d < VOUCHER_TOKO_CUTOFF) return;
     if (d >= start && d <= end) {
-      const r = voucherForDate(d, vtData);
-      drop += r.drop; laku += r.laku; lakuKePemilik += r.kePemilik / V2K_SETORAN;
+      const h = voucherForDate(d, vtData, daftarTarif);
+      Object.keys(r).forEach(k => { r[k] += h[k]; });
     }
   });
-  return rekapVoucher(drop, laku, lakuKePemilik);
+  return r;
 }
 
 // Stok berjalan per toko sampai (≤) endDate.
@@ -441,4 +470,68 @@ export function rekapPerBulan(baris, voucherToko) {
     r.kasToko += t.sisaKas
   })
   return out
+}
+
+// === Laporan bulanan (RENCANA 5.1) ===
+// Per bulan, terbaru dulu. `entries` boleh baris lengkap atau ringkas; baris
+// ringkas tidak punya daftar pengeluaran, jadi pengeluaran sungguhan dan
+// setor-ke-pemilik hanya terpisah untuk hari yang detailnya sudah dimuat
+// (Riwayat memuat semuanya). Tanggal yang cuma punya voucher ikut dihitung.
+export function rekapBulanan(entries, voucherToko) {
+  const tanggal = new Set(Object.keys(entries || {}))
+  Object.keys(voucherToko || {}).forEach(d => { if (d >= VOUCHER_TOKO_CUTOFF) tanggal.add(d) })
+  const out = {}
+  tanggal.forEach(d => {
+    const e = entries?.[d] || { date: d, quantities: {}, expenses: [], totalPenjualan: 0, gaji: 0, totalPengeluaran: 0 }
+    const t = entryDayTotals(e, voucherToko)
+    const k = d.slice(0, 7)
+    const r = out[k] || (out[k] = {
+      bulan: k, hari: 0, penjualanProduk: 0, setoranVoucher: 0, lakuVoucher: 0, gaji: 0,
+      pengeluaran: 0, cashMasuk: 0, hasil: 0, kePemilik: 0, kasToko: 0, _biaya: {},
+    })
+    if (t.totalPenjualan === 0 && t.totalGaji === 0 && t.totalPengeluaran === 0 && !t.voucher.drop) return
+    r.hari++
+    r.penjualanProduk += e.totalPenjualan || 0
+    r.setoranVoucher += t.voucher.penjualan
+    r.lakuVoucher += t.voucher.laku
+    r.gaji += t.totalGaji
+    r.pengeluaran += t.expGross
+    r.cashMasuk += t.cashGross
+    r.hasil += t.hasil
+    r.kePemilik += t.kePemilik
+    r.kasToko += t.sisaKas
+    t.expItems.forEach(x => {
+      const ket = ((x.desc || 'Tanpa keterangan').trim().toLowerCase()) || 'tanpa keterangan'
+      r._biaya[ket] = (r._biaya[ket] || 0) + (x.amount || 0)
+    })
+  })
+  return Object.values(out)
+    .filter(r => r.hari > 0)
+    .sort((a, b) => b.bulan.localeCompare(a.bulan))
+    .map(({ _biaya, ...r }) => ({
+      ...r,
+      // Lima keterangan pengeluaran terbesar bulan itu ("susu", "gelas", …).
+      biayaTerbesar: Object.entries(_biaya).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([ket, jumlah]) => ({ ket, jumlah })),
+    }))
+}
+
+// Keadaan tiap toko sekarang: stok, setor terakhir, laku per bulan.
+export function rekapToko(voucherToko, hariIni) {
+  const stok = voucherStockPerToko(hariIni, voucherToko)
+  const besok = new Date(hariIni + 'T00:00:00'); besok.setDate(besok.getDate() + 1)
+  return TOKO.map(t => {
+    const info = infoToko(t.id, dateToISO(besok), voucherToko)
+    const lakuPerBulan = {}
+    Object.keys(voucherToko || {}).forEach(d => {
+      const r = voucherToko[d]?.[t.id]
+      if (r && r.laku) lakuPerBulan[d.slice(0, 7)] = (lakuPerBulan[d.slice(0, 7)] || 0) + r.laku
+    })
+    return {
+      id: t.id, nama: t.name,
+      stok: (stok[t.id].drop || 0) - (stok[t.id].laku || 0),
+      terakhirSetor: info.terakhirSetor,
+      hariSejak: info.terakhirSetor ? info.hariSejak - 1 : null,
+      lakuPerBulan,
+    }
+  })
 }

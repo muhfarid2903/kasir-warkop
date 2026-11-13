@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { laporkanGalat, VERSI_APP } from '../galat.js'
 
 // Tanpa ini, satu error render di mana pun = layar putih di HP kasir, tanpa
 // jalan keluar selain menutup dan membuka browser. Untuk app yang dipakai
@@ -14,9 +15,10 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Tidak ada layanan pelaporan error di sini; console sudah cukup untuk
-    // dibaca lewat remote debugging kalau memang perlu ditelusuri.
     console.error('[Warkopsaja] render gagal:', error, info?.componentStack)
+    // Dulu berhenti di console HP kasir — tidak ada yang tahu app pernah
+    // rusak. Sekarang dilaporkan ke tabel galat (sebisanya).
+    laporkanGalat(Object.assign(new Error(error?.message || String(error)), { stack: (error?.stack || '') + '\n--- komponen ---' + (info?.componentStack || '') }), 'render')
   }
 
   render() {
@@ -34,7 +36,7 @@ export default class ErrorBoundary extends Component {
             </p>
             <button className="btn-save" onClick={() => window.location.reload()}>Muat Ulang</button>
             <div style={{marginTop:16,fontSize:12,color:"var(--text3)",fontFamily:'var(--font-angka)',wordBreak:"break-word"}}>
-              {String(this.state.error?.message || this.state.error)}
+              {String(this.state.error?.message || this.state.error)} · versi {VERSI_APP}
             </div>
           </div>
         </div>

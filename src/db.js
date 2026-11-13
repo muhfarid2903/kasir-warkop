@@ -357,6 +357,33 @@ export async function loadJejak() {
   return { data: map, error: null }
 }
 
+// === Laporan galat (galat_migration.sql) ===
+// Sebisanya: tabel belum ada, tanpa sinyal, atau belum masuk — diam saja.
+// Laporan galat yang ikut gagal tidak boleh memunculkan galat baru.
+export async function catatGalat(laporan) {
+  if (!sb) return
+  try { await sb.from('galat').insert(laporan) } catch (_) {}
+}
+
+// === Cadangan lengkap ===
+// Seluruh isi tabel app, mentah (nama kolom database), untuk diunduh sebagai
+// JSON dan — kalau perlu — dipulihkan dengan scripts/cadangan-ke-sql.mjs.
+// Paket gratis Supabase tidak punya cadangan otomatis; ini satu-satunya.
+// Tabel opsional yang belum ada dilewati, bukan menggagalkan seluruhnya.
+export async function unduhCadangan() {
+  const tabel = { entries: 'date', voucher_toko: 'date', config: 'key', jejak: 'id', hitung_kas: 'id' }
+  const isi = {}
+  for (const [nama, urut] of Object.entries(tabel)) {
+    const { data, error } = await sb.from(nama).select('*').order(urut, { ascending: true })
+    if (error) {
+      if (nama === 'entries' || nama === 'config') throw error   // wajib ada
+      continue
+    }
+    isi[nama] = data
+  }
+  return { app: 'kasir-warkop', versi: 1, dibuat: new Date().toISOString(), tabel: isi }
+}
+
 // Apakah kegagalan ini karena jaringan, bukan karena datanya ditolak?
 // Dipakai memutuskan menyalakan badge Offline atau tidak.
 export function isNetworkError(e) {
