@@ -10,7 +10,7 @@ import {
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
   ringkasJejak, jamJejak, tglJejak, pelakuHari, banyakPenginput, jejakSaldoTerakhir,
-  LABEL_AKSI, IKON_AKSI,
+  LABEL_AKSI, IKON_AKSI, khususPemilikTersembunyi,
 } from '../jejak.js'
 import { IDR, DAYS, MO, ML, fmtDate, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
@@ -57,6 +57,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
   useEffect(() => { loadAllDetails(); }, [loadAllDetails]);
 
   const [openDetail, setOpenDetail] = useState(null);
+  // Akun karyawan: tanpa tombol hapus hari dan ubah Saldo Awal (keputusan
+  // pemilik). Server juga menolaknya — lihat peran_2_aturan.sql.
+  const kasir = khususPemilikTersembunyi(session);
   const [tampilan, setTampilan] = useState(() => { try { return localStorage.getItem('riwayat_tampilan') || 'harian'; } catch (_) { return 'harian'; } });
   useEffect(() => { try { localStorage.setItem('riwayat_tampilan', tampilan); } catch (_) {} }, [tampilan]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -298,7 +301,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               ) : (
                 <>
                   <span className="val">{IDR(initialSaldo)}</span>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>
+                  {!kasir && <button className="btn btn-ghost btn-sm" aria-label="Ubah saldo awal" onClick={()=>{setSaldoInput(String(initialSaldo));setEditingSaldo(true);}}><Icon type="pencil" size={12}/></button>}
                   {/* Saldo awal satu-satunya angka yang tidak punya baris
                       harinya sendiri, jadi jejaknya ditempel di sini. */}
                   {jejakSaldo && <span className="info">diubah {jejakSaldo.oleh} · {tglJejak(jejakSaldo.waktu)}</span>}
@@ -603,7 +606,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     <JejakHari list={jejakHari}/>
                     <div style={{display:"flex",gap:8,marginTop:14}}>
                       <button className="btn btn-primary" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();startEdit(e);}}><Icon type="pencil" size={14}/> Edit</button>
-                      <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();setAkanHapus(e.date);}}><Icon type="trash" size={14}/> Hapus</button>
+                      {!kasir && <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();setAkanHapus(e.date);}}><Icon type="trash" size={14}/> Hapus</button>}
                     </div>
                   </div>
                 )}

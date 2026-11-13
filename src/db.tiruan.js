@@ -254,6 +254,14 @@ function penggunaSekarang() {
   return sesiTersimpan()?.user || null
 }
 
+// Sama dengan peran_2_aturan.sql: hapus hari dan ubah Saldo Awal khusus pemilik.
+function wajibPemilik(tabel) {
+  if (penggunaSekarang()?.app_metadata?.peran === 'pemilik') return
+  const e = new Error('new row violates row-level security policy for table "' + tabel + '"')
+  e.code = '42501'
+  throw e
+}
+
 // === Saldo awal ===
 
 export async function loadSaldoAwal() {
@@ -262,7 +270,7 @@ export async function loadSaldoAwal() {
 }
 
 export async function saveSaldoAwal(value, jejak) {
-  await tulisan(() => ubah(db => { db.config.saldo_awal = value }))
+  await tulisan(() => { wajibPemilik('config'); return ubah(db => { db.config.saldo_awal = value }) })
   siarkan({ tabel: 'config', jenis: 'upsert', value })
   catatJejak(jejak?.date || todayISO(), jejak)
 }
@@ -315,7 +323,7 @@ export async function commitEntryAddition(date, input, jejak, opId) {
 }
 
 export async function deleteEntry(date, jejak) {
-  await tulisan(() => ubah(db => { delete db.entries[date] }))
+  await tulisan(() => { wajibPemilik('entries'); return ubah(db => { delete db.entries[date] }) })
   siarkan({ tabel: 'entries', jenis: 'delete', date })
   catatJejak(date, jejak)
 }

@@ -6,7 +6,7 @@ import {
   PRODUCTS, PRODUK_UTAMA, PRODUK_SEKUNDER, PRESET_PENGELUARAN, VOUCHER_TOKO_CUTOFF,
   voucherForDate, draftTotals, accumulateEntry, tambahRingkas, kurangiEntri, entriKosong, computeKasSummary, computePaydayInfo, hasDetail, kopiSedangLibur,
 } from '../model.js'
-import { tandaJejak, rincianTambah, rincianUbah, tglJejak, ringkasJejak, jamJejak, LABEL_AKSI } from '../jejak.js'
+import { tandaJejak, rincianTambah, rincianUbah, tglJejak, ringkasJejak, jamJejak, LABEL_AKSI, khususPemilikTersembunyi } from '../jejak.js'
 import { bacaDraf, tulisDraf, hapusDraf, kurangiDraf, tambahKeDraf, tanggalDrafLain } from '../draf.js'
 import CocokkanKas from '../components/CocokkanKas.jsx'
 import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
@@ -350,9 +350,12 @@ export default function HariIni({ bukaVoucher, jejak, pastikanJejak, hariIni, da
       if (!kini) { showToast('Tidak ada yang bisa dibatalkan di tanggal itu', 'gagal'); return; }
       const jadi = kurangiEntri(kini, tanggal, input);
       const jejakBatal = tandaJejak(session, 'ubah', rincianUbah(kini, jadi, { batal: true }));
-      if (entriKosong(jadi)) await dbDeleteEntry(tanggal, jejakBatal);
+      // Hari yang jadi kosong dihapus — kecuali oleh akun kasir, yang memang
+      // tidak boleh menghapus hari; untuknya baris nol yang disimpan.
+      const hapus = entriKosong(jadi) && !khususPemilikTersembunyi(session);
+      if (hapus) await dbDeleteEntry(tanggal, jejakBatal);
       else await dbSaveEntry(jadi, jejakBatal);
-      setEntries(prev => { const n = { ...prev }; if (entriKosong(jadi)) delete n[tanggal]; else n[tanggal] = jadi; return n; });
+      setEntries(prev => { const n = { ...prev }; if (hapus) delete n[tanggal]; else n[tanggal] = jadi; return n; });
       kembalikanDraf();
       bunyi('hapus');
       showToast('Dibatalkan · isinya kembali ke draf');

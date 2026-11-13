@@ -243,12 +243,22 @@ export function ringkasKiriman(op) {
   }
 }
 
-// Peran akun: 'pemilik' atau 'kasir', dari app_metadata.peran (diisi lewat
-// SQL, tidak bisa diubah pengguna sendiri — lihat peran_migration.sql). Akun
-// tanpa peran dianggap kasir, sama dengan aturan di database.
+// Peran akun dari app_metadata.peran (diisi lewat peran_1_tandai_akun.sql,
+// tidak bisa diubah pengguna sendiri): 'pemilik', 'kasir', atau null kalau
+// belum ditandai.
 export function peranPengguna(session) {
   const p = session?.user?.app_metadata?.peran
-  return p === 'pemilik' ? 'pemilik' : 'kasir'
+  return p === 'pemilik' || p === 'kasir' ? p : null
+}
+
+// Apakah tombol khusus pemilik (hapus hari, ubah Saldo Awal) disembunyikan?
+// Hanya untuk akun yang JELAS bertanda kasir. Akun yang belum ditandai tetap
+// melihatnya — sebelum migrasi peran dijalankan, server memang masih
+// mengizinkan, dan pemilik tidak boleh kehilangan tombolnya sendiri. Yang
+// sebenarnya menjaga adalah RLS di server (peran_2_aturan.sql); UI cuma
+// merapikan.
+export function khususPemilikTersembunyi(session) {
+  return peranPengguna(session) === 'kasir'
 }
 
 // Apakah yang sedang masuk adalah Jaya sendiri? Dipakai label "Gajiku" vs

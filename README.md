@@ -154,6 +154,10 @@ kasir yang live tanpa satu baris kode pun berubah. Update = ubah di
   tahan kirim ulang (tanpa ini app memakai cara lama)
 - `kas_pemilik_migration.sql` — kolom `voucher_toko.ke_pemilik` dan tabel
   `hitung_kas` (Cocokkan kas). Tanpa ini kedua fitur itu tersembunyi.
+- `peran_1_tandai_akun.sql`, `peran_2_aturan.sql` — akun karyawan tidak bisa
+  menghapus hari dan mengubah Saldo Awal. **Urutannya wajib:** langkah 1
+  (tandai pemilik) → pemilik keluar lalu masuk lagi → langkah 2. Langkah 2
+  menolak berjalan kalau belum ada akun pemilik.
 - `jejak_migration.sql` — bikin tabel `jejak` (siapa menginput apa) + RLS.
   Opsional: tanpa tabel ini app tetap jalan, jejaknya saja yang kosong.
 - `public/manifest.webmanifest` — identitas app saat dipasang di layar utama
