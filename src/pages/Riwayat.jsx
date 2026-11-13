@@ -5,7 +5,7 @@ import LembarHapus from '../components/LembarHapus.jsx'
 import LaporanBulanan from '../components/LaporanBulanan.jsx'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, tarifVoucher,
-  voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
+  voucherForDate, tokoMelebihiStok, buildEntry, entryDayTotals, splitExpenses, todayISO, rekapPerBulan,
 } from '../model.js'
 import {
   tandaJejak, rincianUbah, rincianHapus, rincianVoucher, entriBerubah,
@@ -224,10 +224,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     // Voucher: validasi laku > stok sebelum apa pun disimpan
     let voucherRows = null;
     if (isVoucherDate) {
-      const stockBefore = voucherStockBefore(date, voucherToko);
       voucherRows = TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; const laku = parseInt(dr.laku)||0; return { tokoId:t.id, drop:parseInt(dr.drop)||0, laku, kePemilik: !!(fitur?.kePemilik && laku>0 && dr.kePemilik) }; });
-      const over = voucherRows.find(r => { const sB = stockBefore[r.tokoId]; return r.laku > ((sB.drop||0)-(sB.laku||0)) + r.drop; });
-      if (over) { const t = TOKO.find(x=>x.id===over.tokoId); showToast('Laku '+(t?t.name:over.tokoId)+' melebihi stok — perbaiki dulu'); return; }
+      const [lewat] = tokoMelebihiStok(date, voucherRows, voucherToko);
+      if (lewat) { const t = TOKO.find(x=>x.id===lewat); showToast('Laku '+(t?t.name:lewat)+' melebihi stok — perbaiki dulu', 'gagal'); return; }
     }
     // Mengganti, bukan menambah: nilai lama dibuang, yang tersimpan hasil edit.
     const accQty = { ...editQty }; PRODUCTS.forEach(p => accQty[p.id] = editQty[p.id]||0);
@@ -449,9 +448,10 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                       const eCash = editCashIns.reduce((s,x)=>s+(x.amount||0),0);
                       const eSisa = eSales - eGaji - (eExp - eCash);   // hasil usaha; setoran ke pemilik tidak mengurangi
                       const isVoucherDate = e.date >= VOUCHER_TOKO_CUTOFF;
-                      const vStockBefore = isVoucherDate ? voucherStockBefore(e.date, voucherToko) : null;
-                      let editVoucherOver = false;
-                      if (isVoucherDate) TOKO.forEach(t => { const sB=vStockBefore[t.id]; const dr=editVoucher[t.id]||{drop:'0',laku:'0'}; const dD=parseInt(dr.drop)||0, dL=parseInt(dr.laku)||0; if (dL > (sB.drop||0)-(sB.laku||0)+dD) editVoucherOver=true; });
+                      const lewatStok = new Set(isVoucherDate
+                        ? tokoMelebihiStok(e.date, TOKO.map(t => { const dr = editVoucher[t.id]||{drop:'0',laku:'0'}; return { tokoId:t.id, drop:parseInt(dr.drop)||0, laku:parseInt(dr.laku)||0 }; }), voucherToko)
+                        : []);
+                      const editVoucherOver = lewatStok.size > 0;
                       return <>
                         <div className="detail-section-label">Edit Penjualan</div>
                         {editProducts.map(p=>(
@@ -471,10 +471,9 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                         {isVoucherDate && <>
                           <div className="detail-section-label" style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><Icon type="signal" size={12}/> Voucher Toko</div>
                           {TOKO.map(t => {
-                            const sB = vStockBefore[t.id]; const stokAwal = (sB.drop||0)-(sB.laku||0);
                             const dr = editVoucher[t.id]||{drop:'0',laku:'0'};
-                            const dD = parseInt(dr.drop)||0, dL = parseInt(dr.laku)||0;
-                            const over = dL > stokAwal + dD;
+                            const dL = parseInt(dr.laku)||0;
+                            const over = lewatStok.has(t.id);
                             return (
                               <div key={t.id} className="expense-row" style={{alignItems:"center"}}>
                                 <span className="detail-item-name" style={{flex:1,display:"inline-flex",alignItems:"center",gap:6,minWidth:0}}>

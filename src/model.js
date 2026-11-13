@@ -535,3 +535,54 @@ export function rekapToko(voucherToko, hariIni) {
     }
   })
 }
+
+// === Pemeriksaan stok voucher ===
+// Toko mana yang laku-nya melebihi stok (stok sebelum tanggal itu + drop hari
+// itu)? Dulu rumus ini ditulis ulang di empat tempat (Voucher Toko simpan &
+// tampil, Riwayat simpan & tampil); satu salah ketik di salah satunya berarti
+// satu jalur yang lolos.
+export function tokoMelebihiStok(tanggal, rows, vtData) {
+  const sB = voucherStockBefore(tanggal, vtData)
+  return (rows || [])
+    .filter(r => (r.laku || 0) > ((sB[r.tokoId]?.drop || 0) - (sB[r.tokoId]?.laku || 0)) + (r.drop || 0))
+    .map(r => r.tokoId)
+}
+
+// === Rekap satu periode gajian (halaman Gajian) ===
+// Dipindah dari dalam JSX supaya bisa diuji. `sekarang` dioper masuk.
+//   status: 'lalu' | 'berjalan' | 'nanti'
+//   baris/limpahan: [{ date, gaji }] untuk hari yang punya catatan
+export function rekapPeriode(entries, voucherToko, periode, tahun, bulan, sekarang) {
+  const mm = String(bulan + 1).padStart(2, '0')
+  const hariIniTgl = sekarang.getDate()
+  const bulanIni = sekarang.getFullYear() === tahun && sekarang.getMonth() === bulan
+  const gajiHari = (date) => {
+    const v = voucherForDate(date, voucherToko)
+    const e = entries?.[date]
+    if (!(e || v.laku > 0 || v.drop > 0)) return null
+    return { date, gaji: (e?.gaji || 0) + v.gaji }
+  }
+  const baris = []
+  for (let d = periode.startDay; d <= periode.endDay; d++) {
+    const r = gajiHari(tahun + '-' + mm + '-' + String(d).padStart(2, '0'))
+    if (r) baris.push(r)
+  }
+  const limpahan = []
+  ;(periode.overflowDays || []).forEach(d => {
+    const r = gajiHari(periode.prevYear + '-' + String(periode.prevMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+    if (r) limpahan.push(r)
+  })
+  const berjalan = bulanIni && hariIniTgl >= periode.startDay && hariIniTgl <= periode.payday
+  const lalu = !berjalan && (!bulanIni || hariIniTgl > periode.payday)
+  const panjang = periode.endDay - periode.startDay + 1
+  const hariKe = berjalan ? Math.max(1, Math.min(panjang, hariIniTgl - periode.startDay + 1)) : panjang
+  return {
+    totalGaji: periodGaji(entries, voucherToko, periode),
+    hariTercatat: baris.length + limpahan.length,
+    status: berjalan ? 'berjalan' : lalu ? 'lalu' : 'nanti',
+    sisaHari: berjalan ? Math.max(0, periode.payday - hariIniTgl) : 0,
+    hariKe, panjang,
+    persen: berjalan ? Math.min(100, Math.round(hariKe / panjang * 100)) : 100,
+    baris, limpahan,
+  }
+}
