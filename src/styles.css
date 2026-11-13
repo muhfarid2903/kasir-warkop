@@ -1594,3 +1594,10 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 .gagal-pesan{font-size:12px;color:var(--text2);overflow-wrap:anywhere}
 .gagal-aksi{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 .gagal-aksi .btn{min-height:40px}
+
+/* Kas dari simpanan HP saat app dibuka tanpa sinyal: redup dan berketerangan,
+   supaya tidak pernah terbaca sebagai angka segar. */
+.kas-hero.basi .kas-hero-value{opacity:.45}
+.kas-hero.basi::after{display:none}
+.kas-hero-value.kosong{letter-spacing:0}
+.kas-basi{color:var(--orange);font-weight:600;font-style:normal}

@@ -213,8 +213,11 @@ export function buildEntry(date, quantities, expenseList) {
 export function accumulateEntry(existing, date, { quantities, expenses, cashIns }) {
   const accQty = { ...(existing?.quantities || {}) };
   PRODUCTS.forEach(p => { accQty[p.id] = (accQty[p.id]||0) + (quantities?.[p.id]||0); });
-  const barangKeluar = (expenses || []).filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='');
-  const uangMasuk = (cashIns || []).filter(e => (e.amount||0)>0 || (e.desc||'').trim()!=='').map(e => ({...e, type:'cashin'}));
+  // Nominal negatif tidak pernah sah (arahnya sudah ditentukan jenis barisnya);
+  // dipaksa nol supaya baris yang keterangannya terisi tidak membalik arah uang.
+  const rapikan = (e) => ({ ...e, amount: Math.max(0, e.amount || 0) });
+  const barangKeluar = (expenses || []).map(rapikan).filter(e => e.amount>0 || (e.desc||'').trim()!=='');
+  const uangMasuk = (cashIns || []).map(rapikan).filter(e => e.amount>0 || (e.desc||'').trim()!=='').map(e => ({...e, type:'cashin'}));
   const accExpenses = [...(existing?.expenses || []), ...barangKeluar, ...uangMasuk];
   return buildEntry(date, accQty, accExpenses);
 }
@@ -225,6 +228,20 @@ export function accumulateEntry(existing, date, { quantities, expenses, cashIns 
 // sebagai satu langkah atomik (lihat kiriman_migration.sql).
 export function selisihInput(date, input) {
   return accumulateEntry(null, date, input)
+}
+
+// Tebakan layar sesudah simpan, untuk tanggal yang baru punya baris RINGKAS
+// (detailnya belum datang). Dulu baris ringkas dianggap kosong dan diganti
+// input ini saja, jadi Kas turun sebesar seluruh isi hari itu sampai angka
+// server datang — saat offline bisa berjam-jam. Bentuknya tetap ringkas.
+export function tambahRingkas(ringkas, date, input) {
+  const s = selisihInput(date, input)
+  return {
+    date,
+    totalPenjualan: (ringkas?.totalPenjualan || 0) + s.totalPenjualan,
+    gaji: (ringkas?.gaji || 0) + s.gaji,
+    totalPengeluaran: (ringkas?.totalPengeluaran || 0) + s.totalPengeluaran,
+  }
 }
 
 // Total satu hari termasuk setoran voucher toko — dipakai baris Riwayat & export CSV.

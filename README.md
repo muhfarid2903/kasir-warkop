@@ -109,8 +109,18 @@ menu → **Tambahkan ke layar utama**.
 `src/sw.js` menyimpan kerangka app (HTML, JS, CSS) di HP, jadi app tetap
 terbuka waktu WiFi warkop putus — input masuk antrean `outbox.js` dan
 terkirim sendiri saat sinyal kembali. Data dari Supabase sengaja **tidak**
-pernah disajikan dari cache: angka basi yang terlihat seperti angka benar
-lebih berbahaya daripada badge Offline yang jujur.
+disajikan dari cache service worker: angka basi yang terlihat seperti angka
+benar lebih berbahaya daripada badge Offline yang jujur.
+
+Satu pengecualian yang jujur: hasil muat terakhir yang berhasil disimpan di
+HP beserta jamnya. Kalau app dibuka tanpa sinyal, Kas ditampilkan dari
+simpanan itu — redup, dengan keterangan "Angka per 13 Nov 14.02 · belum
+tersambung". Tanpa simpanan sama sekali yang tampil "—", bukan Rp0. Begitu
+sinyal kembali, angka segar menggantikannya sendiri.
+
+Kiriman yang **ditolak** server (bukan karena jaringan atau sesi habis) tidak
+dibuang: pindah ke daftar "gagal terkirim" di header, dengan pilihan Coba
+lagi atau Buang.
 
 Daftar berkas yang disimpan dibuat saat build oleh plugin kecil di
 `vite.config.js` — nama berkas hasil build ber-hash, jadi tidak bisa ditulis

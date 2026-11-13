@@ -30,8 +30,11 @@ export const AKUN_TIRUAN = [
 ]
 
 // === Gangguan ===
+// Status putus bertahan lewat muat ulang halaman — supaya "app dibuka tanpa
+// sinyal" bisa dicoba: putus(true), lalu muat ulang.
+const KUNCI_PUTUS = 'tiruan_putus'
 const gangguan = {
-  putus: false,        // semua panggilan gagal seperti WiFi mati
+  putus: (() => { try { return localStorage.getItem(KUNCI_PUTUS) === '1' } catch (_) { return false } })(),
   hilangBalasan: 0,    // n tulisan berikutnya SAMPAI di "server" tapi balasannya hilang
   tolak: 0,            // n tulisan berikutnya DITOLAK server (seperti pelanggaran RLS)
   jeda: [120, 260],    // ms, acak di antaranya
@@ -366,6 +369,7 @@ if (typeof window !== 'undefined') {
     // __tiruan.putus(true) — semua panggilan gagal; false — sambung lagi
     putus(nyala = true) {
       gangguan.putus = !!nyala
+      try { localStorage.setItem(KUNCI_PUTUS, nyala ? '1' : '0') } catch (_) { /* abaikan */ }
       pendengarStatus.forEach(f => f(nyala ? 'offline' : 'online'))
       return 'jaringan ' + (nyala ? 'PUTUS' : 'tersambung')
     },

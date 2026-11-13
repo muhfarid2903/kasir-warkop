@@ -158,10 +158,10 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
   function setEditQtyVal(id, val) { setEditQty(prev => ({...prev, [id]: Math.max(0, parseInt(val)||0)})); }
   function addEditExpense(){ setEditExpenses(prev=>[...prev,{desc:'',amount:0}]); }
   function removeEditExpense(i){ setEditExpenses(prev=>prev.filter((_,idx)=>idx!==i)); }
-  function updateEditExpense(i,field,val){ setEditExpenses(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?(parseInt(val)||0):val}:e)); }
+  function updateEditExpense(i,field,val){ setEditExpenses(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function addEditCashIn(){ setEditCashIns(prev=>[...prev,{desc:'',amount:0}]); }
   function removeEditCashIn(i){ setEditCashIns(prev=>prev.filter((_,idx)=>idx!==i)); }
-  function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?(parseInt(val)||0):val}:e)); }
+  function updateEditCashIn(i,field,val){ setEditCashIns(prev=>prev.map((e,idx)=>idx===i?{...e,[field]:field==='amount'?Math.max(0,parseInt(val)||0):val}:e)); }
   function setEditVoucherVal(tokoId, field, val) { setEditVoucher(prev => ({...prev, [tokoId]: {...(prev[tokoId]||{drop:'0',laku:'0'}), [field]: val}})); }
 
   async function saveEdit() {

@@ -11,7 +11,7 @@ import { Icon } from '../components/Icon.jsx'
 
 // Drop & laku voucher 2000 per toko, per hari. selectedDate dipegang App
 // karena dipakai bareng halaman Hari Ini.
-export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
+export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, voucherToko, setVoucherToko, session, tandaiTulis }) {
   const [voucherDraft, setVoucherDraft] = useState({});
   const [voucherSaving, setVoucherSaving] = useState(false);
   const [voucherInfoOpen, setVoucherInfoOpen] = useState(false);
@@ -93,7 +93,7 @@ export default function VoucherToko({ selectedDate, setSelectedDate, voucherToko
               <span>{fmtDateShort(selectedDate)}</span>
               <span className="chev">▾</span>
             </button>
-            <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/>
+            <input ref={voucherDateRef} type="date" className="date-input-hidden" min={VOUCHER_TOKO_CUTOFF} max={hariIni} value={selectedDate} onChange={e=>{ if (e.target.value && e.target.value <= hariIni) setSelectedDate(e.target.value); }}/>
             <button type="button" className={"info-toggle"+(voucherInfoOpen?" active":"")} onClick={()=>setVoucherInfoOpen(v=>!v)} title="Info Drop & Laku" aria-label="Info">
               <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,lineHeight:1}}>?</span>
             </button>

@@ -53,6 +53,7 @@ function App() {
     syncStatus, loading,
     loadAllDetails, detailsReady, ensureDetail,
     pending, tandaiTulis,
+    dataPer, dataKosong,
   } = useWarkopData(session);
   const [theme, setTheme] = useTheme();
   const [sidebarOpen, setSidebarOpen] = useSidebar();
@@ -266,6 +267,7 @@ function App() {
          <div className="page-cinema" key={page}>
           {page==="input" && (
             <HariIni
+              hariIni={hariIni} dataPer={dataPer} dataKosong={dataKosong}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               entries={entries} setEntries={setEntries}
               voucherToko={voucherToko}
@@ -278,6 +280,7 @@ function App() {
 
           {page==="voucher" && (
             <VoucherToko
+              hariIni={hariIni}
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               voucherToko={voucherToko} setVoucherToko={setVoucherToko}
               session={session}

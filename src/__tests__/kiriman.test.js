@@ -86,3 +86,21 @@ describe('balasan simpan hilang di jalan', () => {
     expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 })
+
+describe('tebakan layar untuk baris ringkas (RENCANA 1.6)', () => {
+  it('menambah ke angka yang ada, bukan menggantinya dengan input saja', async () => {
+    const { tambahRingkas } = await import('../model.js')
+    const ringkas = { date: '2026-11-13', totalPenjualan: 48000, gaji: 10400, totalPengeluaran: 26000 }
+    const t = tambahRingkas(ringkas, '2026-11-13', { quantities: { kopilain: 2 }, expenses: [{ desc: 'Gelas', amount: 9000 }], cashIns: [] })
+    expect(t).toEqual({ date: '2026-11-13', totalPenjualan: 60000, gaji: 13000, totalPengeluaran: 35000 })
+    expect(t.quantities).toBeUndefined()   // tetap ringkas — detailnya belum ada
+  })
+})
+
+describe('nominal negatif (RENCANA 1.7)', () => {
+  it('tidak pernah membalik arah uang', () => {
+    const e = accumulateEntry(null, '2026-11-13', { quantities: {}, expenses: [{ desc: 'Susu', amount: -28000 }], cashIns: [{ desc: 'bayar', amount: -5000 }] })
+    expect(e.totalPengeluaran).toBe(0)
+    expect(e.expenses.every(x => x.amount >= 0)).toBe(true)
+  })
+})
