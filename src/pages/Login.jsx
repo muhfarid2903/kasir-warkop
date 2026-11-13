@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { signIn, modeTiruan, AKUN_TIRUAN } from '../db.js'
+import { pesanGalat } from '../format.js'
 import { Logo } from '../components/Logo.jsx'
 
 // Hanya masuk, tidak ada daftar. Pendaftaran publik dimatikan di Supabase
@@ -16,7 +17,7 @@ export default function LoginScreen({ onSession }) {
     e.preventDefault(); setErr(''); setBusy(true);
     try {
       onSession(await signIn(email, password));
-    } catch(ex) { setErr(ex.message || 'Gagal'); }
+    } catch(ex) { setErr(pesanGalat(ex)); }
     setBusy(false);
   }
 

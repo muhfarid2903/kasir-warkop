@@ -5,7 +5,7 @@ import {
   getPayPeriods, voucherInRange, voucherStockPerToko, voucherStockBefore,
 } from '../model.js'
 import { tandaJejak, rincianVoucher } from '../jejak.js'
-import { IDR, ML, fmtDate, fmtDateShort } from '../format.js'
+import { IDR, ML, fmtDate, fmtDateShort, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { Icon } from '../components/Icon.jsx'
 
@@ -79,7 +79,7 @@ export default function VoucherToko({ hariIni, selectedDate, setSelectedDate, vo
       showToast(hasil === 'diantre'
         ? 'Belum ada sinyal — voucher disimpan di HP, terkirim otomatis nanti'
         : 'Voucher tersimpan · '+fmtDate(selectedDate));
-    } catch(e) { showToast('Gagal simpan voucher: '+e.message); }
+    } catch(e) { showToast('Voucher belum tersimpan: '+pesanGalat(e), 'gagal'); }
     setVoucherSaving(false);
   }
 

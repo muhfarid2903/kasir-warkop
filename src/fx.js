@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { bunyi, bangunkan } from './sfx.js'
+import { bunyi, bangunkan, getar } from './sfx.js'
 
 // Umpan balik sentuhan untuk SELURUH app, dipasang sekali di App lewat satu
 // listener di document — bukan ditempel satu per satu ke tiap tombol. Alasannya
@@ -82,6 +82,7 @@ export function denyut(el, kelas, ms = 400) {
 // ke sini supaya jari yang cuma lewat tidak ikut membunyikan kasir.
 export function rayakan(e, nama = 'ketuk') {
   bunyi(nama);
+  getar(10);
   if (!e) return;
   riak(e.clientX, e.clientY, 190);
   // currentTarget masih terisi selama handler berjalan — itu kartu/chip yang

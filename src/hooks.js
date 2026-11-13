@@ -242,7 +242,7 @@ export function useWarkopData(session) {
       if (batal || outboxSize() === 0) return;
       const { terkirim, sisa, ditolak } = await flushOutbox();
       if (batal) return;
-      if (ditolak > 0) showToast(ditolak+' kiriman ditolak server — ketuk "gagal terkirim" di atas');
+      if (ditolak > 0) showToast(ditolak+' kiriman ditolak server — ketuk "gagal terkirim" di atas', 'gagal');
       // Antrean habis: ambil angka pasti dari server, menggantikan tebakan
       // lokal yang dipasang saat input diantre.
       if (terkirim > 0 && sisa === 0) { setSyncStatus('online'); tarik(); }
