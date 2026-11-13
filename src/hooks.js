@@ -278,6 +278,30 @@ export function useWarkopData(session) {
     setSyncStatus(prev => prev === 'not_configured' ? prev : (hasil === 'diantre' ? 'offline' : 'online'));
   }, []);
 
+  // Jejak seluruh tanggal, sekali per pengguna. Dipakai Riwayat dan kartu
+  // "Tercatat" di Hari Ini; realtime yang menjaga tetap segar setelahnya.
+  //
+  // Penanda dinyalakan SEBELUM menarik, lalu hasilnya digabung: input orang
+  // lain yang masuk persis selagi halaman ini memuat datang lewat realtime,
+  // dan kalau ditunggu sampai selesai, baris itu hilang sampai app dibuka
+  // lagi. Gagalnya dibiarkan tanpa suara: tabelnya opsional.
+  const pastikanJejak = useCallback(() => {
+    if (jejakLoaded.current) return;
+    jejakLoaded.current = true;
+    loadJejak().then(({ data: jmap, error: jerr }) => {
+      if (jerr) { jejakLoaded.current = false; return; }
+      setJejak(prev => {
+        const next = { ...jmap };
+        Object.keys(prev).forEach(d => {
+          const sudahAda = new Set((next[d] || []).map(j => j.id));
+          const susulan = prev[d].filter(j => !sudahAda.has(j.id));
+          if (susulan.length) next[d] = [...(next[d] || []), ...susulan].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu)));
+        });
+        return next;
+      });
+    });
+  }, []);
+
   // Tarik SEMUA entri lengkap. Dipanggil saat tab Riwayat dibuka. Sekali saja
   // per pengguna — realtime dan tarik() yang menjaga tetap segar setelahnya.
   const loadAllDetails = useCallback(async () => {
@@ -295,28 +319,12 @@ export function useWarkopData(session) {
     // dibiarkan tanpa suara: tabelnya opsional (lihat jejak_migration.sql),
     // dan riwayat uangnya tetap utuh walau daftar penginputnya kosong.
     //
-    // Penanda dinyalakan SEBELUM menarik, lalu hasilnya digabung: input orang
-    // lain yang masuk persis selagi halaman ini memuat datang lewat realtime,
-    // dan kalau ditunggu sampai selesai, baris itu hilang sampai app dibuka
-    // lagi.
-    jejakLoaded.current = true;
-    loadJejak().then(({ data: jmap, error: jerr }) => {
-      if (jerr) { jejakLoaded.current = false; return; }
-      setJejak(prev => {
-        const next = { ...jmap };
-        Object.keys(prev).forEach(d => {
-          const sudahAda = new Set((next[d] || []).map(j => j.id));
-          const susulan = prev[d].filter(j => !sudahAda.has(j.id));
-          if (susulan.length) next[d] = [...(next[d] || []), ...susulan].sort((a,b) => String(a.waktu).localeCompare(String(b.waktu)));
-        });
-        return next;
-      });
-    });
+    pastikanJejak();
     // Baris lengkap menimpa yang ringkas; tanggal yang cuma ada di ringkas
     // (mustahil, tapi murah untuk dijaga) tetap dipertahankan.
     setEntries(prev => ({ ...prev, ...data }));
     setDetailsReady(true);
-  }, []);
+  }, [pastikanJejak]);
 
   // Pastikan satu tanggal punya baris lengkap. Dipakai Hari Ini, yang perlu
   // quantities & expenses tanggal terpilih untuk menumpuk input di atasnya.
@@ -343,6 +351,7 @@ export function useWarkopData(session) {
     pending, tandaiTulis,
     dataPer, dataKosong,
     hitungKas, setHitungKas, fitur,
+    pastikanJejak,
   };
 }
 

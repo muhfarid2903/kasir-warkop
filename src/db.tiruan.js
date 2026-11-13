@@ -214,6 +214,29 @@ export async function signIn(email, password) {
   return sesi
 }
 
+const pendengarPemulihan = new Set()
+
+export async function kirimTautanPassword(email) {
+  await jedaJaringan()
+  if (gangguan.putus) throw galatJaringan()
+  if (!AKUN_TIRUAN.some(a => a.email === String(email).trim().toLowerCase())) return   // Supabase juga diam untuk email tak dikenal
+  console.info('[tiruan] tautan ganti password "terkirim" ke', email, '— picu dengan __tiruan.bukaTautanPassword()')
+}
+
+export async function gantiPassword(baru) {
+  await jedaJaringan()
+  if (gangguan.putus) throw galatJaringan()
+  const u = sesiTersimpan()?.user
+  const akun = AKUN_TIRUAN.find(a => a.id === u?.id)
+  if (!akun) throw new Error('Auth session missing!')
+  akun.password = baru   // hanya selama tab ini hidup; database tiruan tidak menyimpan password
+}
+
+export function onPemulihanPassword(handler) {
+  pendengarPemulihan.add(handler)
+  return () => pendengarPemulihan.delete(handler)
+}
+
 export async function signOut() {
   try { localStorage.removeItem(KUNCI_SESI) } catch (_) { /* abaikan */ }
   siarkanAuth('SIGNED_OUT')
@@ -406,6 +429,14 @@ if (typeof window !== 'undefined') {
     // __tiruan.kirimAuth() — event auth dengan objek sesi baru, seperti yang
     // dikirim supabase-js saat token diperbarui (RENCANA 1.1).
     kirimAuth(jenis = 'TOKEN_REFRESHED') { siarkanAuth(jenis); return 'terkirim: ' + jenis },
+    // __tiruan.bukaTautanPassword() — seolah tautan "lupa password" di email
+    // dibuka: masuk sebagai pemilik lalu tampilkan formulir password baru.
+    bukaTautanPassword() {
+      try { localStorage.setItem(KUNCI_SESI, JSON.stringify(sesiUntuk(AKUN_TIRUAN[0]))) } catch (_) { /* abaikan */ }
+      siarkanAuth('SIGNED_IN')
+      pendengarPemulihan.forEach(f => f())
+      return 'formulir password baru seharusnya tampil'
+    },
     // __tiruan.lambat(2000) — jeda jaringan dalam ms
     lambat(ms = 1500) { gangguan.jeda = [ms, ms]; return 'jeda ' + ms + ' ms' },
     // __tiruan.reset() — buang semua data tiruan dan bibit ulang

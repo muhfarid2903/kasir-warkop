@@ -6,6 +6,7 @@ import { IDR, pesanGalat } from '../format.js'
 import { showToast } from '../toast.js'
 import { bunyi } from '../sfx.js'
 import { Icon } from './Icon.jsx'
+import { InputNominal } from './InputNominal.jsx'
 
 // Cocokkan kas: uang di laci dihitung, dibandingkan dengan Kas Toko di app,
 // dan hasilnya dicatat (tabel hitung_kas). Karena gaji Jaya dibayar harian dari
@@ -75,9 +76,9 @@ export default function CocokkanKas({ session, sistem, hariIni, onTutup, onTerca
             <p className="lembar-pengantar">Hitung uang di laci, lalu tulis jumlahnya.</p>
             <div className="cocok-baris"><span>Kas Toko menurut app</span><strong>{IDR(sistem)}</strong></div>
             <label className="form-label" htmlFor="kas-fisik">Uang di laci</label>
-            <input
-              id="kas-fisik" className="form-input cocok-input" type="number" inputMode="numeric" autoFocus
-              placeholder="0" value={fisik} onChange={e => setFisik(e.target.value)}
+            <InputNominal
+              id="kas-fisik" className="form-input cocok-input" autoFocus placeholder="0"
+              value={fisik} onChange={v => setFisik(v ? String(v) : '')}
               onKeyDown={e => { if (e.key === 'Enter') simpan(); }}
             />
             {adaAngka && (

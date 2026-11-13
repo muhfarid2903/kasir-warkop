@@ -113,6 +113,27 @@ export async function signOut() {
   await sb.auth.signOut()
 }
 
+// Lupa password: Supabase mengirim email berisi tautan kembali ke situs ini.
+// Begitu tautan itu dibuka, supabase-js memancarkan PASSWORD_RECOVERY dan app
+// menampilkan formulir password baru (lihat onPemulihanPassword).
+// Syarat di Dashboard: Authentication → URL Configuration → Site URL / Redirect
+// URLs memuat alamat app ini.
+export async function kirimTautanPassword(email) {
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+  if (error) throw error
+}
+
+export async function gantiPassword(baru) {
+  const { error } = await sb.auth.updateUser({ password: baru })
+  if (error) throw error
+}
+
+export function onPemulihanPassword(handler) {
+  if (!sb) return () => {}
+  const { data: sub } = sb.auth.onAuthStateChange((e) => { if (e === 'PASSWORD_RECOVERY') handler() })
+  return () => sub.subscription.unsubscribe()
+}
+
 // === Saldo awal (tabel config) ===
 
 // null = belum pernah diisi; pemanggil membiarkan nilai lamanya.

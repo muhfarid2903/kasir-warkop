@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { saveEntry as dbSaveEntry, saveVoucherToko as dbSaveVoucherToko } from '../db.js'
-import { kirimAtauAntre } from '../outbox.js'
+import { kirimAtauAntre, idKiriman, batalkanAntrean } from '../outbox.js'
+import LembarHapus from '../components/LembarHapus.jsx'
 import {
   PRODUCTS, TOKO, VOUCHER_TOKO_CUTOFF, V2K,
   voucherForDate, voucherStockBefore, buildEntry, entryDayTotals, splitExpenses, todayISO, V2K_SETORAN,
@@ -15,6 +16,7 @@ import { showToast } from '../toast.js'
 import { exportRiwayatCSV } from '../csv.js'
 import { useEntryEditor } from '../hooks.js'
 import { Icon } from '../components/Icon.jsx'
+import { InputNominal } from '../components/InputNominal.jsx'
 import { ProductIcon } from '../components/ProductIcon.jsx'
 import { SkeletonInput } from '../components/Skeleton.jsx'
 
@@ -133,14 +135,32 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
     } catch(e) { showToast('Saldo awal belum tersimpan: '+pesanGalat(e), 'gagal'); }
   }
 
+  const [akanHapus, setAkanHapus] = useState(null);   // tanggal yang sedang dikonfirmasi
+
   async function deleteEntry(date) {
-    if(!confirm('Yakin hapus data tanggal '+fmtDate(date)+'?')) return;
+    setAkanHapus(null);
+    // Salinan lengkap diambil SEBELUM dihapus — dipakai Urungkan, dan ikut
+    // tersimpan di jejak (rincianHapus) untuk pemulihan manual.
+    const salinan = entries[date];
     try {
-      const jejakHapus = tandaJejak(session, 'hapus', rincianHapus(entries[date]));
-      const hasil = await kirimAtauAntre({ type:'hapusEntri', date, jejak:jejakHapus });
+      const jejakHapus = tandaJejak(session, 'hapus', rincianHapus(salinan));
+      const idOp = idKiriman();
+      const hasil = await kirimAtauAntre({ type:'hapusEntri', id:idOp, date, jejak:jejakHapus });
       tandaiTulis(hasil);
-      showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Entri dihapus');
+      setEntries(prev => { const n = { ...prev }; delete n[date]; return n; });
+      showToast(hasil === 'diantre' ? 'Penghapusan menunggu sinyal' : 'Data '+fmtDate(date)+' dihapus', 'info',
+        { label: 'Urungkan', fn: () => urungkanHapus({ id: idOp, hasil, salinan }) });
     } catch(e) { showToast('Belum terhapus: '+pesanGalat(e), 'gagal'); }
+  }
+
+  async function urungkanHapus({ id, hasil, salinan }) {
+    const pulihkanLokal = () => setEntries(prev => ({ ...prev, [salinan.date]: salinan }));
+    if (hasil === 'diantre' && batalkanAntrean(id)) { pulihkanLokal(); showToast('Penghapusan dibatalkan'); return; }
+    try {
+      await dbSaveEntry(salinan, tandaJejak(session, 'ubah', rincianUbah(null, salinan, { pulih: true })));
+      pulihkanLokal();
+      showToast('Data '+fmtDate(salinan.date)+' dipulihkan');
+    } catch(e) { showToast('Belum bisa dipulihkan: '+pesanGalat(e), 'gagal'); }
   }
 
   // === Edit entri (mengganti nilai, bukan menambah) ===
@@ -240,7 +260,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
               <span className="lbl"><Icon type="coins" size={14}/> Saldo Awal</span>
               {editingSaldo ? (
                 <>
-                  <input className="expense-amount" style={{maxWidth:150,textAlign:"left"}} type="number" inputMode="numeric" autoFocus placeholder="0" value={saldoInput} onChange={e=>setSaldoInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
+                  <InputNominal autoFocus placeholder="0" ariaLabel="Saldo awal" value={saldoInput} onChange={v=>setSaldoInput(v)} onKeyDown={e=>{if(e.key==='Enter')saveInitialSaldo(saldoInput)}}/>
                   <button className="btn btn-primary btn-sm" onClick={()=>saveInitialSaldo(saldoInput)}>Simpan</button>
                   <button className="btn btn-ghost btn-sm" onClick={()=>setEditingSaldo(false)}>Batal</button>
                 </>
@@ -413,7 +433,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                         {editExpenses.map((x,i)=>(
                           <div key={i} className="expense-row">
                             <input className="expense-input" type="text" placeholder="Keterangan…" value={x.desc} onChange={ev=>updateEditExpense(i,'desc',ev.target.value)}/>
-                            <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditExpense(i,'amount',ev.target.value)}/>
+                            <InputNominal value={x.amount} onChange={v=>updateEditExpense(i,'amount',v)}/>
                             <button className="del-btn" onClick={()=>removeEditExpense(i)}>×</button>
                           </div>
                         ))}
@@ -422,7 +442,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                         {editCashIns.map((x,i)=>(
                           <div key={i} className="expense-row">
                             <input className="expense-input" type="text" placeholder="Cth: bayar hutang…" value={x.desc} onChange={ev=>updateEditCashIn(i,'desc',ev.target.value)}/>
-                            <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditCashIn(i,'amount',ev.target.value)}/>
+                            <InputNominal value={x.amount} onChange={v=>updateEditCashIn(i,'amount',v)}/>
                             <button className="del-btn" onClick={()=>removeEditCashIn(i)}>×</button>
                           </div>
                         ))}
@@ -431,7 +451,7 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                         {editSetors.map((x,i)=>(
                           <div key={i} className="expense-row">
                             <input className="expense-input" type="text" placeholder="Cth: setor ke kas pemilik…" value={x.desc} onChange={ev=>updateEditSetor(i,'desc',ev.target.value)}/>
-                            <input className="expense-amount" type="number" inputMode="numeric" placeholder="Jumlah" value={x.amount||''} onChange={ev=>updateEditSetor(i,'amount',ev.target.value)}/>
+                            <InputNominal value={x.amount} onChange={v=>updateEditSetor(i,'amount',v)}/>
                             <button className="del-btn" onClick={()=>removeEditSetor(i)}>×</button>
                           </div>
                         ))}
@@ -519,13 +539,16 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                     <JejakHari list={jejakHari}/>
                     <div style={{display:"flex",gap:8,marginTop:14}}>
                       <button className="btn btn-primary" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();startEdit(e);}}><Icon type="pencil" size={14}/> Edit</button>
-                      <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();deleteEntry(e.date);}}><Icon type="trash" size={14}/> Hapus</button>
+                      <button className="btn btn-danger" style={{flex:1,padding:"10px"}} onClick={(ev)=>{ev.stopPropagation();setAkanHapus(e.date);}}><Icon type="trash" size={14}/> Hapus</button>
                     </div>
                   </div>
                 )}
               </div>
             );
           })}
+          {akanHapus && entries[akanHapus] && (
+            <LembarHapus entry={entries[akanHapus]} voucherToko={voucherToko} onHapus={()=>deleteEntry(akanHapus)} onTutup={()=>setAkanHapus(null)}/>
+          )}
     </>
   );
 }
