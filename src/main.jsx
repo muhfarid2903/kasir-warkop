@@ -5,14 +5,17 @@ import { modeTiruan } from './db.js'
 // Font di-bundle lewat @fontsource — pengganti Google Fonts CDN. Warung kopi
 // sering pakai WiFi lambat: satu permintaan ke host pihak ketiga yang gagal
 // bikin teks kedip ganti font, atau app terasa menggantung saat dibuka.
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/400-italic.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
-import '@fontsource/inter/800.css'
-import '@fontsource/jetbrains-mono/400.css'
-import '@fontsource/jetbrains-mono/500.css'
+//
+// Subset latin saja: berkas tanpa awalan memuat @font-face untuk cyrillic,
+// greek, vietnamese, dst. — 102 berkas font dan CSS 101 KB untuk aksara yang
+// tidak pernah tampil di sini. Inter 800 dibuang: tidak dipakai di mana pun.
+import '@fontsource/inter/latin-400.css'
+import '@fontsource/inter/latin-400-italic.css'
+import '@fontsource/inter/latin-500.css'
+import '@fontsource/inter/latin-600.css'
+import '@fontsource/inter/latin-700.css'
+import '@fontsource/jetbrains-mono/latin-400.css'
+import '@fontsource/jetbrains-mono/latin-500.css'
 import './styles.css'
 
 // Versi baru sudah diunduh. Dulu cuma toast 2,6 detik yang mudah terlewat;

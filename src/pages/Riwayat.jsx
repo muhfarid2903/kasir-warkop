@@ -378,12 +378,12 @@ export default function Riwayat({ entries, setEntries, voucherToko, setVoucherTo
                               <div key={t.id} className="expense-row" style={{alignItems:"center"}}>
                                 <span className="detail-item-name" style={{flex:1,display:"inline-flex",alignItems:"center",gap:6,minWidth:0}}>
                                   <Icon type="store" size={13}/> {t.name}
-                                  {over && <span style={{color:"var(--red)",fontSize:11,whiteSpace:"nowrap"}}>· &gt; stok</span>}
+                                  {over && <span style={{color:"var(--red)",fontSize:12,whiteSpace:"nowrap"}}>· &gt; stok</span>}
                                 </span>
-                                <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--text3)"}}>Drop
+                                <label style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"var(--text3)"}}>Drop
                                   <input className="expense-amount" style={{maxWidth:64}} type="number" inputMode="numeric" min="0" placeholder="0" value={dr.drop} onChange={ev=>setEditVoucherVal(t.id,'drop',ev.target.value)}/>
                                 </label>
-                                <label style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--text3)"}}>Laku
+                                <label style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"var(--text3)"}}>Laku
                                   <input className="expense-amount" style={{maxWidth:64,...(over?{borderColor:"var(--red)",color:"var(--red)"}:{})}} type="number" inputMode="numeric" min="0" placeholder="0" value={dr.laku} onChange={ev=>setEditVoucherVal(t.id,'laku',ev.target.value)}/>
                                 </label>
                               </div>

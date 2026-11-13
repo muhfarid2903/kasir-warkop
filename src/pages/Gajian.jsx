@@ -87,7 +87,7 @@ export default function Gajian({ entries, voucherToko }) {
 
                     {overflowEntries.length>0 && (
                       <div style={{borderBottom:"1px dashed var(--border)",marginBottom:4,paddingBottom:4}}>
-                        <div style={{fontSize:10,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px",display:"flex",alignItems:"center",gap:6}}><Icon type="arrow-up" size={11}/> Sisa dari {ML[p.prevMonth]}</div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--orange)",letterSpacing:".06em",textTransform:"uppercase",padding:"4px 0 6px",display:"flex",alignItems:"center",gap:6}}><Icon type="arrow-up" size={11}/> Sisa dari {ML[p.prevMonth]}</div>
                         {p.overflowDays.map(d => {
                           const dd = String(d).padStart(2,'0');
                           const dateStr = p.prevYear+'-'+String(p.prevMonth+1).padStart(2,'0')+'-'+dd;
